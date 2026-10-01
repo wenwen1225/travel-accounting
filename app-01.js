@@ -96,7 +96,8 @@ function cloudPayloadForTrip(trip){
     start:trip.start,
     end:trip.end,
     currency:trip.currency,
-    people:trip.people
+    people:trip.people,
+    cards:state.cards || []
   };
 }
 
@@ -107,6 +108,7 @@ function cloudPayloadForRecord(action, trip, item){
     spreadsheetId:trip.spreadsheetId || '',
     tripName:trip.name,
     currency:trip.currency,
+    cards:state.cards || [],
     record:item
   };
 }
