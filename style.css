@@ -657,3 +657,38 @@
   font-weight:800;
   color:var(--primary-dark);
 }
+
+
+/* 全部紀錄搜尋 / 篩選 */
+.records-filter-card{
+  padding:16px;
+  margin-bottom:12px;
+}
+.records-filter-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.records-filter-grid .form-group{
+  margin-bottom:0;
+}
+.records-filter-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:12px;
+}
+.records-filter-footer .pill{
+  flex:0 0 auto;
+}
+
+@media (max-width:480px){
+  .records-filter-grid{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .records-filter-card{
+    padding:14px;
+  }
+}
