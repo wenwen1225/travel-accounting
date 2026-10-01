@@ -427,3 +427,41 @@
       .app{min-height:calc(100vh - 48px);border-radius:32px;overflow:hidden;box-shadow:0 20px 60px rgba(31,41,55,.12)}
       .bottom-nav{bottom:24px;border-radius:0 0 32px 32px}
     }
+
+/* 首頁同步狀態 */
+.home-sync-wrap{
+  padding-top:0;
+  padding-bottom:2px;
+}
+.home-sync-status{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:11px 14px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  background:#fff;
+  color:var(--muted);
+  font-weight:800;
+  font-size:13px;
+  box-shadow:0 6px 18px rgba(31,41,55,.05);
+  text-align:left;
+}
+.home-sync-status span:first-child{
+  font-size:12px;
+}
+.home-sync-ok{
+  background:#f1fbf7;
+  color:var(--success);
+  border-color:#d8f2e7;
+}
+.home-sync-pending{
+  background:#fff8eb;
+  color:var(--warning);
+  border-color:#f7e6bf;
+}
+.home-sync-local{
+  background:#f7f4fb;
+  color:var(--muted);
+}
