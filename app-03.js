@@ -37,9 +37,16 @@ function recordHtml(x){
   const foreignText = x.foreign ? `${currencySymbol(currentTrip.currency)}${Number(x.foreign).toLocaleString('en-US')}` : '';
   const twdMissing = x.type === '購買商品' && (x.twd === null || x.twd === '' || Number(x.twd) === 0);
   const twdText = twdMissing ? '<span class="pending-badge">待補台幣</span>' : fmtMoney(x.twd||0,'TWD');
-  const editable = x.type === '購買商品';
+  const editable = ['購買商品','先前費用','換匯'].includes(x.type);
+  const clickAction = x.type === '購買商品'
+    ? `editExpense('${x.id}')`
+    : x.type === '先前費用'
+      ? `editPretrip('${x.id}')`
+      : x.type === '換匯'
+        ? `editExchange('${x.id}')`
+        : '';
   return `
-    <div class="record ${editable?'editable':''}" ${editable?`onclick="editExpense('${x.id}')"`:''}>
+    <div class="record ${editable?'editable':''}" ${editable?`onclick="${clickAction}"`:''}>
       <div class="avatar person-avatar ${personClass(x.person||'')}">${(x.person||'?').slice(0,1).toUpperCase()}</div>
       <div class="record-main">
         <strong>${x.name || x.type || '紀錄'}</strong>
@@ -69,6 +76,8 @@ function editExpense(id){
   selectedPerson = item.person;
   renderPersonChips('personChips',selectedPerson,'selectPerson');
   selectPay(item.pay || '信用卡');
+  document.getElementById('expenseDate').min = currentTrip.start;
+  document.getElementById('expenseDate').max = currentTrip.end;
   document.getElementById('expenseDate').value = item.date || '';
   document.getElementById('expenseQty').value = item.qty || 1;
   document.getElementById('expenseName').value = item.name || '';
@@ -113,9 +122,11 @@ function resetExpenseForm(){
   if(deleteBtn) deleteBtn.classList.add('hidden');
   selectedPay = '信用卡';
 
-  const today = new Date().toISOString().slice(0,10);
+  const defaultDate = currentTrip ? currentTrip.start : new Date().toISOString().slice(0,10);
 
-  document.getElementById('expenseDate').value = today;
+  document.getElementById('expenseDate').min = currentTrip ? currentTrip.start : '';
+  document.getElementById('expenseDate').max = currentTrip ? currentTrip.end : '';
+  document.getElementById('expenseDate').value = defaultDate;
   document.getElementById('expenseQty').value = 1;
   document.getElementById('expenseName').value = '';
   document.getElementById('expenseForeign').value = '';
@@ -138,3 +149,49 @@ function resetExpenseForm(){
   clearRequiredErrors();
 }
 
+
+function editPretrip(id){
+  const item = (currentTrip.pretrip||[]).find(x=>x.id===id);
+  if(!item) return;
+  editingPretripId = id;
+  document.getElementById('deletePretripBtn').classList.remove('hidden');
+  document.getElementById('expenseForm').classList.add('hidden');
+  document.getElementById('pretripForm').classList.remove('hidden');
+  document.getElementById('exchangeForm').classList.add('hidden');
+  fillCards();
+  document.getElementById('addTitle').textContent='修改先前費用';
+  document.getElementById('addSubtitle').textContent=currentTrip.name;
+  selectedPretripPerson = item.person || currentTrip.people[0];
+  renderPersonChips('pretripPersonChips',selectedPretripPerson,'selectPretripPerson');
+  document.getElementById('pretripName').value=item.name||'';
+  document.getElementById('pretripDate').value=item.date||'';
+  document.getElementById('pretripPay').value=item.pay||'信用卡';
+  document.getElementById('pretripTwd').value=item.twd?Number(item.twd).toLocaleString('en-US'):'';
+  document.getElementById('pretripForeign').value=item.foreign?Number(item.foreign).toLocaleString('en-US'):'';
+  document.getElementById('pretripCard').value=item.card||'';
+  document.getElementById('pretripNote').value=item.note||'';
+  document.getElementById('pretripForeignLabel').textContent=`外幣金額 ${currentTrip.currency}`;
+  document.getElementById('pretripForeignSymbol').textContent=currencySymbol(currentTrip.currency);
+  showPage('page-add');
+}
+
+function editExchange(id){
+  const item = (currentTrip.exchange||[]).find(x=>x.id===id);
+  if(!item) return;
+  editingExchangeId = id;
+  document.getElementById('deleteExchangeBtn').classList.remove('hidden');
+  document.getElementById('expenseForm').classList.add('hidden');
+  document.getElementById('pretripForm').classList.add('hidden');
+  document.getElementById('exchangeForm').classList.remove('hidden');
+  document.getElementById('addTitle').textContent='修改換匯紀錄';
+  document.getElementById('addSubtitle').textContent=currentTrip.name;
+  document.getElementById('exchangeDate').value=item.date||'';
+  document.getElementById('exchangeTwd').value=item.twd?Number(item.twd).toLocaleString('en-US'):'';
+  document.getElementById('exchangeForeign').value=item.foreign?Number(item.foreign).toLocaleString('en-US'):'';
+  document.getElementById('exchangeRate').value=item.rate||'';
+  document.getElementById('exchangePlace').value=item.place||'';
+  document.getElementById('exchangeNote').value=item.note||'';
+  document.getElementById('exchangeForeignLabel').textContent=`${currentTrip.currency} 外幣`;
+  document.getElementById('exchangeForeignSymbol').textContent=currencySymbol(currentTrip.currency);
+  showPage('page-add');
+}
