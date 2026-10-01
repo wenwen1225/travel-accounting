@@ -164,6 +164,7 @@ function goSettings(){
 
 function renderSettings(){
   setTimeout(updateCloudStatusUI,0);
+  setTimeout(renderSyncErrorDetails,0);
   document.getElementById('peopleSettings').innerHTML = state.people.map((p,i)=>`
     <div class="setting-row">
       <div><strong><span class="${personClass(p)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--person);margin-right:7px"></span>${p}</strong><br><span>${i===0?'預設自己':'記帳對象'}</span></div>
@@ -207,4 +208,41 @@ function normalizeTripDateValue(value){
     return `${y}-${m}-${d}`;
   }
   return String(value).slice(0,10);
+}
+
+
+function syncQueueLabel(q){
+  if(q.action==='createTrip') return '建立旅行';
+  if(q.recordType==='expenses') return '購買商品';
+  if(q.recordType==='pretrip') return '先前費用';
+  if(q.recordType==='exchange') return '換匯紀錄';
+  return '同步資料';
+}
+
+function renderSyncErrorDetails(){
+  const box=document.getElementById('syncErrorDetails');
+  if(!box) return;
+
+  const items=(state.syncQueue||[]).filter(q=>q.lastError);
+  if(!items.length){
+    box.innerHTML=state.syncQueue.length
+      ? '<div class="sync-error-empty">目前有待同步資料，系統會自動重試。</div>'
+      : '';
+    return;
+  }
+
+  box.innerHTML=
+    '<div class="tiny" style="font-weight:800;margin-top:4px">同步失敗明細</div>'+
+    items.map(q=>{
+      const trip=getTripById(q.tripId);
+      const record=q.payload && q.payload.record ? q.payload.record : null;
+      const title=record?.name || trip?.name || syncQueueLabel(q);
+      const date=record?.date ? ` · ${record.date}` : '';
+      return `
+        <div class="sync-error-card">
+          <strong>${syncQueueLabel(q)}｜${title}</strong>
+          <div class="sync-error-meta">${trip?.name || '旅行資料'}${date}</div>
+          <div class="sync-error-message">${q.lastError || '未知錯誤'}</div>
+        </div>`;
+    }).join('');
 }
