@@ -218,3 +218,109 @@ function getDefaultExpenseDate(){
   if(today > end) return end;
   return today;
 }
+
+
+function statsAmount(value){
+  return fmtMoney(Number(value||0),'TWD');
+}
+
+function statsKnownTwd(item){
+  return item && item.twd !== null && item.twd !== '' && Number(item.twd) > 0;
+}
+
+function statsBarRows(entries,total,emptyText){
+  if(!entries.length){
+    return '<div class="empty">'+emptyText+'</div>';
+  }
+
+  const max = Math.max(...entries.map(x=>x.amount),1);
+  return entries.map(entry=>{
+    const width = Math.max(4,Math.round((entry.amount/max)*100));
+    const share = total > 0 ? Math.round((entry.amount/total)*100) : 0;
+    return `
+      <div class="stats-row">
+        <div class="stats-row-head">
+          <span>${entry.label}</span>
+          <strong>${statsAmount(entry.amount)}</strong>
+        </div>
+        <div class="stats-bar"><span style="width:${width}%"></span></div>
+        <div class="stats-row-meta">${entry.count} 筆 · ${share}%</div>
+      </div>`;
+  }).join('');
+}
+
+function openTripStats(){
+  if(!currentTrip) return goHome();
+
+  const expenses = currentTrip.expenses || [];
+  const pretrip = currentTrip.pretrip || [];
+  const spendRecords = [...expenses,...pretrip];
+  const knownRecords = spendRecords.filter(statsKnownTwd);
+  const totalTwd = knownRecords.reduce((sum,item)=>sum+Number(item.twd||0),0);
+  const pendingCount = expenses.filter(item =>
+    item.twd === null || item.twd === '' || Number(item.twd) === 0
+  ).length;
+
+  document.getElementById('statsSubtitle').textContent =
+    currentTrip.name + ' · ' + tripDurationText(currentTrip.start,currentTrip.end);
+  document.getElementById('statsTotalTwd').textContent = statsAmount(totalTwd);
+  document.getElementById('statsRecordCount').textContent = spendRecords.length;
+  document.getElementById('statsPendingCount').textContent = pendingCount;
+  document.getElementById('statsKnownNote').textContent =
+    pendingCount ? '目前以已填台幣金額的紀錄計算' : '所有消費皆已計入台幣統計';
+
+  const peopleNames = [
+    ...(currentTrip.people || []),
+    ...spendRecords.map(x=>x.person).filter(Boolean)
+  ].filter((name,index,array)=>array.indexOf(name)===index);
+
+  const peopleStats = peopleNames.map(name=>{
+    const rows = knownRecords.filter(x=>x.person===name);
+    return {
+      label:name,
+      amount:rows.reduce((sum,x)=>sum+Number(x.twd||0),0),
+      count:spendRecords.filter(x=>x.person===name).length
+    };
+  }).sort((a,b)=>b.amount-a.amount);
+
+  document.getElementById('statsPeople').innerHTML =
+    statsBarRows(peopleStats,totalTwd,'目前還沒有可統計的個人支出');
+
+  const paymentMap = {};
+  spendRecords.forEach(item=>{
+    const label = item.pay || '未分類';
+    if(!paymentMap[label]) paymentMap[label]={label,amount:0,count:0};
+    paymentMap[label].count++;
+    if(statsKnownTwd(item)) paymentMap[label].amount += Number(item.twd||0);
+  });
+
+  const paymentStats = Object.values(paymentMap).sort((a,b)=>b.amount-a.amount);
+  document.getElementById('statsPayment').innerHTML =
+    statsBarRows(paymentStats,totalTwd,'目前還沒有付款方式資料');
+
+  const start = normalizeTripDateValue(currentTrip.start);
+  const end = normalizeTripDateValue(currentTrip.end);
+  const daily = {};
+
+  expenses.forEach(item=>{
+    const date = normalizeTripDateValue(item.date);
+    if(!date || date < start || date > end || !statsKnownTwd(item)) return;
+    if(!daily[date]) daily[date]={amount:0,count:0};
+    daily[date].amount += Number(item.twd||0);
+    daily[date].count++;
+  });
+
+  const topDay = Object.entries(daily)
+    .map(([date,data])=>({date,...data}))
+    .sort((a,b)=>b.amount-a.amount)[0];
+
+  document.getElementById('statsTopDay').innerHTML = topDay
+    ? `
+      <div class="stats-top-day-date">${topDay.date}</div>
+      <strong>${statsAmount(topDay.amount)}</strong>
+      <span>${topDay.count} 筆購買商品</span>
+    `
+    : '<div class="empty">目前還沒有已填台幣的旅途中消費</div>';
+
+  showPage('page-stats');
+}
