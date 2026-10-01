@@ -347,6 +347,32 @@ function openTripStats(){
   document.getElementById('statsPayment').innerHTML =
     statsBarRows(paymentStats,totalTwd,totalForeign,'目前還沒有付款方式資料');
 
+  const purchaseGroups = [
+    {label:'信用卡個人支出', pays:['信用卡']},
+    {label:'現金共同支出', pays:['現金']},
+    {label:'Wowpass 共同支出', pays:['Wowpass']}
+  ].map(group=>{
+    const rows = expenses.filter(x=>group.pays.includes(x.pay));
+    const knownRows = rows.filter(statsKnownTwd);
+    return {
+      label:group.label,
+      twdAmount:knownRows.reduce((sum,x)=>sum+Number(x.twd||0),0),
+      foreignAmount:rows.reduce((sum,x)=>sum+Number(x.foreign||0),0),
+      count:rows.length
+    };
+  });
+
+  const purchaseTwd = purchaseGroups.reduce((sum,x)=>sum+x.twdAmount,0);
+  const purchaseForeign = purchaseGroups.reduce((sum,x)=>sum+x.foreignAmount,0);
+
+  document.getElementById('statsShared').innerHTML =
+    statsBarRows(
+      purchaseGroups,
+      purchaseTwd,
+      purchaseForeign,
+      '目前還沒有購買商品紀錄'
+    );
+
   const start = normalizeTripDateValue(currentTrip.start);
   const end = normalizeTripDateValue(currentTrip.end);
   const daily = {};
@@ -362,7 +388,10 @@ function openTripStats(){
 
   const topDay = Object.entries(daily)
     .map(([date,data])=>({date,...data}))
-    .sort((a,b)=>b.amount-a.amount)[0];
+    .sort((a,b)=>
+      (b.twdAmount||0)-(a.twdAmount||0) ||
+      (b.foreignAmount||0)-(a.foreignAmount||0)
+    )[0];
 
   document.getElementById('statsTopDay').innerHTML = topDay
     ? `
