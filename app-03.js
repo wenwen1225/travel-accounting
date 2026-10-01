@@ -39,6 +39,9 @@ function recordHtml(x){
   const foreignText = x.foreign ? `${currencySymbol(currentTrip.currency)}${Number(x.foreign).toLocaleString('en-US')}` : '';
   const twdMissing = x.type === '購買商品' && (x.twd === null || x.twd === '' || Number(x.twd) === 0);
   const twdText = twdMissing ? '<span class="pending-badge">待補台幣</span>' : fmtMoney(x.twd||0,'TWD');
+  const sharedExpense = x.type==='購買商品' && (x.pay==='現金' || x.pay==='Wowpass');
+  const displayPerson = sharedExpense ? '共同支出' : (x.person||'');
+  const avatarText = sharedExpense ? '共' : (x.person||'?').slice(0,1).toUpperCase();
   const editable = ['購買商品','先前費用','換匯'].includes(x.type);
   const clickAction = x.type === '購買商品'
     ? `editExpense('${x.id}')`
@@ -49,10 +52,10 @@ function recordHtml(x){
         : '';
   return `
     <div class="record ${editable?'editable':''}" ${editable?`onclick="${clickAction}"`:''}>
-      <div class="avatar person-avatar ${personClass(x.person||'')}">${(x.person||'?').slice(0,1).toUpperCase()}</div>
+      <div class="avatar person-avatar ${sharedExpense?'':personClass(x.person||'')}">${avatarText}</div>
       <div class="record-main">
         <strong>${x.name || x.type || '紀錄'}</strong>
-        <span>${x.date||''} · ${x.person||''}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
+        <span>${x.date||''} · ${displayPerson}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
         ${x.place?`<div class="record-note">${x.place}</div>`:''}
         <div style="margin-top:5px">${syncBadgeHtml(x)}</div>
       </div>
