@@ -10,7 +10,7 @@ function removeCard(v){
 function openTripSettings(){ goSettings(); }
 
 
-function toggleCurrentTripArchive(forceArchived){
+async function toggleCurrentTripArchive(forceArchived){
   if(!currentTrip) return;
 
   const next = typeof forceArchived==='boolean'
@@ -23,6 +23,9 @@ function toggleCurrentTripArchive(forceArchived){
     )) return;
   }
 
+  const previousArchived=!!currentTrip.archived;
+  const previousArchivedAt=currentTrip.archivedAt || '';
+
   currentTrip.archived=next;
   currentTrip.archivedAt=next ? new Date().toISOString() : '';
   persist();
@@ -30,9 +33,35 @@ function toggleCurrentTripArchive(forceArchived){
   applyTripArchiveUi();
   renderHome();
 
+  if(getApiUrl() && currentTrip.spreadsheetId){
+    try{
+      const payload=cloudPayloadForTrip(currentTrip);
+      payload.spreadsheetId=currentTrip.spreadsheetId;
+      payload.updateExisting=true;
+
+      await postToCloud(payload);
+      currentTrip.cloudStatus='synced';
+      currentTrip.lastSyncError='';
+      markSyncSuccess();
+      persist();
+    }catch(err){
+      currentTrip.archived=previousArchived;
+      currentTrip.archivedAt=previousArchivedAt;
+      persist();
+      applyTripArchiveUi();
+      renderHome();
+
+      alert(
+        '封存狀態沒有同步成功，所以目前先維持原本狀態。\n' +
+        (err && err.message ? err.message : err)
+      );
+      return;
+    }
+  }
+
   alert(next
-    ? '旅行已封存。之後仍可解除封存繼續編輯。'
-    : '已解除封存，可以繼續新增與修改紀錄。'
+    ? '旅行已封存，封存狀態也已同步。之後仍可解除封存繼續編輯。'
+    : '已解除封存，雲端狀態也已同步，可以繼續新增與修改紀錄。'
   );
 }
 
