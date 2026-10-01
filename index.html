@@ -241,12 +241,16 @@
 
     <div id="pretripForm" class="card form-card hidden">
       <div class="form-group">
-        <label>記帳對象</label>
-        <div id="pretripPersonChips" class="chips"></div>
+        <label>付款人員</label>
+        <select id="pretripPerson"></select>
       </div>
       <div class="form-group">
         <label>項目</label>
         <input id="pretripName" placeholder="例如：機票、飯店、網卡" />
+      </div>
+      <div class="form-group">
+        <label>訂購網站</label>
+        <input id="pretripWebsite" placeholder="例如：Trip.com、Agoda、Klook" />
       </div>
       <div class="row">
         <div class="form-group">
@@ -255,7 +259,7 @@
         </div>
         <div class="form-group">
           <label>付款方式</label>
-          <select id="pretripPay">
+          <select id="pretripPay" onchange="updatePretripCardVisibility()">
             <option>信用卡</option>
             <option>現金</option>
             <option>轉帳</option>
@@ -273,8 +277,8 @@
           <div class="money-wrap"><span id="pretripForeignSymbol" class="money-prefix">₩</span><input id="pretripForeign" type="text" inputmode="decimal" /></div>
         </div>
       </div>
-      <div class="form-group">
-        <label>卡別（若有）</label>
+      <div id="pretripCardGroup" class="form-group">
+        <label>卡別</label>
         <select id="pretripCard"></select>
       </div>
       <div class="form-group">
