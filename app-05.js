@@ -31,6 +31,7 @@ async function guardedSave(kind, button){
 }
 
 async function saveExpense(){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   clearRequiredErrors();
   const okDate = requireTextField('expenseDate','請選擇日期');
   const okQty = requireNumberField('expenseQty','請填寫大於 0 的數量');
@@ -103,6 +104,7 @@ async function saveExpense(){
 }
 
 async function savePretrip(){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const name=document.getElementById('pretripName').value.trim();
   const date=document.getElementById('pretripDate').value;
   if(!name || !date){ alert('請填項目與日期'); return; }
@@ -137,6 +139,7 @@ async function savePretrip(){
 }
 
 async function saveExchange(){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const date=document.getElementById('exchangeDate').value;
   if(!date){ alert('請填日期'); return; }
   const item = {
