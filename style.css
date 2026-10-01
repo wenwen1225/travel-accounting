@@ -1033,3 +1033,80 @@
     width:100%;
   }
 }
+
+
+/* 圖表模式：與金額明細相同分類 */
+.stats-hbar-list{
+  display:grid;
+  gap:16px;
+}
+.stats-hbar-row{
+  display:grid;
+  gap:7px;
+}
+.stats-hbar-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font-size:12px;
+}
+.stats-hbar-head span{
+  font-weight:800;
+}
+.stats-hbar-head strong{
+  font-size:12px;
+}
+.stats-hbar-track{
+  height:12px;
+  border-radius:999px;
+  background:#f0ebf7;
+  overflow:hidden;
+}
+.stats-hbar-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#9b7fe0,#c8b0f2);
+}
+.stats-hbar-meta{
+  font-size:10px;
+  color:var(--muted);
+}
+.stats-topday-visual{
+  text-align:center;
+  padding:6px 2px 2px;
+}
+.stats-topday-date{
+  font-size:13px;
+  color:var(--muted);
+}
+.stats-topday-big{
+  margin-top:7px;
+  font-size:27px;
+  font-weight:900;
+}
+.stats-topday-local{
+  margin-top:4px;
+  font-size:13px;
+  font-weight:800;
+  color:var(--primary-dark);
+}
+.stats-topday-bar{
+  width:100%;
+  height:14px;
+  margin-top:16px;
+  border-radius:999px;
+  background:#f0ebf7;
+  overflow:hidden;
+}
+.stats-topday-bar span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#9b7fe0,#c8b0f2);
+}
+.stats-topday-meta{
+  margin-top:8px;
+  font-size:11px;
+  color:var(--muted);
+}
