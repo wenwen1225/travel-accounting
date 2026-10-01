@@ -55,7 +55,9 @@ function renderHome(){
   box.innerHTML = state.trips.map(t=>{
     const all = [...(t.expenses||[]), ...(t.pretrip||[])];
     const total = all.reduce((s,x)=>s+Number(x.twd||0),0);
-    const status = getTripStatus(t.start,t.end);
+    const status = t.archived
+      ? {label:'已封存',className:'trip-status-archived'}
+      : getTripStatus(t.start,t.end);
     return `
       <div class="card trip-card" onclick="openTrip('${t.id}')">
         <div class="trip-head">
