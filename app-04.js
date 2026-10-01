@@ -34,6 +34,7 @@ function openAdd(type){
     editingPretripId = null;
     const d=document.getElementById('deletePretripBtn'); if(d) d.classList.add('hidden');
     document.getElementById('pretripName').value='';
+    document.getElementById('pretripWebsite').value='';
     document.getElementById('pretripTwd').value='';
     document.getElementById('pretripForeign').value='';
     document.getElementById('pretripNote').value='';
@@ -42,7 +43,9 @@ function openAdd(type){
     document.getElementById('addTitle').textContent='新增先前費用';
     document.getElementById('addSubtitle').textContent='機票、飯店、門票、網卡等';
     selectedPretripPerson = currentTrip.people[0] || 'Wen';
-    renderPersonChips('pretripPersonChips',selectedPretripPerson,'selectPretripPerson');
+    fillPretripPeople();
+    document.getElementById('pretripPerson').value=selectedPretripPerson;
+    updatePretripCardVisibility();
     document.getElementById('pretripForeignLabel').textContent = `外幣金額 ${currentTrip.currency}`;
     document.getElementById('pretripForeignSymbol').textContent = currencySymbol(currentTrip.currency);
     attachMoneyFormat('pretripTwd'); attachMoneyFormat('pretripForeign');
