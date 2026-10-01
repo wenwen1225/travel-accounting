@@ -55,6 +55,7 @@ function renderHome(){
   box.innerHTML = state.trips.map(t=>{
     const all = [...(t.expenses||[]), ...(t.pretrip||[])];
     const total = all.reduce((s,x)=>s+Number(x.twd||0),0);
+    const totalForeign = all.reduce((s,x)=>s+Number(x.foreign||0),0);
     const status = t.archived
       ? {label:'已封存',className:'trip-status-archived'}
       : getTripStatus(t.start,t.end);
@@ -71,6 +72,9 @@ function renderHome(){
           </div>
         </div>
         <div class="amount">${fmtMoney(total,'TWD')}</div>
+        <div class="trip-local-total">
+          ${t.currency} ${new Intl.NumberFormat().format(totalForeign)}
+        </div>
         <div class="sub">${(t.expenses||[]).length + (t.pretrip||[]).length + (t.exchange||[]).length} 筆紀錄</div>
       </div>`;
   }).join('');
