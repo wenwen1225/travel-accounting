@@ -219,6 +219,122 @@ async function autoSyncPendingRecords(){
   }
 }
 
+
+let cloudPullRunning = false;
+
+function mergeCloudRecordList(tripId, localList, cloudList){
+  const pendingIds = new Set(
+    (state.syncQueue || [])
+      .filter(q => q.tripId === tripId && q.recordId && q.recordId !== tripId)
+      .map(q => q.recordId)
+  );
+
+  const localMap = new Map((localList || []).map(x => [x.id, x]));
+  const merged = [];
+
+  for(const cloudItem of (cloudList || [])){
+    const localItem = localMap.get(cloudItem.id);
+    if(localItem && (pendingIds.has(cloudItem.id) || localItem.syncStatus === 'pending' || localItem.syncStatus === 'local')){
+      merged.push(localItem);
+    }else{
+      merged.push({...cloudItem, syncStatus:'synced', lastSyncError:''});
+    }
+    localMap.delete(cloudItem.id);
+  }
+
+  for(const localItem of localMap.values()){
+    if(
+      pendingIds.has(localItem.id) ||
+      localItem.syncStatus === 'pending' ||
+      localItem.syncStatus === 'local'
+    ){
+      merged.push(localItem);
+    }
+  }
+
+  return merged;
+}
+
+function mergeCloudTrip(cloudTrip){
+  const local = getTripById(cloudTrip.id);
+
+  if(!local){
+    state.trips.push({
+      ...cloudTrip,
+      expenses:(cloudTrip.expenses||[]).map(x=>({...x,syncStatus:'synced'})),
+      pretrip:(cloudTrip.pretrip||[]).map(x=>({...x,syncStatus:'synced'})),
+      exchange:(cloudTrip.exchange||[]).map(x=>({...x,syncStatus:'synced'})),
+      cloudStatus:'synced'
+    });
+    return;
+  }
+
+  const createPending = (state.syncQueue||[]).some(
+    q => q.tripId===cloudTrip.id && q.action==='createTrip'
+  );
+
+  const merged = {
+    ...local,
+    ...cloudTrip,
+    expenses:mergeCloudRecordList(cloudTrip.id, local.expenses, cloudTrip.expenses),
+    pretrip:mergeCloudRecordList(cloudTrip.id, local.pretrip, cloudTrip.pretrip),
+    exchange:mergeCloudRecordList(cloudTrip.id, local.exchange, cloudTrip.exchange),
+    cloudStatus:createPending ? (local.cloudStatus || 'pending') : 'synced',
+    lastSyncError:createPending ? (local.lastSyncError || '') : ''
+  };
+
+  Object.assign(local, merged);
+}
+
+async function pullCloudTrips(options={}){
+  const silent = options.silent !== false;
+  if(cloudPullRunning) return false;
+  if(!getApiUrl()) return false;
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+
+  cloudPullRunning = true;
+  try{
+    const data = await postToCloud({action:'getAllData'});
+    const trips = Array.isArray(data.trips) ? data.trips : [];
+
+    trips.forEach(mergeCloudTrip);
+
+    // 雲端讀回時，也把新同行人補進共用名單
+    trips.forEach(t => {
+      (t.people || []).forEach(p => {
+        if(p && !state.people.includes(p)) state.people.push(p);
+      });
+    });
+
+    persist();
+    renderHome();
+    if(currentTrip){
+      const refreshed = getTripById(currentTrip.id);
+      if(refreshed){
+        currentTrip = refreshed;
+        renderTripSummary();
+      }
+    }
+    return true;
+  }catch(err){
+    if(!silent){
+      alert('從 Google Sheets 讀取資料失敗：' + (err && err.message ? err.message : err));
+    }
+    return false;
+  }finally{
+    cloudPullRunning = false;
+  }
+}
+
+async function syncAndPullCloud(){
+  if(!getApiUrl()) return;
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+  // 先把本機待同步推上去，再讀回最新雲端資料，避免舊雲端覆蓋本機新修改
+  await autoSyncPendingRecords();
+  await pullCloudTrips({silent:true});
+}
+
 function updateCloudStatusUI(){
   const dot = document.getElementById('cloudDot');
   const text = document.getElementById('cloudStatusText');
