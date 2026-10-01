@@ -188,7 +188,7 @@
         <div class="seg" id="paySeg">
           <button data-pay="信用卡" onclick="selectPay('信用卡')">信用卡</button>
           <button data-pay="現金" onclick="selectPay('現金')">現金</button>
-          <button data-pay="Wowpass" onclick="selectPay('Wowpass')">Wowpass</button>
+          <button id="sharedWalletPayBtn" data-pay="Wowpass" onclick="selectPay(this.dataset.pay)">Wowpass</button>
         </div>
       </div>
 
@@ -376,7 +376,7 @@
     </div>
 
     <div class="stats-hero">
-      <div class="eyebrow">目前總支出</div>
+      <div class="eyebrow">旅途總花費（含先前費用）</div>
       <h2 id="statsTotalTwd">NT$0</h2>
       <div id="statsTotalForeign" class="stats-total-foreign"></div>
       <div id="statsKnownNote" class="stats-hero-note"></div>
@@ -405,6 +405,11 @@
     <div class="section">
       <div class="section-title">個人／共同支出</div>
       <div id="statsShared" class="card stats-card-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">每日花費</div>
+      <div id="statsDaily" class="card stats-card-list"></div>
     </div>
 
     <div class="section">
