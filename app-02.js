@@ -16,6 +16,15 @@ function makeTripName(place,start,end){
   return `${place} ${yy}_${sm}_${sd}_${eyy}_${em}_${ed}`;
 }
 
+function tripDurationText(start,end){
+  const s=parseLocalDate(start);
+  const e=parseLocalDate(end);
+  if(!s || !e || e<s) return '';
+  const days=Math.round((e.getTime()-s.getTime())/86400000)+1;
+  const nights=Math.max(0,days-1);
+  return days+'天'+nights+'夜';
+}
+
 function renderHome(){
   updateHomeSyncStatus();
   const box = document.getElementById('tripList');
@@ -35,7 +44,7 @@ function renderHome(){
         <div class="trip-head">
           <div>
             <h3>${t.name}</h3>
-            <p>${t.start} ～ ${t.end}</p>
+            <p>${t.start} ～ ${t.end} · ${tripDurationText(t.start,t.end)}</p>
           </div>
           <span class="mini-tag">${t.currency} / TWD</span>
         </div>
