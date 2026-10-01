@@ -363,6 +363,12 @@ function renderSyncErrorDetails(){
           <strong>${syncQueueLabel(q)}｜${title}</strong>
           <div class="sync-error-meta">${trip?.name || '旅行資料'}${date}</div>
           <div class="sync-error-message">${q.lastError || '未知錯誤'}</div>
+          <button
+            class="sync-retry-btn"
+            type="button"
+            onclick="retrySingleSync('${q.queueId}')"
+            ${q.retrying?'disabled':''}
+          >${q.retrying?'重新同步中…':'重新同步這筆'}</button>
         </div>`;
     }).join('');
 }
