@@ -123,10 +123,15 @@
     <div class="section">
       <div class="section-title">快速新增</div>
       <div class="grid">
-        <button class="card action-card" onclick="openAdd('expense')">
-          <div class="action-icon">🧾</div>
-          <strong>購買商品</strong>
-          <span>信用卡 / 現金 / Wowpass</span>
+        <button class="card action-card" onclick="openAdd('credit')">
+          <div class="action-icon">💳</div>
+          <strong>信用卡消費</strong>
+          <span>依記帳人員與卡別紀錄</span>
+        </button>
+        <button class="card action-card" onclick="openAdd('cash')">
+          <div class="action-icon">💵</div>
+          <strong>現金 / Wowpass</strong>
+          <span>共同支出，不分記帳人員</span>
         </button>
         <button class="card action-card" onclick="openAdd('pretrip')">
           <div class="action-icon">✈️</div>
@@ -173,7 +178,7 @@
     </div>
 
     <div id="expenseForm" class="card form-card">
-      <div class="form-group">
+      <div id="expensePersonGroup" class="form-group">
         <label>記帳對象</label>
         <div id="personChips" class="chips"></div>
       </div>
