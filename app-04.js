@@ -2,7 +2,7 @@ function openAdd(type){
   if(!currentTrip) return;
   if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const today = new Date().toISOString().slice(0,10);
-  const isExpense = type==='expense' || type==='credit' || type==='cash';
+  const isExpense = type==='expense' || type==='credit' || type==='transit' || type==='cash';
   document.getElementById('expenseForm').classList.toggle('hidden',!isExpense);
   document.getElementById('pretripForm').classList.toggle('hidden',type!=='pretrip');
   document.getElementById('exchangeForm').classList.toggle('hidden',type!=='exchange');
@@ -11,21 +11,32 @@ function openAdd(type){
   if(isExpense){
     resetExpenseForm();
     const cashMode = type==='cash';
+    const transitMode = type==='transit';
     configureSharedPaymentButton();
     const sharedPay = sharedPaymentMethodForCurrency(currentTrip.currency);
     document.getElementById('expensePersonGroup').classList.toggle('hidden',cashMode);
-    document.getElementById('addTitle').textContent = cashMode ? '新增現金 / ' + sharedPay : '新增信用卡消費';
+    document.getElementById('addTitle').textContent = cashMode
+      ? '新增現金 / ' + sharedPay
+      : transitMode
+        ? '新增交通卡支付'
+        : '新增信用卡消費';
     document.getElementById('addSubtitle').textContent = cashMode
       ? `${currentTrip.name} · 共同支出`
-      : `${currentTrip.name} · ${currentTrip.currency}`;
+      : transitMode
+        ? `${currentTrip.name} · 個別交通卡支出`
+        : `${currentTrip.name} · ${currentTrip.currency}`;
 
     document.querySelectorAll('#paySeg button').forEach(btn=>{
       const pay=btn.dataset.pay;
-      const show = cashMode ? (pay==='現金' || pay===sharedPay) : pay==='信用卡';
+      const show = cashMode
+        ? (pay==='現金' || pay===sharedPay)
+        : transitMode
+          ? pay==='交通卡'
+          : pay==='信用卡';
       btn.classList.toggle('hidden',!show);
     });
 
-    selectPay(cashMode ? '現金' : '信用卡');
+    selectPay(cashMode ? '現金' : transitMode ? '交通卡' : '信用卡');
     if(cashMode) selectedPerson='共同';
 
     document.getElementById('foreignLabel').innerHTML = `外幣金額 ${currentTrip.currency} <span class="danger">*</span>`;
