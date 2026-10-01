@@ -519,3 +519,17 @@
   opacity:.68;
   filter:saturate(.75);
 }
+
+
+.home-sync-syncing{
+  background:#f5f0ff;
+  color:var(--primary-dark);
+  border-color:#e6dcff;
+}
+.home-sync-syncing > span:first-child{
+  display:inline-block;
+  animation:sync-spin .9s linear infinite;
+}
+@keyframes sync-spin{
+  to{ transform:rotate(360deg); }
+}
