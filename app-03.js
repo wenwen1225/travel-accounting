@@ -113,7 +113,26 @@ function renderPersonChips(targetId, selected, setterName){
   box.innerHTML = people.map(p=>`<button class="chip person-chip ${personClass(p)} ${p===selected?'active':''}" onclick="${setterName}('${p}')">${p}</button>`).join('');
 }
 function selectPerson(p){ selectedPerson=p; renderPersonChips('personChips',selectedPerson,'selectPerson'); }
-function selectPretripPerson(p){ selectedPretripPerson=p; renderPersonChips('pretripPersonChips',selectedPretripPerson,'selectPretripPerson'); }
+function selectPretripPerson(p){
+  selectedPretripPerson=p;
+  const el=document.getElementById('pretripPerson');
+  if(el) el.value=p;
+}
+
+function fillPretripPeople(){
+  const el=document.getElementById('pretripPerson');
+  if(!el || !currentTrip) return;
+  const people=currentTrip.people || state.people || [];
+  el.innerHTML=people.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(!people.includes(selectedPretripPerson)) selectedPretripPerson=people[0] || '';
+  el.value=selectedPretripPerson;
+}
+
+function updatePretripCardVisibility(){
+  const pay=document.getElementById('pretripPay')?.value || '信用卡';
+  const group=document.getElementById('pretripCardGroup');
+  if(group) group.classList.toggle('hidden',pay!=='信用卡');
+}
 
 function selectPay(p){
   selectedPay=p;
@@ -174,10 +193,13 @@ function editPretrip(id){
   document.getElementById('addTitle').textContent='修改先前費用';
   document.getElementById('addSubtitle').textContent=currentTrip.name;
   selectedPretripPerson = item.person || currentTrip.people[0];
-  renderPersonChips('pretripPersonChips',selectedPretripPerson,'selectPretripPerson');
+  fillPretripPeople();
+  document.getElementById('pretripPerson').value=selectedPretripPerson;
   document.getElementById('pretripName').value=item.name||'';
+  document.getElementById('pretripWebsite').value=item.website||'';
   document.getElementById('pretripDate').value=item.date||'';
   document.getElementById('pretripPay').value=item.pay||'信用卡';
+  updatePretripCardVisibility();
   document.getElementById('pretripTwd').value=item.twd?Number(item.twd).toLocaleString('en-US'):'';
   document.getElementById('pretripForeign').value=item.foreign?Number(item.foreign).toLocaleString('en-US'):'';
   document.getElementById('pretripCard').value=item.card||'';
