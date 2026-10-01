@@ -637,3 +637,23 @@
   color:var(--muted);
   font-size:12px;
 }
+
+
+.stats-total-foreign{
+  margin-top:2px;
+  font-size:14px;
+  font-weight:800;
+  opacity:.92;
+}
+.stats-row-foreign{
+  margin-top:3px;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+}
+.stats-top-day-foreign{
+  margin-top:4px;
+  font-size:14px;
+  font-weight:800;
+  color:var(--primary-dark);
+}
