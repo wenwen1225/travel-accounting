@@ -185,6 +185,9 @@ function syncTripDates(){
 }
 
 async function createTrip(){
+  const btn=document.getElementById('createTripBtn');
+  if(btn?.dataset.saving==='1') return;
+
   try{
     const place = document.getElementById('tripPlace').value.trim();
     const start = document.getElementById('tripStart').value;
@@ -199,19 +202,58 @@ async function createTrip(){
       document.getElementById('tripPlace').focus();
       return;
     }
-    if(!start || !end){
-      alert('請先填寫開始日期與結束日期');
+
+    if(!start){
+      alert('請先選擇開始日期');
+      document.getElementById('tripStart').focus();
       return;
     }
-    if(!validateTripDates(false)) return;
+
+    if(!end){
+      alert('請先選擇結束日期');
+      document.getElementById('tripEnd').focus();
+      return;
+    }
+
+    if(!validateTripDates(false)){
+      document.getElementById('tripEnd').focus();
+      return;
+    }
+
+    if(!currency){
+      alert('請選擇主要外幣');
+      document.getElementById('tripCurrency').focus();
+      return;
+    }
+
     if(!people.length){
       alert('至少選一位記帳對象');
       return;
     }
 
+    const tripName=makeTripName(place,start,end);
+    const duplicate=(state.trips||[]).find(t =>
+      String(t.name||'').trim().toLowerCase() === tripName.toLowerCase()
+    );
+
+    if(duplicate){
+      const ok=confirm(
+        '已經有一趟同名旅行：\n'+tripName+
+        '\n\n確定還要再建立一趟嗎？'
+      );
+      if(!ok) return;
+    }
+
+    if(btn){
+      btn.dataset.saving='1';
+      btn.disabled=true;
+      btn.classList.add('is-saving');
+      btn.textContent='建立中…';
+    }
+
     const trip = {
       id:'trip_'+Date.now(),
-      name:makeTripName(place,start,end),
+      name:tripName,
       place,start,end,currency,people,
       expenses:[],pretrip:[],exchange:[],
       googleSheetStatus:'待串接',
@@ -242,12 +284,18 @@ async function createTrip(){
               : '旅行已建立並保留在本機，但 Google Sheet 尚未同步成功，已加入待同步佇列。'
           );
         }
-      }).catch(()=>{
-      });
+      }).catch(()=>{});
     }
   }catch(err){
     console.error('createTrip error:', err);
     alert('建立旅行時發生錯誤：' + (err && err.message ? err.message : '未知錯誤'));
+  }finally{
+    if(btn){
+      btn.dataset.saving='0';
+      btn.disabled=false;
+      btn.classList.remove('is-saving');
+      btn.textContent='建立旅行';
+    }
   }
 }
 
