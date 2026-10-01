@@ -1,5 +1,6 @@
 function openAdd(type){
   if(!currentTrip) return;
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const today = new Date().toISOString().slice(0,10);
   const isExpense = type==='expense' || type==='credit' || type==='cash';
   document.getElementById('expenseForm').classList.toggle('hidden',!isExpense);
