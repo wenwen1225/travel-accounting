@@ -533,3 +533,107 @@
 @keyframes sync-spin{
   to{ transform:rotate(360deg); }
 }
+
+
+/* 旅行統計 */
+.stats-action-card{
+  grid-column:1 / -1;
+}
+.stats-hero{
+  margin:8px 20px 10px;
+  border-radius:28px;
+  padding:22px;
+  color:#fff;
+  background:linear-gradient(135deg,#9f86ea,#c7a9f6);
+  box-shadow:0 18px 35px rgba(167,139,250,.18);
+}
+.stats-hero .eyebrow{
+  font-size:13px;
+  opacity:.85;
+}
+.stats-hero h2{
+  margin:6px 0 3px;
+  font-size:30px;
+}
+.stats-hero-note{
+  font-size:12px;
+  opacity:.82;
+}
+.stats-mini-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:18px;
+}
+.stats-mini-grid > div{
+  background:rgba(255,255,255,.15);
+  border-radius:17px;
+  padding:12px;
+}
+.stats-mini-grid span{
+  display:block;
+  font-size:11px;
+  opacity:.8;
+}
+.stats-mini-grid strong{
+  display:block;
+  margin-top:3px;
+  font-size:18px;
+}
+.stats-card-list{
+  padding:5px 16px;
+}
+.stats-row{
+  padding:13px 0;
+  border-bottom:1px solid var(--line);
+}
+.stats-row:last-child{
+  border-bottom:none;
+}
+.stats-row-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  font-size:13px;
+}
+.stats-row-head strong{
+  font-size:14px;
+}
+.stats-bar{
+  height:7px;
+  border-radius:999px;
+  background:#eee9f6;
+  overflow:hidden;
+  margin-top:8px;
+}
+.stats-bar span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#b79cf8,#d8b4fe);
+}
+.stats-row-meta{
+  margin-top:5px;
+  font-size:11px;
+  color:var(--muted);
+}
+.stats-highlight{
+  padding:20px;
+  text-align:center;
+}
+.stats-highlight .stats-top-day-date{
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:5px;
+}
+.stats-highlight strong{
+  display:block;
+  font-size:25px;
+}
+.stats-highlight span{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+}
