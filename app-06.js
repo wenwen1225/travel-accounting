@@ -74,6 +74,58 @@ async function deleteCurrentTrip(){
   goHome();
 }
 
+async function deleteCurrentPretrip(){
+  if(!currentTrip || !editingPretripId) return;
+  const item=(currentTrip.pretrip||[]).find(x=>x.id===editingPretripId);
+  if(!item) return;
+  if(!confirm('確定要刪除這筆先前費用嗎？刪除後無法復原。')) return;
+  if(getApiUrl() && item.syncStatus==='synced'){
+    try{
+      await postToCloud({
+        action:'deletePretrip',
+        spreadsheetId:currentTrip.spreadsheetId||'',
+        clientTripId:currentTrip.id,
+        recordId:item.id
+      });
+    }catch(err){
+      alert('Google Sheets 刪除失敗，本機資料先保留：'+(err?.message||err));
+      return;
+    }
+  }
+  currentTrip.pretrip=(currentTrip.pretrip||[]).filter(x=>x.id!==editingPretripId);
+  state.syncQueue=(state.syncQueue||[]).filter(q=>q.recordId!==editingPretripId);
+  editingPretripId=null;
+  persist();
+  alert('這筆先前費用已刪除。');
+  openTrip(currentTrip.id);
+}
+
+async function deleteCurrentExchange(){
+  if(!currentTrip || !editingExchangeId) return;
+  const item=(currentTrip.exchange||[]).find(x=>x.id===editingExchangeId);
+  if(!item) return;
+  if(!confirm('確定要刪除這筆換匯紀錄嗎？刪除後無法復原。')) return;
+  if(getApiUrl() && item.syncStatus==='synced'){
+    try{
+      await postToCloud({
+        action:'deleteExchange',
+        spreadsheetId:currentTrip.spreadsheetId||'',
+        clientTripId:currentTrip.id,
+        recordId:item.id
+      });
+    }catch(err){
+      alert('Google Sheets 刪除失敗，本機資料先保留：'+(err?.message||err));
+      return;
+    }
+  }
+  currentTrip.exchange=(currentTrip.exchange||[]).filter(x=>x.id!==editingExchangeId);
+  state.syncQueue=(state.syncQueue||[]).filter(q=>q.recordId!==editingExchangeId);
+  editingExchangeId=null;
+  persist();
+  alert('這筆換匯紀錄已刪除。');
+  openTrip(currentTrip.id);
+}
+
 document.getElementById('tripStart').addEventListener('change', syncTripDates);
 document.getElementById('tripEnd').addEventListener('change', ()=>validateTripDates(false));
 syncTripDates();
