@@ -106,15 +106,18 @@ async function savePretrip(){
   const name=document.getElementById('pretripName').value.trim();
   const date=document.getElementById('pretripDate').value;
   if(!name || !date){ alert('請填項目與日期'); return; }
+  selectedPretripPerson=document.getElementById('pretripPerson').value;
+  const pretripPay=document.getElementById('pretripPay').value;
   const item = {
     id:editingPretripId || ('p_'+Date.now()),
     type:'先前費用',
     person:selectedPretripPerson,
     name,date,
-    pay:document.getElementById('pretripPay').value,
+    website:document.getElementById('pretripWebsite').value.trim(),
+    pay:pretripPay,
     twd:Number(rawNumber(document.getElementById('pretripTwd').value)||0),
     foreign:Number(rawNumber(document.getElementById('pretripForeign').value)||0),
-    card:document.getElementById('pretripCard').value,
+    card:pretripPay==='信用卡' ? document.getElementById('pretripCard').value : '',
     note:document.getElementById('pretripNote').value.trim()
   };
 
