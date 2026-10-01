@@ -397,6 +397,18 @@ function openTripStats(){
 
   document.getElementById('statsSubtitle').textContent =
     currentTrip.name + ' · ' + tripDurationText(currentTrip.start,currentTrip.end);
+
+  const statsSheetStatus=document.getElementById('statsSheetSyncStatus');
+  const statsSheetBtn=document.getElementById('statsSheetSyncBtn');
+  if(statsSheetStatus){
+    statsSheetStatus.textContent = currentTrip.spreadsheetId
+      ? '可手動更新 Sheet 統計分頁'
+      : '這趟旅行尚未建立 Google Sheet';
+  }
+  if(statsSheetBtn){
+    statsSheetBtn.disabled = !currentTrip.spreadsheetId || !getApiUrl();
+    statsSheetBtn.textContent = '更新 Sheet 統計';
+  }
   document.getElementById('statsTotalTwd').textContent = statsAmount(totalTwd);
   const foreignEl = document.getElementById('statsTotalForeign');
   if(foreignEl) foreignEl.textContent = currentTrip.currency + ' ' + new Intl.NumberFormat().format(totalForeign);
@@ -759,4 +771,75 @@ function renderStatsCharts(){
 
   renderDailyStatsChart();
   renderTopDayStatsChart();
+}
+
+
+async function refreshStatsSheetManually(){
+  if(!currentTrip) return;
+
+  const btn=document.getElementById('statsSheetSyncBtn');
+  const status=document.getElementById('statsSheetSyncStatus');
+
+  if(!getApiUrl()){
+    alert('請先到設定填入 Google Apps Script Web App URL。');
+    return;
+  }
+
+  if(!currentTrip.spreadsheetId){
+    alert('這趟旅行尚未建立 Google Sheet，請先完成同步。');
+    return;
+  }
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='更新中…';
+  }
+  if(status){
+    status.textContent='正在更新 Google Sheet 的「旅行統計」分頁…';
+    status.classList.remove('stats-sheet-sync-ok','stats-sheet-sync-error');
+  }
+
+  try{
+    const data=await postToCloud({
+      action:'refreshStats',
+      spreadsheetId:currentTrip.spreadsheetId,
+      clientTripId:currentTrip.id
+    });
+
+    const now=new Date();
+    const time=now.toLocaleTimeString('zh-TW',{
+      hour:'2-digit',
+      minute:'2-digit',
+      hour12:false
+    });
+
+    if(status){
+      status.textContent='已更新完成 · '+time;
+      status.classList.add('stats-sheet-sync-ok');
+      status.classList.remove('stats-sheet-sync-error');
+    }
+
+    if(btn){
+      btn.textContent='再次更新';
+    }
+
+    markSyncSuccess();
+
+  }catch(err){
+    const message=err && err.message ? err.message : String(err);
+
+    if(status){
+      status.textContent='更新失敗：'+message;
+      status.classList.add('stats-sheet-sync-error');
+      status.classList.remove('stats-sheet-sync-ok');
+    }
+
+    alert('旅行統計更新失敗：\n'+message);
+
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      if(btn.textContent==='更新中…') btn.textContent='更新 Sheet 統計';
+    }
+  }
 }
