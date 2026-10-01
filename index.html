@@ -136,10 +136,15 @@
           <strong>信用卡消費</strong>
           <span>依記帳人員與卡別紀錄</span>
         </button>
+        <button id="transitActionCard" class="card action-card" onclick="openAdd('transit')">
+          <div class="action-icon">🚇</div>
+          <strong>交通卡支付</strong>
+          <span>依記帳人員分開紀錄</span>
+        </button>
         <button class="card action-card" onclick="openAdd('cash')">
           <div class="action-icon">💵</div>
           <strong>現金 / 當地支付</strong>
-          <span>韓國 Wowpass、日本交通卡等</span>
+          <span>共同支出；韓國 Wowpass 等</span>
         </button>
         <button class="card action-card" onclick="openAdd('pretrip')">
           <div class="action-icon">✈️</div>
@@ -196,6 +201,7 @@
         <label>付款方式</label>
         <div class="seg" id="paySeg">
           <button data-pay="信用卡" onclick="selectPay('信用卡')">信用卡</button>
+          <button data-pay="交通卡" onclick="selectPay('交通卡')">交通卡</button>
           <button data-pay="現金" onclick="selectPay('現金')">現金</button>
           <button id="sharedWalletPayBtn" data-pay="Wowpass" onclick="selectPay(this.dataset.pay)">Wowpass</button>
         </div>
