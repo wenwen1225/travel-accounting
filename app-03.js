@@ -58,6 +58,7 @@ function editExpense(id){
   const item = (currentTrip.expenses||[]).find(x=>x.id===id);
   if(!item) return;
   editingExpenseId = id;
+  document.getElementById('deleteExpenseBtn').classList.remove('hidden');
   document.getElementById('expenseForm').classList.remove('hidden');
   document.getElementById('pretripForm').classList.add('hidden');
   document.getElementById('exchangeForm').classList.add('hidden');
@@ -108,6 +109,8 @@ function fillCards(){
 
 function resetExpenseForm(){
   editingExpenseId = null;
+  const deleteBtn = document.getElementById('deleteExpenseBtn');
+  if(deleteBtn) deleteBtn.classList.add('hidden');
   selectedPay = '信用卡';
 
   const today = new Date().toISOString().slice(0,10);
