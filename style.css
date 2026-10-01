@@ -692,3 +692,20 @@
     padding:14px;
   }
 }
+
+
+.sync-retry-btn{
+  width:100%;
+  margin-top:10px;
+  border:1px solid #e6d7ff;
+  background:#f7f2ff;
+  color:var(--primary-dark);
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:12px;
+  font-weight:800;
+}
+.sync-retry-btn:disabled{
+  opacity:.6;
+  cursor:wait;
+}
