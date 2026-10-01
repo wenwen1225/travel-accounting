@@ -407,6 +407,26 @@
       </div>
     </div>
 
+    <div class="stats-view-toggle">
+      <button id="statsDetailBtn" class="active" type="button" onclick="setStatsView('detail')">金額明細</button>
+      <button id="statsChartBtn" type="button" onclick="setStatsView('chart')">圖表</button>
+    </div>
+
+    <div id="statsChartView" class="section hidden">
+      <div class="section-title">圖表總覽</div>
+      <div class="stats-chart-grid">
+        <div class="card stats-chart-card">
+          <div class="stats-chart-title">付款方式占比</div>
+          <div id="statsPaymentPie"></div>
+        </div>
+        <div class="card stats-chart-card">
+          <div class="stats-chart-title">每日支出</div>
+          <div id="statsDailyBars"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="statsDetailView">
     <div class="section">
       <div class="section-title">每人花費</div>
       <div id="statsPeople" class="card stats-card-list"></div>
@@ -430,6 +450,7 @@
     <div class="section">
       <div class="section-title">旅途中花最多的一天</div>
       <div id="statsTopDay" class="card stats-highlight"></div>
+    </div>
     </div>
   </section>
 
@@ -512,5 +533,6 @@
 <script src="app-05.js"></script>
 <script src="app-06.js"></script>
 <script src="app-07.js"></script>
+  <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
 </body>
 </html>
