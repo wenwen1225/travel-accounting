@@ -10,7 +10,34 @@ function removeCard(v){
 function openTripSettings(){ goSettings(); }
 
 
+function toggleCurrentTripArchive(forceArchived){
+  if(!currentTrip) return;
+
+  const next = typeof forceArchived==='boolean'
+    ? forceArchived
+    : !currentTrip.archived;
+
+  if(next){
+    if(!confirm(
+      '封存後這趟旅行會變成唯讀，不能新增、修改或刪除紀錄。\n\n之後仍可以解除封存。確定要封存嗎？'
+    )) return;
+  }
+
+  currentTrip.archived=next;
+  currentTrip.archivedAt=next ? new Date().toISOString() : '';
+  persist();
+
+  applyTripArchiveUi();
+  renderHome();
+
+  alert(next
+    ? '旅行已封存。之後仍可解除封存繼續編輯。'
+    : '已解除封存，可以繼續新增與修改紀錄。'
+  );
+}
+
 async function deleteCurrentExpense(){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   if(!currentTrip || !editingExpenseId) return;
   const item = (currentTrip.expenses || []).find(x => x.id === editingExpenseId);
   if(!item) return;
@@ -41,6 +68,10 @@ async function deleteCurrentExpense(){
 
 async function deleteCurrentTrip(){
   if(!currentTrip) return;
+  if(isCurrentTripArchived()){
+    alert('請先解除封存，再刪除整趟旅行。');
+    return;
+  }
 
   const name = currentTrip.name;
   const hasCloudSheet = !!currentTrip.spreadsheetId;
@@ -75,6 +106,7 @@ async function deleteCurrentTrip(){
 }
 
 async function deleteCurrentPretrip(){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   if(!currentTrip || !editingPretripId) return;
   const item=(currentTrip.pretrip||[]).find(x=>x.id===editingPretripId);
   if(!item) return;
@@ -101,6 +133,7 @@ async function deleteCurrentPretrip(){
 }
 
 async function deleteCurrentExchange(){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   if(!currentTrip || !editingExchangeId) return;
   const item=(currentTrip.exchange||[]).find(x=>x.id===editingExchangeId);
   if(!item) return;
