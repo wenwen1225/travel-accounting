@@ -1,15 +1,30 @@
 function openAdd(type){
   if(!currentTrip) return;
   const today = new Date().toISOString().slice(0,10);
-  document.getElementById('expenseForm').classList.toggle('hidden',type!=='expense');
+  const isExpense = type==='expense' || type==='credit' || type==='cash';
+  document.getElementById('expenseForm').classList.toggle('hidden',!isExpense);
   document.getElementById('pretripForm').classList.toggle('hidden',type!=='pretrip');
   document.getElementById('exchangeForm').classList.toggle('hidden',type!=='exchange');
   fillCards();
 
-  if(type==='expense'){
+  if(isExpense){
     resetExpenseForm();
-    document.getElementById('addTitle').textContent='新增購買商品';
-    document.getElementById('addSubtitle').textContent=`${currentTrip.name} · ${currentTrip.currency}`;
+    const cashMode = type==='cash';
+    document.getElementById('expensePersonGroup').classList.toggle('hidden',cashMode);
+    document.getElementById('addTitle').textContent = cashMode ? '新增現金 / Wowpass' : '新增信用卡消費';
+    document.getElementById('addSubtitle').textContent = cashMode
+      ? `${currentTrip.name} · 共同支出`
+      : `${currentTrip.name} · ${currentTrip.currency}`;
+
+    document.querySelectorAll('#paySeg button').forEach(btn=>{
+      const pay=btn.dataset.pay;
+      const show = cashMode ? (pay==='現金' || pay==='Wowpass') : pay==='信用卡';
+      btn.classList.toggle('hidden',!show);
+    });
+
+    selectPay(cashMode ? '現金' : '信用卡');
+    if(cashMode) selectedPerson='共同';
+
     document.getElementById('foreignLabel').innerHTML = `外幣金額 ${currentTrip.currency} <span class="danger">*</span>`;
     document.getElementById('foreignSymbol').textContent = currencySymbol(currentTrip.currency);
     attachMoneyFormat('expenseForeign');
