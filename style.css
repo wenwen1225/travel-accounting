@@ -858,3 +858,178 @@
   color:var(--primary-dark);
   letter-spacing:.01em;
 }
+
+
+/* 統計：明細 / 圖表切換 */
+.stats-view-toggle{
+  margin:14px 20px 4px;
+  padding:4px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4px;
+  background:#f0ebf8;
+  border-radius:14px;
+}
+.stats-view-toggle button{
+  border:0;
+  background:transparent;
+  border-radius:11px;
+  padding:10px 12px;
+  font-size:13px;
+  font-weight:800;
+  color:var(--muted);
+}
+.stats-view-toggle button.active{
+  background:#fff;
+  color:var(--primary-dark);
+  box-shadow:0 2px 8px rgba(91,70,130,.10);
+}
+.stats-chart-grid{
+  display:grid;
+  gap:12px;
+}
+.stats-chart-card{
+  padding:18px;
+}
+.stats-chart-title{
+  font-size:14px;
+  font-weight:800;
+  margin-bottom:14px;
+}
+.stats-pie-wrap{
+  display:grid;
+  grid-template-columns:150px 1fr;
+  gap:18px;
+  align-items:center;
+}
+.stats-pie{
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+}
+.stats-pie-center{
+  width:86px;
+  height:86px;
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
+}
+.stats-pie-center span{
+  font-size:10px;
+  color:var(--muted);
+}
+.stats-pie-center strong{
+  margin-top:3px;
+  font-size:12px;
+}
+.stats-pie-legend{
+  display:grid;
+  gap:8px;
+}
+.stats-pie-legend-row{
+  display:grid;
+  grid-template-columns:10px 1fr auto;
+  gap:4px 8px;
+  align-items:center;
+  font-size:12px;
+}
+.stats-pie-dot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+}
+.stats-pie-name{
+  font-weight:700;
+}
+.stats-pie-legend-row small{
+  grid-column:2 / -1;
+  color:var(--muted);
+  font-size:10px;
+}
+.stats-bar-chart{
+  min-height:230px;
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  overflow-x:auto;
+  padding:18px 2px 2px;
+}
+.stats-bar-col{
+  flex:1 0 54px;
+  min-width:54px;
+  display:grid;
+  grid-template-rows:30px 150px 22px;
+  gap:5px;
+  align-items:end;
+  text-align:center;
+}
+.stats-bar-value{
+  font-size:9px;
+  color:var(--muted);
+  line-height:1.2;
+  word-break:break-all;
+}
+.stats-bar-track{
+  height:150px;
+  width:28px;
+  margin:0 auto;
+  border-radius:10px 10px 5px 5px;
+  background:#f1edf7;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-end;
+}
+.stats-bar-fill{
+  width:100%;
+  border-radius:10px 10px 4px 4px;
+  background:linear-gradient(180deg,#9b7fe0,#c5acef);
+}
+.stats-bar-label{
+  font-size:10px;
+  font-weight:700;
+  color:var(--muted);
+}
+.stats-chart-note{
+  margin-top:10px;
+  font-size:10px;
+  color:var(--muted);
+  text-align:center;
+}
+
+/* 全站回到頂部 */
+.scroll-top-btn{
+  position:fixed;
+  right:18px;
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:1px solid #ded4ef;
+  background:rgba(255,255,255,.94);
+  color:var(--primary-dark);
+  font-size:20px;
+  font-weight:900;
+  box-shadow:0 6px 18px rgba(76,55,110,.18);
+  z-index:999;
+  backdrop-filter:blur(8px);
+}
+.scroll-top-btn:active{
+  transform:scale(.96);
+}
+
+@media (max-width:560px){
+  .stats-pie-wrap{
+    grid-template-columns:1fr;
+    justify-items:center;
+  }
+  .stats-pie-legend{
+    width:100%;
+  }
+}
