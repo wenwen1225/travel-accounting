@@ -17,3 +17,17 @@ document.addEventListener('visibilitychange', ()=>{
 
 // 網頁開著時每 60 秒同步一次
 setInterval(syncAndPullCloud, 60000);
+
+
+function scrollToTop(){
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateScrollTopButton(){
+  const btn=document.getElementById('scrollTopBtn');
+  if(!btn) return;
+  btn.classList.toggle('hidden',window.scrollY < 320);
+}
+
+window.addEventListener('scroll',updateScrollTopButton,{passive:true});
+document.addEventListener('DOMContentLoaded',updateScrollTopButton);
