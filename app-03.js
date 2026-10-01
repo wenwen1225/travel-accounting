@@ -228,23 +228,28 @@ function statsKnownTwd(item){
   return item && item.twd !== null && item.twd !== '' && Number(item.twd) > 0;
 }
 
-function statsBarRows(entries,total,emptyText){
+function statsBarRows(entries,totalTwd,totalForeign,emptyText){
   if(!entries.length){
     return '<div class="empty">'+emptyText+'</div>';
   }
 
-  const max = Math.max(...entries.map(x=>x.amount),1);
+  const max = Math.max(...entries.map(x=>Math.max(x.twdAmount||0,x.foreignAmount||0)),1);
+
   return entries.map(entry=>{
-    const width = Math.max(4,Math.round((entry.amount/max)*100));
-    const share = total > 0 ? Math.round((entry.amount/total)*100) : 0;
+    const basis = Math.max(entry.twdAmount||0, entry.foreignAmount||0);
+    const width = Math.max(4,Math.round((basis/max)*100));
+    const twdShare = totalTwd > 0 ? Math.round(((entry.twdAmount||0)/totalTwd)*100) : 0;
+    const foreignShare = totalForeign > 0 ? Math.round(((entry.foreignAmount||0)/totalForeign)*100) : 0;
+
     return `
       <div class="stats-row">
         <div class="stats-row-head">
           <span>${entry.label}</span>
-          <strong>${statsAmount(entry.amount)}</strong>
+          <strong>${statsAmount(entry.twdAmount||0)}</strong>
         </div>
+        <div class="stats-row-foreign">${currentTrip.currency} ${new Intl.NumberFormat().format(entry.foreignAmount||0)}</div>
         <div class="stats-bar"><span style="width:${width}%"></span></div>
-        <div class="stats-row-meta">${entry.count} 筆 · ${share}%</div>
+        <div class="stats-row-meta">${entry.count} 筆 · 台幣 ${twdShare}% · 外幣 ${foreignShare}%</div>
       </div>`;
   }).join('');
 }
@@ -257,6 +262,7 @@ function openTripStats(){
   const spendRecords = [...expenses,...pretrip];
   const knownRecords = spendRecords.filter(statsKnownTwd);
   const totalTwd = knownRecords.reduce((sum,item)=>sum+Number(item.twd||0),0);
+  const totalForeign = spendRecords.reduce((sum,item)=>sum+Number(item.foreign||0),0);
   const pendingCount = expenses.filter(item =>
     item.twd === null || item.twd === '' || Number(item.twd) === 0
   ).length;
@@ -264,6 +270,8 @@ function openTripStats(){
   document.getElementById('statsSubtitle').textContent =
     currentTrip.name + ' · ' + tripDurationText(currentTrip.start,currentTrip.end);
   document.getElementById('statsTotalTwd').textContent = statsAmount(totalTwd);
+  const foreignEl = document.getElementById('statsTotalForeign');
+  if(foreignEl) foreignEl.textContent = currentTrip.currency + ' ' + new Intl.NumberFormat().format(totalForeign);
   document.getElementById('statsRecordCount').textContent = spendRecords.length;
   document.getElementById('statsPendingCount').textContent = pendingCount;
   document.getElementById('statsKnownNote').textContent =
@@ -276,27 +284,30 @@ function openTripStats(){
 
   const peopleStats = peopleNames.map(name=>{
     const rows = knownRecords.filter(x=>x.person===name);
+    const allRows = spendRecords.filter(x=>x.person===name);
     return {
       label:name,
-      amount:rows.reduce((sum,x)=>sum+Number(x.twd||0),0),
-      count:spendRecords.filter(x=>x.person===name).length
+      twdAmount:rows.reduce((sum,x)=>sum+Number(x.twd||0),0),
+      foreignAmount:allRows.reduce((sum,x)=>sum+Number(x.foreign||0),0),
+      count:allRows.length
     };
-  }).sort((a,b)=>b.amount-a.amount);
+  }).sort((a,b)=>(b.twdAmount||0)-(a.twdAmount||0) || (b.foreignAmount||0)-(a.foreignAmount||0));
 
   document.getElementById('statsPeople').innerHTML =
-    statsBarRows(peopleStats,totalTwd,'目前還沒有可統計的個人支出');
+    statsBarRows(peopleStats,totalTwd,totalForeign,'目前還沒有可統計的個人支出');
 
   const paymentMap = {};
   spendRecords.forEach(item=>{
     const label = item.pay || '未分類';
-    if(!paymentMap[label]) paymentMap[label]={label,amount:0,count:0};
+    if(!paymentMap[label]) paymentMap[label]={label,twdAmount:0,foreignAmount:0,count:0};
     paymentMap[label].count++;
-    if(statsKnownTwd(item)) paymentMap[label].amount += Number(item.twd||0);
+    if(statsKnownTwd(item)) paymentMap[label].twdAmount += Number(item.twd||0);
+    paymentMap[label].foreignAmount += Number(item.foreign||0);
   });
 
-  const paymentStats = Object.values(paymentMap).sort((a,b)=>b.amount-a.amount);
+  const paymentStats = Object.values(paymentMap).sort((a,b)=>(b.twdAmount||0)-(a.twdAmount||0) || (b.foreignAmount||0)-(a.foreignAmount||0));
   document.getElementById('statsPayment').innerHTML =
-    statsBarRows(paymentStats,totalTwd,'目前還沒有付款方式資料');
+    statsBarRows(paymentStats,totalTwd,totalForeign,'目前還沒有付款方式資料');
 
   const start = normalizeTripDateValue(currentTrip.start);
   const end = normalizeTripDateValue(currentTrip.end);
@@ -305,8 +316,9 @@ function openTripStats(){
   expenses.forEach(item=>{
     const date = normalizeTripDateValue(item.date);
     if(!date || date < start || date > end || !statsKnownTwd(item)) return;
-    if(!daily[date]) daily[date]={amount:0,count:0};
-    daily[date].amount += Number(item.twd||0);
+    if(!daily[date]) daily[date]={twdAmount:0,foreignAmount:0,count:0};
+    daily[date].twdAmount += Number(item.twd||0);
+    daily[date].foreignAmount += Number(item.foreign||0);
     daily[date].count++;
   });
 
@@ -317,7 +329,8 @@ function openTripStats(){
   document.getElementById('statsTopDay').innerHTML = topDay
     ? `
       <div class="stats-top-day-date">${topDay.date}</div>
-      <strong>${statsAmount(topDay.amount)}</strong>
+      <strong>${statsAmount(topDay.twdAmount)}</strong>
+      <div class="stats-top-day-foreign">${currentTrip.currency} ${new Intl.NumberFormat().format(topDay.foreignAmount||0)}</div>
       <span>${topDay.count} 筆購買商品</span>
     `
     : '<div class="empty">目前還沒有已填台幣的旅途中消費</div>';
