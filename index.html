@@ -412,17 +412,30 @@
       <button id="statsChartBtn" type="button" onclick="setStatsView('chart')">圖表</button>
     </div>
 
-    <div id="statsChartView" class="section hidden">
-      <div class="section-title">圖表總覽</div>
-      <div class="stats-chart-grid">
-        <div class="card stats-chart-card">
-          <div class="stats-chart-title">付款方式占比</div>
-          <div id="statsPaymentPie"></div>
-        </div>
-        <div class="card stats-chart-card">
-          <div class="stats-chart-title">每日支出</div>
-          <div id="statsDailyBars"></div>
-        </div>
+    <div id="statsChartView" class="hidden">
+      <div class="section">
+        <div class="section-title">每人花費</div>
+        <div id="statsPeopleChart" class="card stats-chart-card"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">付款方式</div>
+        <div id="statsPaymentChart" class="card stats-chart-card"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">個人／共同支出</div>
+        <div id="statsSharedChart" class="card stats-chart-card"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">每日花費</div>
+        <div id="statsDailyChart" class="card stats-chart-card"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">旅途中花最多的一天</div>
+        <div id="statsTopDayChart" class="card stats-chart-card stats-topday-chart"></div>
       </div>
     </div>
 
