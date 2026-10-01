@@ -49,18 +49,38 @@ function removeQueued(queueId){
   persist();
 }
 
+let cloudRequestCount = 0;
+
+function beginCloudActivity(){
+  cloudRequestCount++;
+  updateHomeSyncStatus();
+  updateCloudStatusUI();
+}
+
+function endCloudActivity(){
+  cloudRequestCount = Math.max(0, cloudRequestCount - 1);
+  updateHomeSyncStatus();
+  updateCloudStatusUI();
+}
+
 async function postToCloud(payload){
   const url = getApiUrl();
   if(!url) throw new Error('NO_API_URL');
-  const res = await fetch(url,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(payload)
-  });
-  if(!res.ok) throw new Error('HTTP_'+res.status);
-  const data = await res.json();
-  if(!data || data.success !== true) throw new Error(data?.message || 'SYNC_FAILED');
-  return data;
+
+  beginCloudActivity();
+  try{
+    const res = await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('HTTP_'+res.status);
+    const data = await res.json();
+    if(!data || data.success !== true) throw new Error(data?.message || 'SYNC_FAILED');
+    return data;
+  }finally{
+    endCloudActivity();
+  }
 }
 
 function getTripById(id){
@@ -376,6 +396,13 @@ function updateHomeSyncStatus(){
     return;
   }
 
+  if(cloudRequestCount > 0){
+    box.className='home-sync-status home-sync-syncing';
+    icon.textContent='↻';
+    text.textContent='同步中…';
+    return;
+  }
+
   const pendingCount = (state.syncQueue || []).length;
   if(pendingCount > 0){
     box.className='home-sync-status home-sync-pending';
@@ -395,11 +422,16 @@ function updateCloudStatusUI(){
   const pending = document.getElementById('pendingSyncCount');
   const input = document.getElementById('apiUrlInput');
   if(input) input.value = getApiUrl();
-  if(pending) pending.textContent = `${state.syncQueue.length} 筆待同步`;
+  if(pending) pending.textContent = cloudRequestCount > 0 ? '同步中…' : `${state.syncQueue.length} 筆待同步`;
   if(!dot || !text) return;
   if(getApiUrl()){
-    dot.className='cloud-dot ' + (state.syncQueue.length ? 'cloud-warn' : 'cloud-ok');
-    text.textContent = state.syncQueue.length ? '已設定・有待同步資料' : '已設定';
+    if(cloudRequestCount > 0){
+      dot.className='cloud-dot cloud-warn';
+      text.textContent='同步中…';
+    }else{
+      dot.className='cloud-dot ' + (state.syncQueue.length ? 'cloud-warn' : 'cloud-ok');
+      text.textContent = state.syncQueue.length ? '已設定・有待同步資料' : '已設定';
+    }
   }else{
     dot.className='cloud-dot cloud-off';
     text.textContent='尚未設定';
