@@ -27,6 +27,20 @@ function tripDurationText(start,end){
   return days+'天'+nights+'夜';
 }
 
+function getTripStatus(start,end){
+  const today = typeof getLocalDateYmd==='function'
+    ? getLocalDateYmd()
+    : (()=>{ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; })();
+
+  const s = normalizeTripDateValue(start);
+  const e = normalizeTripDateValue(end);
+
+  if(!s || !e) return {label:'日期未完整',className:'trip-status-unknown'};
+  if(today < s) return {label:'尚未出發',className:'trip-status-upcoming'};
+  if(today > e) return {label:'已結束',className:'trip-status-ended'};
+  return {label:'旅行中',className:'trip-status-active'};
+}
+
 function renderHome(){
   updateHomeSyncStatus();
   const box = document.getElementById('tripList');
@@ -41,6 +55,7 @@ function renderHome(){
   box.innerHTML = state.trips.map(t=>{
     const all = [...(t.expenses||[]), ...(t.pretrip||[])];
     const total = all.reduce((s,x)=>s+Number(x.twd||0),0);
+    const status = getTripStatus(t.start,t.end);
     return `
       <div class="card trip-card" onclick="openTrip('${t.id}')">
         <div class="trip-head">
@@ -48,7 +63,10 @@ function renderHome(){
             <h3>${t.name}</h3>
             <p>${normalizeTripDateValue(t.start)} ～ ${normalizeTripDateValue(t.end)} · ${tripDurationText(t.start,t.end)}</p>
           </div>
-          <span class="mini-tag">${t.currency} / TWD</span>
+          <div class="trip-card-tags">
+            <span class="trip-status ${status.className}">${status.label}</span>
+            <span class="mini-tag">${t.currency} / TWD</span>
+          </div>
         </div>
         <div class="amount">${fmtMoney(total,'TWD')}</div>
         <div class="sub">${(t.expenses||[]).length + (t.pretrip||[]).length + (t.exchange||[]).length} 筆紀錄</div>
