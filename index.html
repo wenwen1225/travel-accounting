@@ -330,6 +330,37 @@
       </div>
     </div>
     <div class="section">
+      <div class="card records-filter-card">
+        <div class="form-group" style="margin-bottom:10px">
+          <label>搜尋</label>
+          <input id="recordSearch" placeholder="品名、項目、地點、網站、備註" oninput="applyRecordFilters()" />
+        </div>
+
+        <div class="records-filter-grid">
+          <div class="form-group">
+            <label>日期</label>
+            <input id="recordFilterDate" type="date" onchange="applyRecordFilters()" />
+          </div>
+          <div class="form-group">
+            <label>人員</label>
+            <select id="recordFilterPerson" onchange="applyRecordFilters()"></select>
+          </div>
+          <div class="form-group">
+            <label>付款方式</label>
+            <select id="recordFilterPay" onchange="applyRecordFilters()"></select>
+          </div>
+          <div class="form-group">
+            <label>卡別</label>
+            <select id="recordFilterCard" onchange="applyRecordFilters()"></select>
+          </div>
+        </div>
+
+        <div class="records-filter-footer">
+          <span id="recordFilterCount" class="tiny">0 筆</span>
+          <button class="pill" type="button" onclick="clearRecordFilters()">清除條件</button>
+        </div>
+      </div>
+
       <div id="allRecords" class="card" style="padding:0 16px"></div>
     </div>
   </section>
