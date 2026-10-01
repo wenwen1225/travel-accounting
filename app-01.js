@@ -335,7 +335,33 @@ async function syncAndPullCloud(){
   await pullCloudTrips({silent:true});
 }
 
+function updateHomeSyncStatus(){
+  const box = document.getElementById('homeSyncStatus');
+  const text = document.getElementById('homeSyncText');
+  const icon = document.getElementById('homeSyncIcon');
+  if(!box || !text || !icon) return;
+
+  if(!getApiUrl()){
+    box.className='home-sync-status home-sync-local';
+    icon.textContent='●';
+    text.textContent='僅本機';
+    return;
+  }
+
+  const pendingCount = (state.syncQueue || []).length;
+  if(pendingCount > 0){
+    box.className='home-sync-status home-sync-pending';
+    icon.textContent='↻';
+    text.textContent=`${pendingCount} 筆待同步`;
+  }else{
+    box.className='home-sync-status home-sync-ok';
+    icon.textContent='☁';
+    text.textContent='已全部同步';
+  }
+}
+
 function updateCloudStatusUI(){
+  updateHomeSyncStatus();
   const dot = document.getElementById('cloudDot');
   const text = document.getElementById('cloudStatusText');
   const pending = document.getElementById('pendingSyncCount');
@@ -369,6 +395,7 @@ function syncBadgeHtml(item){
 
 function persist(){
   localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  updateHomeSyncStatus();
 }
 
 function showPage(id){
