@@ -111,6 +111,7 @@ async function syncTripCreation(trip){
     const queued = state.syncQueue.find(q => q.tripId===trip.id && q.action==='createTrip');
     if(queued) queued.lastError = trip.lastSyncError;
     persist();
+    setTimeout(autoSyncPendingRecords, 5000);
     return false;
   }
 }
@@ -128,13 +129,17 @@ async function syncRecord(action, trip, type, item){
     const queued = state.syncQueue.find(q => q.tripId===trip.id && q.recordId===item.id && q.action===action);
     if(queued) queued.lastError = item.lastSyncError;
     persist();
+    setTimeout(autoSyncPendingRecords, 5000);
     return false;
   }
 }
 
-async function syncPendingRecords(){
+let autoSyncRunning = false;
+
+async function syncPendingRecords(options={}){
+  const silent = !!options.silent;
   if(!getApiUrl()){
-    alert('請先填入 Google Apps Script Web App URL。');
+    if(!silent) alert('請先填入 Google Apps Script Web App URL。');
     return;
   }
 
@@ -185,11 +190,29 @@ async function syncPendingRecords(){
   renderSettings();
   if(currentTrip) renderTripSummary();
 
-  if(state.syncQueue.length){
-    const detail = errors.length ? '\n\n錯誤原因：\n' + [...new Set(errors)].slice(0,3).join('\n') : '';
-    alert(`同步完成，但仍有 ${state.syncQueue.length} 筆待同步。${detail}`);
-  }else{
-    alert('全部資料已同步完成。');
+  if(!silent){
+    if(state.syncQueue.length){
+      const detail = errors.length ? '\n\n錯誤原因：\n' + [...new Set(errors)].slice(0,3).join('\n') : '';
+      alert(`同步完成，但仍有 ${state.syncQueue.length} 筆待同步。${detail}`);
+    }else{
+      alert('全部資料已同步完成。');
+    }
+  }
+}
+
+async function autoSyncPendingRecords(){
+  if(autoSyncRunning) return;
+  if(!getApiUrl()) return;
+  if(!state.syncQueue.length) return;
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+  autoSyncRunning = true;
+  try{
+    await syncPendingRecords({silent:true});
+  }catch(err){
+    // 背景自動同步失敗時保留待同步資料，不打擾使用者
+  }finally{
+    autoSyncRunning = false;
   }
 }
 
