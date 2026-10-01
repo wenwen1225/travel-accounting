@@ -143,6 +143,9 @@
       </div>
       <div id="recentRecords" class="card" style="padding:0 16px"></div>
     </div>
+    <div class="section trip-delete-section">
+      <button class="secondary danger-button" onclick="deleteCurrentTrip()">刪除這趟旅行</button>
+    </div>
   </section>
 
   <section id="page-add" class="page">
@@ -211,7 +214,9 @@
         <textarea id="expenseNote" placeholder="可留空"></textarea>
       </div>
 
-      <button class="primary" onclick="saveExpense()">儲存這筆消費</button><div class="tiny" style="margin-top:10px">* 為必填欄位；台幣金額可以之後從「全部紀錄」補上。</div>
+      <button class="primary" onclick="saveExpense()">儲存這筆消費</button>
+      <button id="deleteExpenseBtn" class="secondary danger-button hidden" style="margin-top:10px" onclick="deleteCurrentExpense()">刪除這筆紀錄</button>
+      <div class="tiny" style="margin-top:10px">* 為必填欄位；台幣金額可以之後從「全部紀錄」補上。</div>
     </div>
 
     <div id="pretripForm" class="card form-card hidden">
