@@ -511,3 +511,11 @@
   font-weight:600;
   opacity:.72;
 }
+
+
+.primary.is-saving,
+.primary:disabled{
+  cursor:wait;
+  opacity:.68;
+  filter:saturate(.75);
+}
