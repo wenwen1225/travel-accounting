@@ -308,6 +308,15 @@ function statsBarRows(entries,totalTwd,totalForeign,emptyText){
 function openTripStats(){
   if(!currentTrip) return goHome();
 
+  // 舊旅行也主動要求雲端建立／更新「旅行統計」分頁。
+  if(getApiUrl() && currentTrip.spreadsheetId){
+    postToCloud({
+      action:'refreshStats',
+      spreadsheetId:currentTrip.spreadsheetId,
+      clientTripId:currentTrip.id
+    }).catch(()=>{});
+  }
+
   const expenses = currentTrip.expenses || [];
   const pretrip = currentTrip.pretrip || [];
   const spendRecords = [...expenses,...pretrip];
