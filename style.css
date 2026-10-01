@@ -1110,3 +1110,47 @@
   font-size:11px;
   color:var(--muted);
 }
+
+
+/* 旅行統計：手動更新 Google Sheet */
+.stats-sheet-sync{
+  margin:14px 20px 4px;
+  padding:14px 15px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.stats-sheet-sync > div{
+  min-width:0;
+}
+.stats-sheet-sync strong{
+  display:block;
+  font-size:13px;
+}
+.stats-sheet-sync span{
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.45;
+  color:var(--muted);
+  word-break:break-word;
+}
+.stats-sheet-sync .pill{
+  flex:0 0 auto;
+}
+.stats-sheet-sync-ok{
+  color:#4c8c69 !important;
+}
+.stats-sheet-sync-error{
+  color:#b45f55 !important;
+}
+@media (max-width:480px){
+  .stats-sheet-sync{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .stats-sheet-sync .pill{
+    width:100%;
+  }
+}
