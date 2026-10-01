@@ -35,11 +35,13 @@ async function toggleCurrentTripArchive(forceArchived){
 
   if(getApiUrl() && currentTrip.spreadsheetId){
     try{
-      const payload=cloudPayloadForTrip(currentTrip);
-      payload.spreadsheetId=currentTrip.spreadsheetId;
-      payload.updateExisting=true;
-
-      await postToCloud(payload);
+      await postToCloud({
+        action:'updateTripMeta',
+        spreadsheetId:currentTrip.spreadsheetId,
+        clientTripId:currentTrip.id,
+        archived:!!currentTrip.archived,
+        archivedAt:currentTrip.archivedAt || ''
+      });
       currentTrip.cloudStatus='synced';
       currentTrip.lastSyncError='';
       markSyncSuccess();
