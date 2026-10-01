@@ -1,3 +1,35 @@
+let recordSaveLocked = false;
+
+async function guardedSave(kind, button){
+  if(recordSaveLocked || !button || button.disabled) return;
+
+  const actions = {
+    expense: saveExpense,
+    pretrip: savePretrip,
+    exchange: saveExchange
+  };
+  const action = actions[kind];
+  if(!action) return;
+
+  const originalText = button.textContent;
+  recordSaveLocked = true;
+  button.disabled = true;
+  button.classList.add('is-saving');
+  button.textContent = '儲存中…';
+
+  try{
+    await action();
+  }catch(err){
+    console.error('save error:', err);
+    alert('儲存時發生錯誤，資料沒有重複送出，請再試一次。');
+  }finally{
+    recordSaveLocked = false;
+    button.disabled = false;
+    button.classList.remove('is-saving');
+    button.textContent = originalText;
+  }
+}
+
 async function saveExpense(){
   clearRequiredErrors();
   const okDate = requireTextField('expenseDate','請選擇日期');
