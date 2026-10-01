@@ -64,7 +64,7 @@ function renderHome(){
         <div class="trip-head">
           <div>
             <h3>${t.name}</h3>
-            <p>${normalizeTripDateValue(t.start)} ～ ${normalizeTripDateValue(t.end)} · ${tripDurationText(t.start,t.end)}</p>
+            <p>${dateWithWeekday(t.start)} ～ ${dateWithWeekday(t.end)} · ${tripDurationText(t.start,t.end)}</p>
           </div>
           <div class="trip-card-tags">
             <span class="trip-status ${status.className}">${status.label}</span>
