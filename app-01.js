@@ -97,7 +97,9 @@ function cloudPayloadForTrip(trip){
     end:trip.end,
     currency:trip.currency,
     people:trip.people,
-    cards:state.cards || []
+    cards:state.cards || [],
+    archived:!!trip.archived,
+    archivedAt:trip.archivedAt || ''
   };
 }
 
