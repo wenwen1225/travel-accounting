@@ -143,6 +143,11 @@
           <strong>全部紀錄</strong>
           <span>查看這趟所有資料</span>
         </button>
+        <button class="card action-card stats-action-card" onclick="openTripStats()">
+          <div class="action-icon">📊</div>
+          <strong>旅行統計</strong>
+          <span>人員、付款方式與每日支出</span>
+        </button>
       </div>
     </div>
 
@@ -317,6 +322,48 @@
     </div>
     <div class="section">
       <div id="allRecords" class="card" style="padding:0 16px"></div>
+    </div>
+  </section>
+
+
+  <section id="page-stats" class="page">
+    <div class="top">
+      <button class="back" onclick="backToTrip()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 style="font-size:22px">旅行統計</h1>
+        <p id="statsSubtitle"></p>
+      </div>
+    </div>
+
+    <div class="stats-hero">
+      <div class="eyebrow">目前總支出</div>
+      <h2 id="statsTotalTwd">NT$0</h2>
+      <div id="statsKnownNote" class="stats-hero-note"></div>
+      <div class="stats-mini-grid">
+        <div>
+          <span>總紀錄</span>
+          <strong id="statsRecordCount">0</strong>
+        </div>
+        <div>
+          <span>待補台幣</span>
+          <strong id="statsPendingCount">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">每人花費</div>
+      <div id="statsPeople" class="card stats-card-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">付款方式</div>
+      <div id="statsPayment" class="card stats-card-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">旅途中花最多的一天</div>
+      <div id="statsTopDay" class="card stats-highlight"></div>
     </div>
   </section>
 
