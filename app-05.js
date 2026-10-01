@@ -44,7 +44,7 @@ async function saveExpense(){
   const tripStart = normalizeTripDateValue(currentTrip.start);
   const tripEnd = normalizeTripDateValue(currentTrip.end);
   if(expenseDateValue < tripStart || expenseDateValue > tripEnd){
-    alert(`購買商品日期只能填在旅行期間：${tripStart} ～ ${tripEnd}`);
+    alert(`購買商品日期只能填在旅行期間：${dateWithWeekday(tripStart)} ～ ${dateWithWeekday(tripEnd)}`);
     return;
   }
 
