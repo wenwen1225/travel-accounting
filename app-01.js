@@ -18,6 +18,7 @@ if(!state.cardListV15){
 
 if(typeof state.apiUrl !== 'string') state.apiUrl = '';
 if(!Array.isArray(state.syncQueue)) state.syncQueue = [];
+if(typeof state.lastSyncAt !== 'string') state.lastSyncAt = '';
 let currentTrip = null;
 let selectedPerson = 'Wen';
 let selectedPretripPerson = 'Wen';
@@ -102,7 +103,7 @@ async function syncTripCreation(trip){
     trip.spreadsheetId = data.spreadsheetId || trip.spreadsheetId || '';
     trip.spreadsheetUrl = data.spreadsheetUrl || trip.spreadsheetUrl || '';
     trip.cloudStatus = 'synced';
-    persist();
+    markSyncSuccess();
     return true;
   }catch(err){
     trip.cloudStatus = 'pending';
@@ -122,7 +123,7 @@ async function syncRecord(action, trip, type, item){
     setRecordSyncState(trip, type, item.id, 'synced');
     state.syncQueue = state.syncQueue.filter(q => !(q.tripId===trip.id && q.recordId===item.id));
     item.lastSyncError = '';
-    persist();
+    markSyncSuccess();
     return true;
   }catch(err){
     setRecordSyncState(trip, type, item.id, 'pending');
@@ -179,6 +180,7 @@ async function syncPendingRecords(options={}){
       }
 
       removeQueued(q.queueId);
+      markSyncSuccess();
 
     }catch(err){
       const msg = err && err.message ? err.message : String(err);
@@ -315,6 +317,7 @@ async function pullCloudTrips(options={}){
         renderTripSummary();
       }
     }
+    markSyncSuccess();
     return true;
   }catch(err){
     if(!silent){
@@ -335,7 +338,32 @@ async function syncAndPullCloud(){
   await pullCloudTrips({silent:true});
 }
 
+function markSyncSuccess(){
+  state.lastSyncAt = new Date().toISOString();
+  persist();
+}
+
+function formatLastSyncTime(){
+  if(!state.lastSyncAt) return '尚未同步';
+  const d = new Date(state.lastSyncAt);
+  if(Number.isNaN(d.getTime())) return '尚未同步';
+  return '最後同步：' + d.toLocaleTimeString('zh-TW',{
+    hour:'2-digit',
+    minute:'2-digit',
+    hour12:false
+  });
+}
+
+function updateLastSyncUI(){
+  const home = document.getElementById('homeLastSync');
+  const settings = document.getElementById('settingsLastSync');
+  const text = formatLastSyncTime();
+  if(home) home.textContent = text;
+  if(settings) settings.textContent = text;
+}
+
 function updateHomeSyncStatus(){
+  updateLastSyncUI();
   const box = document.getElementById('homeSyncStatus');
   const text = document.getElementById('homeSyncText');
   const icon = document.getElementById('homeSyncIcon');
