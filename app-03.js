@@ -75,8 +75,15 @@ function editExpense(id){
 
   document.getElementById('addTitle').textContent='修改購買紀錄';
   document.getElementById('addSubtitle').textContent=`${currentTrip.name} · ${currentTrip.currency}`;
-  selectedPerson = item.person;
-  renderPersonChips('personChips',selectedPerson,'selectPerson');
+  const sharedExpense = item.pay==='現金' || item.pay==='Wowpass';
+  document.getElementById('expensePersonGroup').classList.toggle('hidden',sharedExpense);
+  document.querySelectorAll('#paySeg button').forEach(btn=>{
+    const pay=btn.dataset.pay;
+    const show = sharedExpense ? (pay==='現金' || pay==='Wowpass') : pay==='信用卡';
+    btn.classList.toggle('hidden',!show);
+  });
+  selectedPerson = sharedExpense ? '共同' : item.person;
+  if(!sharedExpense) renderPersonChips('personChips',selectedPerson,'selectPerson');
   selectPay(item.pay || '信用卡');
   document.getElementById('expenseDate').min = currentTrip.start;
   document.getElementById('expenseDate').max = currentTrip.end;
@@ -277,14 +284,20 @@ function openTripStats(){
   document.getElementById('statsKnownNote').textContent =
     pendingCount ? '目前以已填台幣金額的紀錄計算' : '所有消費皆已計入台幣統計';
 
+  const personEligible = [
+    ...expenses.filter(x=>x.pay==='信用卡'),
+    ...pretrip.filter(x=>x.person)
+  ];
+  const knownPersonEligible = personEligible.filter(statsKnownTwd);
+
   const peopleNames = [
     ...(currentTrip.people || []),
-    ...spendRecords.map(x=>x.person).filter(Boolean)
+    ...personEligible.map(x=>x.person).filter(Boolean)
   ].filter((name,index,array)=>array.indexOf(name)===index);
 
   const peopleStats = peopleNames.map(name=>{
-    const rows = knownRecords.filter(x=>x.person===name);
-    const allRows = spendRecords.filter(x=>x.person===name);
+    const rows = knownPersonEligible.filter(x=>x.person===name);
+    const allRows = personEligible.filter(x=>x.person===name);
     return {
       label:name,
       twdAmount:rows.reduce((sum,x)=>sum+Number(x.twd||0),0),
