@@ -117,7 +117,7 @@ async function savePretrip(){
     pay:pretripPay,
     twd:Number(rawNumber(document.getElementById('pretripTwd').value)||0),
     foreign:Number(rawNumber(document.getElementById('pretripForeign').value)||0),
-    card:pretripPay==='信用卡' ? document.getElementById('pretripCard').value : '',
+    card:pretripPay==='信用卡' ? (document.getElementById('pretripCard').value || '無') : '無',
     note:document.getElementById('pretripNote').value.trim()
   };
 
