@@ -29,7 +29,7 @@ function getApiUrl(){
 }
 
 function enqueueSync(action, tripId, recordType, recordId, payload){
-  const existing = state.syncQueue.find(q => q.action===action && q.tripId===tripId && q.recordId===recordId);
+  const existing = state.syncQueue.find(q => q.tripId===tripId && q.recordId===recordId);
   const item = {
     queueId:'q_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
     action, tripId, recordType, recordId, payload,
@@ -120,6 +120,8 @@ async function syncRecord(action, trip, type, item){
   try{
     const data = await postToCloud(cloudPayloadForRecord(action, trip, item));
     setRecordSyncState(trip, type, item.id, 'synced');
+    state.syncQueue = state.syncQueue.filter(q => !(q.tripId===trip.id && q.recordId===item.id));
+    item.lastSyncError = '';
     persist();
     return true;
   }catch(err){
@@ -173,6 +175,7 @@ async function syncPendingRecords(options={}){
         const arr = trip[q.recordType] || [];
         const item = arr.find(x=>x.id===q.recordId);
         if(item) item.lastSyncError = '';
+        state.syncQueue = state.syncQueue.filter(x => !(x.tripId===q.tripId && x.recordId===q.recordId));
       }
 
       removeQueued(q.queueId);
