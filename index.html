@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>旅遊記帳 Travel Ledger</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+
+  <section id="page-home" class="page active">
+    <div class="top">
+      <div class="title-wrap">
+        <h1>我的旅行</h1>
+        <p>旅遊記帳，不再漏掉每一筆消費</p>
+      </div>
+      <button class="pill" onclick="goSettings()">設定</button>
+    </div>
+
+    <div id="tripList" class="section"></div>
+
+    <button class="fab" onclick="openCreateTrip()">＋ 建立新旅行</button>
+  </section>
+
+  <section id="page-create" class="page">
+    <div class="top">
+      <button class="back" onclick="goHome()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 style="font-size:22px">建立新旅行</h1>
+        <p>設定日期、貨幣與這趟的記帳對象</p>
+      </div>
+    </div>
+
+    <div class="card form-card">
+      <div class="form-group">
+        <label>旅行地點</label>
+        <input id="tripPlace" placeholder="例如：首爾" />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>開始日期</label>
+          <input id="tripStart" type="date" />
+        </div>
+        <div class="form-group">
+          <label>結束日期</label>
+          <input id="tripEnd" type="date" />
+          <div id="endDateHint" class="tiny" aria-live="polite" style="margin-top:6px">請先選開始日期</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>主要外幣</label>
+          <select id="tripCurrency">
+            <option value="KRW">KRW 韓元</option>
+            <option value="JPY">JPY 日圓</option>
+            <option value="USD">USD 美元</option>
+            <option value="EUR">EUR 歐元</option>
+            <option value="HKD">HKD 港幣</option>
+            <option value="CNY">CNY 人民幣</option>
+            <option value="SGD">SGD 新加坡幣</option>
+            <option value="THB">THB 泰銖</option>
+            <option value="MYR">MYR 馬幣</option>
+            <option value="GBP">GBP 英鎊</option>
+            <option value="AUD">AUD 澳幣</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>基準貨幣</label>
+          <input value="TWD 台幣" disabled />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>這趟要記哪些人？</label>
+        <div id="tripPeopleChips" class="chips"></div>
+      </div>
+
+      <button type="button" class="primary" onclick="createTrip()">建立旅行</button>
+    </div>
+
+    <div class="notice">
+      建立後會依你指定的格式自動產生旅行名稱，例如：<b>首爾 26_09_17_22</b>。正式串接 Google Sheets 後，按下「建立旅行」也會同時自動建立一份同名的 Google Sheet。
+    </div>
+  </section>
+
+  <section id="page-trip" class="page">
+    <div class="top">
+      <button class="back" onclick="goHome()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 id="tripTitle" style="font-size:22px">旅行</h1>
+        <p id="tripSubtitle"></p>
+      </div>
+      <button class="pill" onclick="openTripSettings()">管理</button>
+    </div>
+
+    <div class="hero">
+      <div class="eyebrow">旅行總支出</div>
+      <h2 id="totalTwd">NT$0</h2>
+      <div id="totalForeign" class="dates"></div>
+      <div class="hero-grid">
+        <div class="hero-stat">
+          <span>今日支出</span>
+          <strong id="todayTwd">NT$0</strong>
+        </div>
+        <div class="hero-stat">
+          <span>待補台幣</span>
+          <strong id="pendingTwdCount">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">快速新增</div>
+      <div class="grid">
+        <button class="card action-card" onclick="openAdd('expense')">
+          <div class="action-icon">🧾</div>
+          <strong>購買商品</strong>
+          <span>信用卡 / 現金 / Wowpass</span>
+        </button>
+        <button class="card action-card" onclick="openAdd('pretrip')">
+          <div class="action-icon">✈️</div>
+          <strong>先前費用</strong>
+          <span>機票、住宿、門票等</span>
+        </button>
+        <button class="card action-card" onclick="openAdd('exchange')">
+          <div class="action-icon">💱</div>
+          <strong>換匯紀錄</strong>
+          <span>TWD 與外幣換匯</span>
+        </button>
+        <button class="card action-card" onclick="openRecords()">
+          <div class="action-icon">📒</div>
+          <strong>全部紀錄</strong>
+          <span>查看這趟所有資料</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        最近紀錄
+        <button class="pill" onclick="openPendingTwd()">待補台幣</button>
+      </div>
+      <div id="recentRecords" class="card" style="padding:0 16px"></div>
+    </div>
+  </section>
+
+  <section id="page-add" class="page">
+    <div class="top">
+      <button class="back" onclick="backToTrip()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 id="addTitle" style="font-size:22px">新增消費</h1>
+        <p id="addSubtitle"></p>
+      </div>
+    </div>
+
+    <div id="expenseForm" class="card form-card">
+      <div class="form-group">
+        <label>記帳對象</label>
+        <div id="personChips" class="chips"></div>
+      </div>
+
+      <div class="form-group">
+        <label>付款方式</label>
+        <div class="seg" id="paySeg">
+          <button data-pay="信用卡" onclick="selectPay('信用卡')">信用卡</button>
+          <button data-pay="現金" onclick="selectPay('現金')">現金</button>
+          <button data-pay="Wowpass" onclick="selectPay('Wowpass')">Wowpass</button>
+        </div>
+      </div>
+
+      <div id="cardTypeGroup" class="form-group hidden">
+        <label>卡別</label>
+        <select id="cardType"></select>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>日期 <span class="danger">*</span></label>
+          <input id="expenseDate" type="date" />
+        </div>
+        <div class="form-group">
+          <label>數量 <span class="danger">*</span></label>
+          <input id="expenseQty" type="number" min="1" value="1" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>品名 <span class="danger">*</span></label>
+        <input id="expenseName" placeholder="例如：Olive Young" />
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label id="foreignLabel">外幣金額 <span class="danger">*</span></label>
+          <div class="money-wrap"><span id="foreignSymbol" class="money-prefix">₩</span><input id="expenseForeign" type="text" inputmode="decimal" placeholder="0" /></div>
+        </div>
+        <div class="form-group">
+          <label>台幣金額 TWD <span class="tiny">（可之後補）</span></label>
+          <div class="money-wrap"><span class="money-prefix">$</span><input id="expenseTwd" type="text" inputmode="decimal" placeholder="可留空" /></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>購買地點 <span class="danger">*</span></label>
+        <input id="expensePlace" placeholder="例如：明洞" />
+      </div>
+
+      <div class="form-group">
+        <label>備註</label>
+        <textarea id="expenseNote" placeholder="可留空"></textarea>
+      </div>
+
+      <button class="primary" onclick="saveExpense()">儲存這筆消費</button><div class="tiny" style="margin-top:10px">* 為必填欄位；台幣金額可以之後從「全部紀錄」補上。</div>
+    </div>
+
+    <div id="pretripForm" class="card form-card hidden">
+      <div class="form-group">
+        <label>記帳對象</label>
+        <div id="pretripPersonChips" class="chips"></div>
+      </div>
+      <div class="form-group">
+        <label>項目</label>
+        <input id="pretripName" placeholder="例如：機票、飯店、網卡" />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>訂購日期</label>
+          <input id="pretripDate" type="date" />
+        </div>
+        <div class="form-group">
+          <label>付款方式</label>
+          <select id="pretripPay">
+            <option>信用卡</option>
+            <option>現金</option>
+            <option>轉帳</option>
+            <option>其他</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>台幣金額 TWD</label>
+          <div class="money-wrap"><span class="money-prefix">$</span><input id="pretripTwd" type="text" inputmode="decimal" /></div>
+        </div>
+        <div class="form-group">
+          <label id="pretripForeignLabel">外幣金額</label>
+          <div class="money-wrap"><span id="pretripForeignSymbol" class="money-prefix">₩</span><input id="pretripForeign" type="text" inputmode="decimal" /></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>卡別（若有）</label>
+        <select id="pretripCard"></select>
+      </div>
+      <div class="form-group">
+        <label>備註</label>
+        <textarea id="pretripNote"></textarea>
+      </div>
+      <button class="primary" onclick="savePretrip()">儲存先前費用</button>
+    </div>
+
+    <div id="exchangeForm" class="card form-card hidden">
+      <div class="form-group">
+        <label>日期</label>
+        <input id="exchangeDate" type="date" />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label>台幣 TWD</label>
+          <div class="money-wrap"><span class="money-prefix">$</span><input id="exchangeTwd" type="text" inputmode="decimal" /></div>
+        </div>
+        <div class="form-group">
+          <label id="exchangeForeignLabel">外幣</label>
+          <div class="money-wrap"><span id="exchangeForeignSymbol" class="money-prefix">₩</span><input id="exchangeForeign" type="text" inputmode="decimal" /></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>匯率</label>
+        <input id="exchangeRate" type="number" step="0.0001" inputmode="decimal" placeholder="例如：42.2" />
+      </div>
+      <div class="form-group">
+        <label>換匯地點</label>
+        <input id="exchangePlace" placeholder="例如：明洞換錢所" />
+      </div>
+      <div class="form-group">
+        <label>備註</label>
+        <textarea id="exchangeNote"></textarea>
+      </div>
+      <button class="primary" onclick="saveExchange()">儲存換匯紀錄</button>
+    </div>
+  </section>
+
+  <section id="page-records" class="page">
+    <div class="top">
+      <button class="back" onclick="backToTrip()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 style="font-size:22px">全部紀錄</h1>
+        <p id="recordsSubtitle"></p>
+      </div>
+    </div>
+    <div class="section">
+      <div id="allRecords" class="card" style="padding:0 16px"></div>
+    </div>
+  </section>
+
+  <section id="page-settings" class="page">
+    <div class="top">
+      <button class="back" onclick="goHome()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 style="font-size:22px">設定</h1>
+        <p>共用記帳對象與卡別</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Google Sheets 同步</div>
+      <div class="cloud-box">
+        <div class="cloud-status">
+          <div><span id="cloudDot" class="cloud-dot cloud-off"></span><strong id="cloudStatusText">尚未設定</strong></div>
+          <span id="pendingSyncCount" class="sync-badge sync-local">0 筆待同步</span>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Google Apps Script Web App URL</label>
+          <input id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" />
+        </div>
+        <div class="row">
+          <button class="secondary" onclick="saveApiUrl()">儲存網址</button>
+          <button class="primary" onclick="syncPendingRecords()">立即同步</button>
+        </div>
+        <div class="tiny" style="margin-top:10px">
+          有設定網址時會優先同步至 Google Sheets；若同步失敗，資料仍會保留在本機並標記「待同步」。
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">記帳對象</div>
+      <div id="peopleSettings" class="settings-list card"></div>
+      <div class="row" style="margin:12px 20px 0">
+        <input id="newPerson" placeholder="新增，例如：媽媽" />
+        <button class="pill" onclick="addPerson()">＋新增</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">共用卡別</div>
+      <div id="cardSettings" class="settings-list card"></div>
+      <div class="row" style="margin:12px 20px 0">
+        <input id="newCard" placeholder="新增，例如：玉山 U Bear" />
+        <button class="pill" onclick="addCard()">＋新增</button>
+      </div>
+    </div>
+
+    <div class="notice">
+      這版已改成「Google Sheets 優先＋本機備份」架構。填入 Apps Script Web App URL 後即可開始同步；若雲端失敗，資料會保留在本機並等待下次同步。
+    </div>
+  </section>
+
+  <nav id="bottomNav" class="bottom-nav hidden">
+    <button class="nav-btn active" onclick="goHome()"><span>🏠</span>旅行</button>
+    <button class="nav-btn" onclick="currentTrip ? openTrip(currentTrip.id) : goHome()"><span>🧾</span>記帳</button>
+    <button class="nav-btn" onclick="goSettings()"><span>⚙️</span>設定</button>
+  </nav>
+
+  <div id="saveOverlay" class="save-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
+    <div class="save-dialog">
+      <div id="saveSymbol" class="save-symbol">✓</div>
+      <h2 id="saveTitle">儲存成功</h2>
+      <p id="saveMessage">已成功儲存至此瀏覽器。</p>
+      <button class="primary" id="saveModalButton" onclick="closeSaveModal()">確定，返回旅行首頁</button>
+    </div>
+  </div>
+</div>
+<script src="app-01.js"></script>
+<script src="app-02.js"></script>
+<script src="app-03.js"></script>
+<script src="app-04.js"></script>
+<script src="app-05.js"></script>
+<script src="app-06.js"></script>
+<script src="app-07.js"></script>
+</body>
+</html>
