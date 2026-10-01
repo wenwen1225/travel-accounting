@@ -122,7 +122,7 @@ function resetExpenseForm(){
   if(deleteBtn) deleteBtn.classList.add('hidden');
   selectedPay = '信用卡';
 
-  const defaultDate = currentTrip ? currentTrip.start : new Date().toISOString().slice(0,10);
+  const defaultDate = getDefaultExpenseDate();
 
   document.getElementById('expenseDate').min = currentTrip ? currentTrip.start : '';
   document.getElementById('expenseDate').max = currentTrip ? currentTrip.end : '';
@@ -194,4 +194,25 @@ function editExchange(id){
   document.getElementById('exchangeForeignLabel').textContent=`${currentTrip.currency} 外幣`;
   document.getElementById('exchangeForeignSymbol').textContent=currencySymbol(currentTrip.currency);
   showPage('page-add');
+}
+
+
+function getLocalDateYmd(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDefaultExpenseDate(){
+  const today = getLocalDateYmd();
+  if(!currentTrip) return today;
+
+  const start = normalizeTripDateValue(currentTrip.start);
+  const end = normalizeTripDateValue(currentTrip.end);
+
+  if(today < start) return start;
+  if(today > end) return end;
+  return today;
 }
