@@ -404,6 +404,7 @@ function openTripStats(){
     statsSheetStatus.textContent = currentTrip.spreadsheetId
       ? '可手動更新 Sheet 統計分頁'
       : '這趟旅行尚未建立 Google Sheet';
+    statsSheetStatus.classList.remove('stats-sheet-sync-ok','stats-sheet-sync-error');
   }
   if(statsSheetBtn){
     statsSheetBtn.disabled = !currentTrip.spreadsheetId || !getApiUrl();
@@ -820,21 +821,24 @@ async function refreshStatsSheetManually(){
     }
 
     if(btn){
-      btn.textContent='再次更新';
+      btn.textContent='更新完成';
     }
 
     markSyncSuccess();
 
   }catch(err){
     const message=err && err.message ? err.message : String(err);
+    const friendlyMessage = message==='HTTP_404'
+      ? 'Apps Script Web App 網址目前無法使用，請確認設定中的 /exec 網址是最新部署版本。'
+      : message;
 
     if(status){
-      status.textContent='更新失敗：'+message;
+      status.textContent='更新失敗：'+friendlyMessage;
       status.classList.add('stats-sheet-sync-error');
       status.classList.remove('stats-sheet-sync-ok');
     }
 
-    alert('旅行統計更新失敗：\n'+message);
+    alert('旅行統計更新失敗：\n'+friendlyMessage);
 
   }finally{
     if(btn){
