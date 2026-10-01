@@ -10,15 +10,17 @@ function openAdd(type){
   if(isExpense){
     resetExpenseForm();
     const cashMode = type==='cash';
+    configureSharedPaymentButton();
+    const sharedPay = sharedPaymentMethodForCurrency(currentTrip.currency);
     document.getElementById('expensePersonGroup').classList.toggle('hidden',cashMode);
-    document.getElementById('addTitle').textContent = cashMode ? '新增現金 / Wowpass' : '新增信用卡消費';
+    document.getElementById('addTitle').textContent = cashMode ? '新增現金 / ' + sharedPay : '新增信用卡消費';
     document.getElementById('addSubtitle').textContent = cashMode
       ? `${currentTrip.name} · 共同支出`
       : `${currentTrip.name} · ${currentTrip.currency}`;
 
     document.querySelectorAll('#paySeg button').forEach(btn=>{
       const pay=btn.dataset.pay;
-      const show = cashMode ? (pay==='現金' || pay==='Wowpass') : pay==='信用卡';
+      const show = cashMode ? (pay==='現金' || pay===sharedPay) : pay==='信用卡';
       btn.classList.toggle('hidden',!show);
     });
 
