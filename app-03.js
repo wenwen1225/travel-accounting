@@ -6,7 +6,48 @@ function openTrip(id){
   const endText = normalizeTripDateValue(currentTrip.end);
   document.getElementById('tripSubtitle').textContent = `${startText} ～ ${endText} · ${tripDurationText(currentTrip.start,currentTrip.end)} · ${currentTrip.currency}`;
   renderTripSummary();
+  applyTripArchiveUi();
   showPage('page-trip');
+}
+
+function isCurrentTripArchived(){
+  return !!(currentTrip && currentTrip.archived);
+}
+
+function applyTripArchiveUi(){
+  if(!currentTrip) return;
+  const archived=!!currentTrip.archived;
+
+  const notice=document.getElementById('archiveNotice');
+  if(notice) notice.classList.toggle('hidden',!archived);
+
+  const archiveBtn=document.getElementById('archiveTripBtn');
+  if(archiveBtn){
+    archiveBtn.textContent=archived ? '解除封存' : '封存這趟旅行';
+    archiveBtn.classList.toggle('archive-button-active',archived);
+  }
+
+  const deleteBtn=document.getElementById('deleteTripBtn');
+  if(deleteBtn) deleteBtn.classList.toggle('hidden',archived);
+
+  document.querySelectorAll('#page-trip .action-card').forEach(btn=>{
+    const handler=btn.getAttribute('onclick') || '';
+    const readonlyAllowed =
+      handler.includes('openRecords') ||
+      handler.includes('openTripStats');
+
+    btn.disabled=archived && !readonlyAllowed;
+    btn.classList.toggle('archive-disabled',archived && !readonlyAllowed);
+  });
+
+  const pendingBtn=document.querySelector('#page-trip .section-title .pill');
+  if(pendingBtn){
+    pendingBtn.disabled=false;
+  }
+}
+
+function archiveReadOnlyAlert(){
+  alert('這趟旅行已封存，目前只能查看。請先解除封存後再修改資料。');
 }
 
 function renderTripSummary(){
@@ -42,7 +83,7 @@ function recordHtml(x){
   const sharedExpense = x.type==='購買商品' && isSharedExpensePay(x.pay);
   const displayPerson = sharedExpense ? '共同支出' : (x.person||'');
   const avatarText = sharedExpense ? '共' : (x.person||'?').slice(0,1).toUpperCase();
-  const editable = ['購買商品','先前費用','換匯'].includes(x.type);
+  const editable = !isCurrentTripArchived() && ['購買商品','先前費用','換匯'].includes(x.type);
   const clickAction = x.type === '購買商品'
     ? `editExpense('${x.id}')`
     : x.type === '先前費用'
@@ -67,6 +108,7 @@ function recordHtml(x){
 }
 
 function editExpense(id){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const item = (currentTrip.expenses||[]).find(x=>x.id===id);
   if(!item) return;
   editingExpenseId = id;
@@ -201,6 +243,7 @@ function resetExpenseForm(){
 
 
 function editPretrip(id){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const item = (currentTrip.pretrip||[]).find(x=>x.id===id);
   if(!item) return;
   editingPretripId = id;
@@ -229,6 +272,7 @@ function editPretrip(id){
 }
 
 function editExchange(id){
+  if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   const item = (currentTrip.exchange||[]).find(x=>x.id===id);
   if(!item) return;
   editingExchangeId = id;
