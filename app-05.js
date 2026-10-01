@@ -169,16 +169,101 @@ function backToTrip(){
   if(currentTrip) openTrip(currentTrip.id); else goHome();
 }
 
+let allRecordSource = [];
+
 function openRecords(){
   document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 點任一紀錄可修改或刪除';
-  const all = [
+  allRecordSource = [
     ...(currentTrip.expenses||[]),
     ...(currentTrip.pretrip||[]),
     ...(currentTrip.exchange||[])
   ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const box=document.getElementById('allRecords');
-  box.innerHTML = all.length ? all.map(recordHtml).join('') : `<div class="empty">還沒有紀錄</div>`;
+
+  setupRecordFilters();
+  applyRecordFilters();
   showPage('page-records');
+}
+
+function setupRecordFilters(){
+  const people = [...new Set([
+    ...(currentTrip.people||[]),
+    ...allRecordSource.map(x=>x.person).filter(Boolean)
+  ])];
+
+  const pays = [...new Set(
+    allRecordSource.map(x=>x.pay).filter(Boolean)
+  )];
+
+  const cards = [...new Set(
+    allRecordSource
+      .map(x=>x.card)
+      .filter(v=>v && v!=='無')
+  )];
+
+  const personEl=document.getElementById('recordFilterPerson');
+  const payEl=document.getElementById('recordFilterPay');
+  const cardEl=document.getElementById('recordFilterCard');
+
+  personEl.innerHTML='<option value="">全部人員</option>'+
+    people.map(v=>`<option value="${v}">${v}</option>`).join('');
+  payEl.innerHTML='<option value="">全部付款方式</option>'+
+    pays.map(v=>`<option value="${v}">${v}</option>`).join('');
+  cardEl.innerHTML='<option value="">全部卡別</option>'+
+    cards.map(v=>`<option value="${v}">${v}</option>`).join('');
+
+  clearRecordFilters(false);
+}
+
+function recordSearchText(item){
+  return [
+    item.name,
+    item.type,
+    item.place,
+    item.website,
+    item.note,
+    item.person,
+    item.pay,
+    item.card,
+    item.date
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function applyRecordFilters(){
+  const keyword=(document.getElementById('recordSearch')?.value||'').trim().toLowerCase();
+  const date=document.getElementById('recordFilterDate')?.value||'';
+  const person=document.getElementById('recordFilterPerson')?.value||'';
+  const pay=document.getElementById('recordFilterPay')?.value||'';
+  const card=document.getElementById('recordFilterCard')?.value||'';
+
+  const filtered=allRecordSource.filter(item=>{
+    if(keyword && !recordSearchText(item).includes(keyword)) return false;
+    if(date && normalizeTripDateValue(item.date)!==date) return false;
+    if(person && item.person!==person) return false;
+    if(pay && item.pay!==pay) return false;
+    if(card && item.card!==card) return false;
+    return true;
+  });
+
+  const box=document.getElementById('allRecords');
+  const count=document.getElementById('recordFilterCount');
+
+  if(count) count.textContent=`${filtered.length} / ${allRecordSource.length} 筆`;
+
+  box.innerHTML = filtered.length
+    ? filtered.map(recordHtml).join('')
+    : `<div class="empty">沒有符合條件的紀錄</div>`;
+}
+
+function clearRecordFilters(refresh=true){
+  const ids=['recordSearch','recordFilterDate','recordFilterPerson','recordFilterPay','recordFilterCard'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+  if(refresh) applyRecordFilters();
 }
 
 
