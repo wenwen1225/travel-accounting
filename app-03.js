@@ -521,7 +521,7 @@ function openTripStats(){
           return `
             <div class="stats-daily-row">
               <div class="stats-daily-head">
-                <span>${day.date}</span>
+                <span>${dateWithWeekday(day.date)}</span>
                 <strong>${statsAmount(day.twdAmount)}</strong>
               </div>
               <div class="stats-row-foreign">${currentTrip.currency} ${new Intl.NumberFormat().format(day.foreignAmount||0)} · ${day.count} 筆</div>
@@ -539,7 +539,7 @@ function openTripStats(){
 
   document.getElementById('statsTopDay').innerHTML = topDay
     ? `
-      <div class="stats-top-day-date">${topDay.date}</div>
+      <div class="stats-top-day-date">${dateWithWeekday(topDay.date)}</div>
       <strong>${statsAmount(topDay.twdAmount)}</strong>
       <div class="stats-top-day-foreign">${currentTrip.currency} ${new Intl.NumberFormat().format(topDay.foreignAmount||0)}</div>
       <span>${topDay.count} 筆購買商品</span>
@@ -574,6 +574,22 @@ function setStatsView(mode){
   if(chartView) chartView.classList.toggle('hidden',statsViewMode!=='chart');
 
   if(statsViewMode==='chart') renderStatsCharts();
+}
+
+function weekdayShortLabel(dateStr){
+  const normalized=normalizeTripDateValue(dateStr);
+  if(!normalized) return '';
+  const parts=normalized.split('-').map(Number);
+  if(parts.length!==3 || !parts[0] || !parts[1] || !parts[2]) return '';
+  const d=new Date(parts[0],parts[1]-1,parts[2],12,0,0);
+  const labels=['日','一','二','三','四','五','六'];
+  return labels[d.getDay()] || '';
+}
+
+function dateWithWeekday(dateStr){
+  const normalized=normalizeTripDateValue(dateStr);
+  const w=weekdayShortLabel(normalized);
+  return normalized ? normalized + (w ? '（'+w+'）' : '') : '';
 }
 
 function chartAmountLabel(value,currency='TWD'){
@@ -690,7 +706,7 @@ function renderDailyStatsChart(){
       ${rows.map(day=>{
         const value=useTwd ? Number(day.twdAmount||0) : Number(day.foreignAmount||0);
         const pct=maxValue>0 ? Math.max(4,(value/maxValue)*100) : 0;
-        const label=day.date ? day.date.slice(5).replace('-','/') : '';
+        const label=day.date ? day.date.slice(5).replace('-','/')+'（'+weekdayShortLabel(day.date)+'）' : '';
         return `
           <div class="stats-bar-col">
             <div class="stats-bar-value">${useTwd ? chartAmountLabel(value) : chartAmountLabel(value,currentTrip.currency)}</div>
@@ -716,7 +732,7 @@ function renderTopDayStatsChart(){
 
   box.innerHTML=`
     <div class="stats-topday-visual">
-      <div class="stats-topday-date">${day.date}</div>
+      <div class="stats-topday-date">${dateWithWeekday(day.date)}</div>
       <div class="stats-topday-big">${chartAmountLabel(day.twdAmount||0)}</div>
       <div class="stats-topday-local">${currentTrip.currency} ${new Intl.NumberFormat().format(day.foreignAmount||0)}</div>
       <div class="stats-topday-bar"><span style="width:100%"></span></div>
