@@ -11,8 +11,8 @@ function openTrip(id){
   currentTrip = state.trips.find(t=>t.id===id);
   if(!currentTrip) return goHome();
   document.getElementById('tripTitle').textContent = currentTrip.name;
-  const startText = normalizeTripDateValue(currentTrip.start);
-  const endText = normalizeTripDateValue(currentTrip.end);
+  const startText = dateWithWeekday(currentTrip.start);
+  const endText = dateWithWeekday(currentTrip.end);
   document.getElementById('tripSubtitle').textContent = `${startText} ～ ${endText} · ${tripDurationText(currentTrip.start,currentTrip.end)} · ${currentTrip.currency}`;
   renderTripSummary();
   applyTransitActionVisibility();
@@ -113,7 +113,7 @@ function recordHtml(x){
       <div class="avatar person-avatar ${sharedExpense?'':personClass(x.person||'')}">${avatarText}</div>
       <div class="record-main">
         <strong>${x.name || x.type || '紀錄'}</strong>
-        <span>${x.date||''} · ${displayPerson}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
+        <span>${dateWithWeekday(x.date)} · ${displayPerson}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
         ${x.place?`<div class="record-note">${x.place}</div>`:''}
         <div style="margin-top:5px">${syncBadgeHtml(x)}</div>
       </div>
