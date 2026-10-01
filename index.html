@@ -104,6 +104,14 @@
       <button class="pill" onclick="openTripSettings()">管理</button>
     </div>
 
+    <div id="archiveNotice" class="archive-notice hidden">
+      <div>
+        <strong>這趟旅行已封存</strong>
+        <span>目前為唯讀模式；解除封存後即可繼續新增或修改紀錄。</span>
+      </div>
+      <button class="pill" type="button" onclick="toggleCurrentTripArchive(false)">解除封存</button>
+    </div>
+
     <div class="hero">
       <div class="eyebrow">旅行總支出（含先前費用）</div>
       <h2 id="totalTwd">NT$0</h2>
@@ -164,7 +172,8 @@
       <div id="recentRecords" class="card" style="padding:0 16px"></div>
     </div>
     <div class="section trip-delete-section">
-      <button class="secondary danger-button" onclick="deleteCurrentTrip()">刪除這趟旅行</button>
+      <button id="archiveTripBtn" class="secondary archive-button" onclick="toggleCurrentTripArchive()">封存這趟旅行</button>
+      <button id="deleteTripBtn" class="secondary danger-button" style="margin-top:10px" onclick="deleteCurrentTrip()">刪除這趟旅行</button>
     </div>
   </section>
 
