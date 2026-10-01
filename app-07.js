@@ -1,16 +1,19 @@
 renderHome();
 
-setTimeout(autoSyncPendingRecords, 1200);
+// 啟動時：先補傳本機待同步，再從 Google Sheets 讀回最新資料
+setTimeout(syncAndPullCloud, 1200);
 
+// 網路恢復時自動補同步＋讀回
 window.addEventListener('online', ()=>{
-  setTimeout(autoSyncPendingRecords, 500);
+  setTimeout(syncAndPullCloud, 500);
 });
 
+// 從背景切回網站時自動補同步＋讀回
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
-    setTimeout(autoSyncPendingRecords, 500);
+    setTimeout(syncAndPullCloud, 500);
   }
 });
 
-// 網頁開著時每 60 秒檢查一次待同步資料
-setInterval(autoSyncPendingRecords, 60000);
+// 網頁開著時每 60 秒同步一次
+setInterval(syncAndPullCloud, 60000);
