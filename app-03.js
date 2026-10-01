@@ -6,6 +6,7 @@ function openTrip(id){
   const endText = normalizeTripDateValue(currentTrip.end);
   document.getElementById('tripSubtitle').textContent = `${startText} ～ ${endText} · ${tripDurationText(currentTrip.start,currentTrip.end)} · ${currentTrip.currency}`;
   renderTripSummary();
+  applyTransitActionVisibility();
   applyTripArchiveUi();
   showPage('page-trip');
 }
@@ -48,6 +49,13 @@ function applyTripArchiveUi(){
 
 function archiveReadOnlyAlert(){
   alert('這趟旅行已封存，目前只能查看。請先解除封存後再修改資料。');
+}
+
+function applyTransitActionVisibility(){
+  const btn=document.getElementById('transitActionCard');
+  if(!btn || !currentTrip) return;
+  const supported=['KRW','JPY'].includes(currentTrip.currency);
+  btn.classList.toggle('hidden',!supported);
 }
 
 function renderTripSummary(){
@@ -122,10 +130,14 @@ function editExpense(id){
   document.getElementById('addSubtitle').textContent=`${currentTrip.name} · ${currentTrip.currency}`;
   configureSharedPaymentButton();
   const sharedExpense = isSharedExpensePay(item.pay);
+  const transitExpense = isTransitExpensePay(item.pay);
   document.getElementById('expensePersonGroup').classList.toggle('hidden',sharedExpense);
   document.querySelectorAll('#paySeg button').forEach(btn=>{
     const pay=btn.dataset.pay;
-    const show = sharedExpense ? (pay==='現金' || pay===sharedPaymentMethodForCurrency(currentTrip.currency) || pay===item.pay) : pay==='信用卡';
+    let show=false;
+    if(sharedExpense) show = pay==='現金' || pay===sharedPaymentMethodForCurrency(currentTrip.currency) || pay===item.pay;
+    else if(transitExpense) show = pay==='交通卡';
+    else show = pay==='信用卡';
     btn.classList.toggle('hidden',!show);
   });
   selectedPerson = sharedExpense ? '共同' : item.person;
@@ -179,12 +191,15 @@ function updatePretripCardVisibility(){
 
 function sharedPaymentMethodForCurrency(currency){
   if(currency==='KRW') return 'Wowpass';
-  if(currency==='JPY') return '交通卡';
   return '電子支付';
 }
 
 function isSharedExpensePay(pay){
-  return pay==='現金' || pay==='Wowpass' || pay==='交通卡' || pay==='電子支付';
+  return pay==='現金' || pay==='Wowpass' || pay==='電子支付';
+}
+
+function isTransitExpensePay(pay){
+  return pay==='交通卡';
 }
 
 function configureSharedPaymentButton(){
@@ -382,7 +397,7 @@ function openTripStats(){
     pendingCount ? '目前以已填台幣金額的紀錄計算' : '所有消費皆已計入台幣統計';
 
   const personEligible = [
-    ...expenses.filter(x=>x.pay==='信用卡'),
+    ...expenses.filter(x=>x.pay==='信用卡' || x.pay==='交通卡'),
     ...pretrip.filter(x=>x.person)
   ];
   const knownPersonEligible = personEligible.filter(statsKnownTwd);
@@ -422,6 +437,7 @@ function openTripStats(){
   const localWalletPay = sharedPaymentMethodForCurrency(currentTrip.currency);
   const purchaseGroups = [
     {label:'信用卡個人支出', pays:['信用卡']},
+    {label:'交通卡個人支出', pays:['交通卡']},
     {label:'現金共同支出', pays:['現金']},
     {label:localWalletPay+' 共同支出', pays:[localWalletPay]}
   ].map(group=>{
@@ -485,7 +501,7 @@ function openTripStats(){
   if(dailyBox){
     dailyBox.innerHTML = dailyRows.length
       ? dailyRows.map(day=>{
-          const payOrder=['信用卡','現金',localWalletPay];
+          const payOrder=['信用卡','交通卡','現金',localWalletPay];
           const payLines=payOrder
             .filter(pay=>day.byPay[pay] && day.byPay[pay].count)
             .map(pay=>{
