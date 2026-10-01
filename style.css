@@ -849,3 +849,12 @@
     align-items:flex-start;
   }
 }
+
+
+.trip-local-total{
+  margin-top:4px;
+  font-size:13px;
+  font-weight:800;
+  color:var(--primary-dark);
+  letter-spacing:.01em;
+}
