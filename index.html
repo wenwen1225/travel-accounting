@@ -224,7 +224,7 @@
         <textarea id="expenseNote" placeholder="可留空"></textarea>
       </div>
 
-      <button class="primary" onclick="saveExpense()">儲存這筆消費</button>
+      <button id="saveExpenseBtn" class="primary" onclick="guardedSave('expense', this)">儲存這筆消費</button>
       <button id="deleteExpenseBtn" class="secondary danger-button hidden" style="margin-top:10px" onclick="deleteCurrentExpense()">刪除這筆紀錄</button>
       <div class="tiny" style="margin-top:10px">* 為必填欄位；台幣金額可以之後從「全部紀錄」補上。</div>
     </div>
@@ -271,7 +271,7 @@
         <label>備註</label>
         <textarea id="pretripNote"></textarea>
       </div>
-      <button class="primary" onclick="savePretrip()">儲存先前費用</button>
+      <button id="savePretripBtn" class="primary" onclick="guardedSave('pretrip', this)">儲存先前費用</button>
       <button id="deletePretripBtn" class="secondary danger-button hidden" style="margin-top:10px" onclick="deleteCurrentPretrip()">刪除這筆先前費用</button>
     </div>
 
@@ -302,7 +302,7 @@
         <label>備註</label>
         <textarea id="exchangeNote"></textarea>
       </div>
-      <button class="primary" onclick="saveExchange()">儲存換匯紀錄</button>
+      <button id="saveExchangeBtn" class="primary" onclick="guardedSave('exchange', this)">儲存換匯紀錄</button>
       <button id="deleteExchangeBtn" class="secondary danger-button hidden" style="margin-top:10px" onclick="deleteCurrentExchange()">刪除這筆換匯紀錄</button>
     </div>
   </section>
