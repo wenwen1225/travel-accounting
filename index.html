@@ -407,6 +407,14 @@
       </div>
     </div>
 
+    <div class="stats-sheet-sync card">
+      <div>
+        <strong>Google Sheet 旅行統計</strong>
+        <span id="statsSheetSyncStatus">可手動更新 Sheet 統計分頁</span>
+      </div>
+      <button id="statsSheetSyncBtn" class="pill" type="button" onclick="refreshStatsSheetManually()">更新 Sheet 統計</button>
+    </div>
+
     <div class="stats-view-toggle">
       <button id="statsDetailBtn" class="active" type="button" onclick="setStatsView('detail')">金額明細</button>
       <button id="statsChartBtn" type="button" onclick="setStatsView('chart')">圖表</button>
