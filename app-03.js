@@ -39,7 +39,7 @@ function recordHtml(x){
   const foreignText = x.foreign ? `${currencySymbol(currentTrip.currency)}${Number(x.foreign).toLocaleString('en-US')}` : '';
   const twdMissing = x.type === '購買商品' && (x.twd === null || x.twd === '' || Number(x.twd) === 0);
   const twdText = twdMissing ? '<span class="pending-badge">待補台幣</span>' : fmtMoney(x.twd||0,'TWD');
-  const sharedExpense = x.type==='購買商品' && (x.pay==='現金' || x.pay==='Wowpass');
+  const sharedExpense = x.type==='購買商品' && isSharedExpensePay(x.pay);
   const displayPerson = sharedExpense ? '共同支出' : (x.person||'');
   const avatarText = sharedExpense ? '共' : (x.person||'?').slice(0,1).toUpperCase();
   const editable = ['購買商品','先前費用','換匯'].includes(x.type);
@@ -78,11 +78,12 @@ function editExpense(id){
 
   document.getElementById('addTitle').textContent='修改購買紀錄';
   document.getElementById('addSubtitle').textContent=`${currentTrip.name} · ${currentTrip.currency}`;
-  const sharedExpense = item.pay==='現金' || item.pay==='Wowpass';
+  configureSharedPaymentButton();
+  const sharedExpense = isSharedExpensePay(item.pay);
   document.getElementById('expensePersonGroup').classList.toggle('hidden',sharedExpense);
   document.querySelectorAll('#paySeg button').forEach(btn=>{
     const pay=btn.dataset.pay;
-    const show = sharedExpense ? (pay==='現金' || pay==='Wowpass') : pay==='信用卡';
+    const show = sharedExpense ? (pay==='現金' || pay===sharedPaymentMethodForCurrency(currentTrip.currency) || pay===item.pay) : pay==='信用卡';
     btn.classList.toggle('hidden',!show);
   });
   selectedPerson = sharedExpense ? '共同' : item.person;
@@ -132,6 +133,24 @@ function updatePretripCardVisibility(){
   const pay=document.getElementById('pretripPay')?.value || '信用卡';
   const group=document.getElementById('pretripCardGroup');
   if(group) group.classList.toggle('hidden',pay!=='信用卡');
+}
+
+function sharedPaymentMethodForCurrency(currency){
+  if(currency==='KRW') return 'Wowpass';
+  if(currency==='JPY') return '交通卡';
+  return '電子支付';
+}
+
+function isSharedExpensePay(pay){
+  return pay==='現金' || pay==='Wowpass' || pay==='交通卡' || pay==='電子支付';
+}
+
+function configureSharedPaymentButton(){
+  const btn=document.getElementById('sharedWalletPayBtn');
+  if(!btn || !currentTrip) return;
+  const method=sharedPaymentMethodForCurrency(currentTrip.currency);
+  btn.dataset.pay=method;
+  btn.textContent=method;
 }
 
 function selectPay(p){
@@ -347,10 +366,11 @@ function openTripStats(){
   document.getElementById('statsPayment').innerHTML =
     statsBarRows(paymentStats,totalTwd,totalForeign,'目前還沒有付款方式資料');
 
+  const localWalletPay = sharedPaymentMethodForCurrency(currentTrip.currency);
   const purchaseGroups = [
     {label:'信用卡個人支出', pays:['信用卡']},
     {label:'現金共同支出', pays:['現金']},
-    {label:'Wowpass 共同支出', pays:['Wowpass']}
+    {label:localWalletPay+' 共同支出', pays:[localWalletPay]}
   ].map(group=>{
     const rows = expenses.filter(x=>group.pays.includes(x.pay));
     const knownRows = rows.filter(statsKnownTwd);
@@ -379,15 +399,61 @@ function openTripStats(){
 
   expenses.forEach(item=>{
     const date = normalizeTripDateValue(item.date);
-    if(!date || date < start || date > end || !statsKnownTwd(item)) return;
-    if(!daily[date]) daily[date]={twdAmount:0,foreignAmount:0,count:0};
-    daily[date].twdAmount += Number(item.twd||0);
+    if(!date || date < start || date > end) return;
+    if(!daily[date]){
+      daily[date]={
+        twdAmount:0,
+        foreignAmount:0,
+        count:0,
+        byPay:{}
+      };
+    }
+
+    const payLabel=item.pay || '未分類';
+    if(!daily[date].byPay[payLabel]){
+      daily[date].byPay[payLabel]={twdAmount:0,foreignAmount:0,count:0};
+    }
+
+    if(statsKnownTwd(item)){
+      daily[date].twdAmount += Number(item.twd||0);
+      daily[date].byPay[payLabel].twdAmount += Number(item.twd||0);
+    }
     daily[date].foreignAmount += Number(item.foreign||0);
+    daily[date].byPay[payLabel].foreignAmount += Number(item.foreign||0);
+    daily[date].byPay[payLabel].count++;
     daily[date].count++;
   });
 
-  const topDay = Object.entries(daily)
+  const dailyRows = Object.entries(daily)
     .map(([date,data])=>({date,...data}))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const dailyBox=document.getElementById('statsDaily');
+  if(dailyBox){
+    dailyBox.innerHTML = dailyRows.length
+      ? dailyRows.map(day=>{
+          const payOrder=['信用卡','現金',localWalletPay];
+          const payLines=payOrder
+            .filter(pay=>day.byPay[pay] && day.byPay[pay].count)
+            .map(pay=>{
+              const d=day.byPay[pay];
+              return `<div class="stats-daily-pay"><span>${pay}</span><strong>${statsAmount(d.twdAmount)}</strong><small>${currentTrip.currency} ${new Intl.NumberFormat().format(d.foreignAmount||0)}</small></div>`;
+            }).join('');
+
+          return `
+            <div class="stats-daily-row">
+              <div class="stats-daily-head">
+                <span>${day.date}</span>
+                <strong>${statsAmount(day.twdAmount)}</strong>
+              </div>
+              <div class="stats-row-foreign">${currentTrip.currency} ${new Intl.NumberFormat().format(day.foreignAmount||0)} · ${day.count} 筆</div>
+              <div class="stats-daily-breakdown">${payLines}</div>
+            </div>`;
+        }).join('')
+      : '<div class="empty">目前還沒有旅途中消費</div>';
+  }
+
+  const topDay = [...dailyRows]
     .sort((a,b)=>
       (b.twdAmount||0)-(a.twdAmount||0) ||
       (b.foreignAmount||0)-(a.foreignAmount||0)
@@ -400,7 +466,7 @@ function openTripStats(){
       <div class="stats-top-day-foreign">${currentTrip.currency} ${new Intl.NumberFormat().format(topDay.foreignAmount||0)}</div>
       <span>${topDay.count} 筆購買商品</span>
     `
-    : '<div class="empty">目前還沒有已填台幣的旅途中消費</div>';
+    : '<div class="empty">目前還沒有旅途中消費</div>';
 
   showPage('page-stats');
 }
