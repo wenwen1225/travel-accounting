@@ -51,7 +51,7 @@ async function saveExpense(){
   const item = {
     id: editingExpenseId || ('e_' + Date.now()),
     type:'購買商品',
-    person:selectedPerson,
+    person:selectedPay==='信用卡' ? selectedPerson : '共同',
     pay:selectedPay,
     card:selectedPay==='信用卡'?document.getElementById('cardType').value:'',
     date:document.getElementById('expenseDate').value,
