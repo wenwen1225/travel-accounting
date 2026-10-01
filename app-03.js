@@ -1,3 +1,6 @@
+let statsChartData = { paymentStats:[], dailyRows:[] };
+let statsViewMode = 'detail';
+
 function openTrip(id){
   currentTrip = state.trips.find(t=>t.id===id);
   if(!currentTrip) return goHome();
@@ -537,5 +540,114 @@ function openTripStats(){
     `
     : '<div class="empty">目前還沒有旅途中消費</div>';
 
+  statsChartData = { paymentStats, dailyRows };
+  renderStatsCharts();
+  setStatsView(statsViewMode || 'detail');
+
   showPage('page-stats');
+}
+
+
+function setStatsView(mode){
+  statsViewMode = mode === 'chart' ? 'chart' : 'detail';
+
+  const detailBtn=document.getElementById('statsDetailBtn');
+  const chartBtn=document.getElementById('statsChartBtn');
+  const detailView=document.getElementById('statsDetailView');
+  const chartView=document.getElementById('statsChartView');
+
+  if(detailBtn) detailBtn.classList.toggle('active',statsViewMode==='detail');
+  if(chartBtn) chartBtn.classList.toggle('active',statsViewMode==='chart');
+  if(detailView) detailView.classList.toggle('hidden',statsViewMode!=='detail');
+  if(chartView) chartView.classList.toggle('hidden',statsViewMode!=='chart');
+
+  if(statsViewMode==='chart') renderStatsCharts();
+}
+
+function chartAmountLabel(value,currency='TWD'){
+  const n=Number(value||0);
+  if(currency==='TWD') return 'NT$'+new Intl.NumberFormat().format(Math.round(n));
+  return currency+' '+new Intl.NumberFormat().format(Math.round(n));
+}
+
+function renderStatsCharts(){
+  const pieBox=document.getElementById('statsPaymentPie');
+  const barBox=document.getElementById('statsDailyBars');
+  if(!pieBox || !barBox || !currentTrip) return;
+
+  const paymentRows=(statsChartData.paymentStats||[]).filter(x=>
+    Number(x.twdAmount||0)>0 || Number(x.foreignAmount||0)>0
+  );
+
+  const paymentTotal=paymentRows.reduce((s,x)=>s+Number(x.twdAmount||0),0);
+  const fallbackTotal=paymentRows.reduce((s,x)=>s+Number(x.foreignAmount||0),0);
+  const useTwd=paymentTotal>0;
+  const denominator=useTwd ? paymentTotal : fallbackTotal;
+
+  const palette=['#8f73d6','#b59cf0','#d0bdf7','#8db5df','#8bc8b1','#e7b47d'];
+
+  if(!paymentRows.length || denominator<=0){
+    pieBox.innerHTML='<div class="empty">目前還沒有可繪製的付款資料</div>';
+  }else{
+    let acc=0;
+    const stops=[];
+    const legend=[];
+
+    paymentRows.forEach((row,index)=>{
+      const value=useTwd ? Number(row.twdAmount||0) : Number(row.foreignAmount||0);
+      if(value<=0) return;
+      const start=acc;
+      const pct=(value/denominator)*100;
+      acc+=pct;
+      const color=palette[index % palette.length];
+      stops.push(`${color} ${start.toFixed(2)}% ${acc.toFixed(2)}%`);
+      legend.push(`
+        <div class="stats-pie-legend-row">
+          <span class="stats-pie-dot" style="background:${color}"></span>
+          <span class="stats-pie-name">${row.label}</span>
+          <strong>${pct.toFixed(1)}%</strong>
+          <small>${useTwd ? chartAmountLabel(value) : chartAmountLabel(value,currentTrip.currency)}</small>
+        </div>`);
+    });
+
+    pieBox.innerHTML=`
+      <div class="stats-pie-wrap">
+        <div class="stats-pie" style="background:conic-gradient(${stops.join(',')})">
+          <div class="stats-pie-center">
+            <span>總支出</span>
+            <strong>${useTwd ? chartAmountLabel(denominator) : chartAmountLabel(denominator,currentTrip.currency)}</strong>
+          </div>
+        </div>
+        <div class="stats-pie-legend">${legend.join('')}</div>
+      </div>`;
+  }
+
+  const dailyRows=statsChartData.dailyRows||[];
+  if(!dailyRows.length){
+    barBox.innerHTML='<div class="empty">目前還沒有每日支出資料</div>';
+    return;
+  }
+
+  const knownMax=Math.max(...dailyRows.map(x=>Number(x.twdAmount||0)),0);
+  const foreignMax=Math.max(...dailyRows.map(x=>Number(x.foreignAmount||0)),0);
+  const dailyUseTwd=knownMax>0;
+  const maxValue=dailyUseTwd ? knownMax : foreignMax;
+
+  barBox.innerHTML=`
+    <div class="stats-bar-chart">
+      ${dailyRows.map(day=>{
+        const value=dailyUseTwd ? Number(day.twdAmount||0) : Number(day.foreignAmount||0);
+        const pct=maxValue>0 ? Math.max(4,(value/maxValue)*100) : 0;
+        const label=day.date ? day.date.slice(5).replace('-','/') : '';
+        return `
+          <div class="stats-bar-col">
+            <div class="stats-bar-value">${dailyUseTwd ? chartAmountLabel(value) : chartAmountLabel(value,currentTrip.currency)}</div>
+            <div class="stats-bar-track">
+              <div class="stats-bar-fill" style="height:${pct}%"></div>
+            </div>
+            <div class="stats-bar-label">${label}</div>
+          </div>`;
+      }).join('')}
+    </div>
+    <div class="stats-chart-note">${dailyUseTwd ? '以已填台幣金額繪製' : '以當地幣金額繪製'}</div>`;
 }
