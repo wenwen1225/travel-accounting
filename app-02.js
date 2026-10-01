@@ -57,6 +57,14 @@ renderHome();
 }
 
 function openCreateTrip(){
+  document.getElementById('tripPlace').value = '';
+  document.getElementById('tripStart').value = '';
+  document.getElementById('tripEnd').value = '';
+  document.getElementById('tripEnd').min = '';
+  document.getElementById('tripEnd').disabled = true;
+  const hint = document.getElementById('endDateHint');
+  hint.textContent = '請先選開始日期';
+  hint.classList.remove('date-hint-ok','date-hint-error');
   renderTripPeopleChips();
   showPage('page-create');
 }
@@ -190,6 +198,8 @@ async function createTrip(){
     }
 
     document.getElementById('tripPlace').value='';
+    document.getElementById('tripStart').value='';
+    document.getElementById('tripEnd').value='';
     openTrip(trip.id);
 
     if(getApiUrl()){
