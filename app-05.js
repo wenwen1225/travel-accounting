@@ -7,6 +7,12 @@ async function saveExpense(){
   const okPlace = requireTextField('expensePlace','請填寫購買地點');
   if(!(okDate && okQty && okName && okForeign && okPlace)) return;
 
+  const expenseDateValue=document.getElementById('expenseDate').value;
+  if(expenseDateValue < currentTrip.start || expenseDateValue > currentTrip.end){
+    alert(`購買商品日期只能填在旅行期間：${currentTrip.start} ～ ${currentTrip.end}`);
+    return;
+  }
+
   const twdRaw = rawNumber(document.getElementById('expenseTwd').value);
   const item = {
     id: editingExpenseId || ('e_' + Date.now()),
@@ -67,7 +73,7 @@ async function savePretrip(){
   const date=document.getElementById('pretripDate').value;
   if(!name || !date){ alert('請填項目與日期'); return; }
   const item = {
-    id:'p_'+Date.now(),
+    id:editingPretripId || ('p_'+Date.now()),
     type:'先前費用',
     person:selectedPretripPerson,
     name,date,
@@ -77,14 +83,27 @@ async function savePretrip(){
     card:document.getElementById('pretripCard').value,
     note:document.getElementById('pretripNote').value.trim()
   };
-  await confirmSaved('pretrip', item, 'addPretrip');
+
+  if(editingPretripId){
+    const idx=currentTrip.pretrip.findIndex(x=>x.id===editingPretripId);
+    if(idx===-1) return;
+    currentTrip.pretrip[idx]=item;
+    persist();
+    let cloudOk=true;
+    if(getApiUrl()) cloudOk=await syncRecord('updatePretrip',currentTrip,'pretrip',item);
+    else { item.syncStatus='local'; persist(); }
+    editingPretripId=null;
+    showCloudResultModal(cloudOk, cloudOk?'先前費用已更新至 Google Sheets。':'本機已更新，但 Google Sheets 尚未同步成功。');
+  }else{
+    await confirmSaved('pretrip', item, 'addPretrip');
+  }
 }
 
 async function saveExchange(){
   const date=document.getElementById('exchangeDate').value;
   if(!date){ alert('請填日期'); return; }
   const item = {
-    id:'x_'+Date.now(),
+    id:editingExchangeId || ('x_'+Date.now()),
     type:'換匯',
     date,
     twd:Number(rawNumber(document.getElementById('exchangeTwd').value)||0),
@@ -93,7 +112,20 @@ async function saveExchange(){
     place:document.getElementById('exchangePlace').value.trim(),
     note:document.getElementById('exchangeNote').value.trim()
   };
-  await confirmSaved('exchange', item, 'addExchange');
+
+  if(editingExchangeId){
+    const idx=currentTrip.exchange.findIndex(x=>x.id===editingExchangeId);
+    if(idx===-1) return;
+    currentTrip.exchange[idx]=item;
+    persist();
+    let cloudOk=true;
+    if(getApiUrl()) cloudOk=await syncRecord('updateExchange',currentTrip,'exchange',item);
+    else { item.syncStatus='local'; persist(); }
+    editingExchangeId=null;
+    showCloudResultModal(cloudOk, cloudOk?'換匯紀錄已更新至 Google Sheets。':'本機已更新，但 Google Sheets 尚未同步成功。');
+  }else{
+    await confirmSaved('exchange', item, 'addExchange');
+  }
 }
 
 function backToTrip(){
@@ -101,7 +133,7 @@ function backToTrip(){
 }
 
 function openRecords(){
-  document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 點商品紀錄可修改／補台幣';
+  document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 點任一紀錄可修改或刪除';
   const all = [
     ...(currentTrip.expenses||[]),
     ...(currentTrip.pretrip||[]),
