@@ -794,3 +794,58 @@
   font-size:10px;
   color:var(--muted);
 }
+
+
+/* 旅行封存 */
+.trip-status-archived{
+  background:#eeeaf6;
+  color:#71677f;
+  border-color:#ddd5e8;
+}
+.archive-notice{
+  margin:8px 20px 2px;
+  padding:14px 15px;
+  border-radius:18px;
+  background:#f3f0f7;
+  border:1px solid #e1dae9;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.archive-notice strong{
+  display:block;
+  font-size:13px;
+}
+.archive-notice span{
+  display:block;
+  margin-top:3px;
+  font-size:11px;
+  line-height:1.45;
+  color:var(--muted);
+}
+.archive-notice .pill{
+  flex:0 0 auto;
+}
+.archive-button{
+  color:#71677f;
+  border-color:#ddd5e8;
+  background:#faf8fc;
+}
+.archive-button-active{
+  color:var(--primary-dark);
+  border-color:#d9cdf7;
+  background:#f5f0ff;
+}
+.action-card.archive-disabled,
+.action-card:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+@media (max-width:480px){
+  .archive-notice{
+    margin-left:12px;
+    margin-right:12px;
+    align-items:flex-start;
+  }
+}
