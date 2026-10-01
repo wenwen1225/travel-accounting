@@ -16,6 +16,14 @@ function openAdd(type){
     attachMoneyFormat('expenseTwd');
   }
   if(type==='pretrip'){
+    editingPretripId = null;
+    const d=document.getElementById('deletePretripBtn'); if(d) d.classList.add('hidden');
+    document.getElementById('pretripName').value='';
+    document.getElementById('pretripTwd').value='';
+    document.getElementById('pretripForeign').value='';
+    document.getElementById('pretripNote').value='';
+    document.getElementById('pretripPay').value='信用卡';
+    document.getElementById('pretripCard').value='';
     document.getElementById('addTitle').textContent='新增先前費用';
     document.getElementById('addSubtitle').textContent='機票、飯店、門票、網卡等';
     selectedPretripPerson = currentTrip.people[0] || 'Wen';
@@ -26,6 +34,13 @@ function openAdd(type){
     document.getElementById('pretripDate').value = today;
   }
   if(type==='exchange'){
+    editingExchangeId = null;
+    const d=document.getElementById('deleteExchangeBtn'); if(d) d.classList.add('hidden');
+    document.getElementById('exchangeTwd').value='';
+    document.getElementById('exchangeForeign').value='';
+    document.getElementById('exchangeRate').value='';
+    document.getElementById('exchangePlace').value='';
+    document.getElementById('exchangeNote').value='';
     document.getElementById('addTitle').textContent='新增換匯紀錄';
     document.getElementById('addSubtitle').textContent=`TWD ↔ ${currentTrip.currency}`;
     document.getElementById('exchangeForeignLabel').textContent = `${currentTrip.currency} 外幣`;
@@ -94,6 +109,8 @@ function requireNumberField(id, message){
 }
 
 let editingExpenseId = null;
+let editingPretripId = null;
+let editingExchangeId = null;
 
 let savedModalSuccess = false;
 let cloudModalReturnToTrip = false;
