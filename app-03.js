@@ -13,7 +13,7 @@ function renderTripSummary(){
   const expenses = currentTrip.expenses||[];
   const pretrip = currentTrip.pretrip||[];
   const totalTwd = [...expenses,...pretrip].reduce((s,x)=>s+Number(x.twd||0),0);
-  const totalForeign = expenses.reduce((s,x)=>s+Number(x.foreign||0),0);
+  const totalForeign = [...expenses,...pretrip].reduce((s,x)=>s+Number(x.foreign||0),0);
   const today = new Date().toISOString().slice(0,10);
   const todayTwd = expenses.filter(x=>x.date===today).reduce((s,x)=>s+Number(x.twd||0),0);
   document.getElementById('totalTwd').textContent = fmtMoney(totalTwd,'TWD');
