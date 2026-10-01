@@ -106,7 +106,10 @@ async function syncTripCreation(trip){
     return true;
   }catch(err){
     trip.cloudStatus = 'pending';
+    trip.lastSyncError = err && err.message ? err.message : String(err);
     enqueueSync('createTrip', trip.id, 'trip', trip.id, cloudPayloadForTrip(trip));
+    const queued = state.syncQueue.find(q => q.tripId===trip.id && q.action==='createTrip');
+    if(queued) queued.lastError = trip.lastSyncError;
     persist();
     return false;
   }
@@ -120,7 +123,10 @@ async function syncRecord(action, trip, type, item){
     return true;
   }catch(err){
     setRecordSyncState(trip, type, item.id, 'pending');
+    item.lastSyncError = err && err.message ? err.message : String(err);
     enqueueSync(action, trip.id, type, item.id, cloudPayloadForRecord(action, trip, item));
+    const queued = state.syncQueue.find(q => q.tripId===trip.id && q.recordId===item.id && q.action===action);
+    if(queued) queued.lastError = item.lastSyncError;
     persist();
     return false;
   }
@@ -131,32 +137,60 @@ async function syncPendingRecords(){
     alert('請先填入 Google Apps Script Web App URL。');
     return;
   }
+
   const queue = [...state.syncQueue];
+  const errors = [];
+
   for(const q of queue){
     const trip = getTripById(q.tripId);
     if(!trip){ removeQueued(q.queueId); continue; }
+
     try{
       let payload = q.payload;
+
       if(q.action !== 'createTrip'){
-        payload = {...payload, spreadsheetId:trip.spreadsheetId || payload.spreadsheetId || ''};
+        const spreadsheetId = trip.spreadsheetId || payload.spreadsheetId || '';
+        if(!spreadsheetId){
+          throw new Error('這趟旅行尚未成功建立 Google Sheet，請先讓「建立旅行」同步成功。');
+        }
+        payload = {...payload, spreadsheetId};
       }
+
       const data = await postToCloud(payload);
+
       if(q.action === 'createTrip'){
         trip.spreadsheetId = data.spreadsheetId || trip.spreadsheetId || '';
         trip.spreadsheetUrl = data.spreadsheetUrl || trip.spreadsheetUrl || '';
         trip.cloudStatus = 'synced';
+        trip.lastSyncError = '';
       }else{
         setRecordSyncState(trip, q.recordType, q.recordId, 'synced');
+        const arr = trip[q.recordType] || [];
+        const item = arr.find(x=>x.id===q.recordId);
+        if(item) item.lastSyncError = '';
       }
+
       removeQueued(q.queueId);
+
     }catch(err){
-      // keep queued
+      const msg = err && err.message ? err.message : String(err);
+      q.lastError = msg;
+      const realQueueItem = state.syncQueue.find(x=>x.queueId===q.queueId);
+      if(realQueueItem) realQueueItem.lastError = msg;
+      errors.push(msg);
     }
   }
+
   persist();
   renderSettings();
   if(currentTrip) renderTripSummary();
-  alert(state.syncQueue.length ? `同步完成，但仍有 ${state.syncQueue.length} 筆待同步。` : '全部資料已同步完成。');
+
+  if(state.syncQueue.length){
+    const detail = errors.length ? '\n\n錯誤原因：\n' + [...new Set(errors)].slice(0,3).join('\n') : '';
+    alert(`同步完成，但仍有 ${state.syncQueue.length} 筆待同步。${detail}`);
+  }else{
+    alert('全部資料已同步完成。');
+  }
 }
 
 function updateCloudStatusUI(){
