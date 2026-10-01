@@ -2,7 +2,9 @@ function openTrip(id){
   currentTrip = state.trips.find(t=>t.id===id);
   if(!currentTrip) return goHome();
   document.getElementById('tripTitle').textContent = currentTrip.name;
-  document.getElementById('tripSubtitle').textContent = `${currentTrip.start} ～ ${currentTrip.end} · ${tripDurationText(currentTrip.start,currentTrip.end)} · ${currentTrip.currency}`;
+  const startText = normalizeTripDateValue(currentTrip.start);
+  const endText = normalizeTripDateValue(currentTrip.end);
+  document.getElementById('tripSubtitle').textContent = `${startText} ～ ${endText} · ${tripDurationText(currentTrip.start,currentTrip.end)} · ${currentTrip.currency}`;
   renderTripSummary();
   showPage('page-trip');
 }
