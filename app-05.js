@@ -8,8 +8,10 @@ async function saveExpense(){
   if(!(okDate && okQty && okName && okForeign && okPlace)) return;
 
   const expenseDateValue=document.getElementById('expenseDate').value;
-  if(expenseDateValue < currentTrip.start || expenseDateValue > currentTrip.end){
-    alert(`購買商品日期只能填在旅行期間：${currentTrip.start} ～ ${currentTrip.end}`);
+  const tripStart = normalizeTripDateValue(currentTrip.start);
+  const tripEnd = normalizeTripDateValue(currentTrip.end);
+  if(expenseDateValue < tripStart || expenseDateValue > tripEnd){
+    alert(`購買商品日期只能填在旅行期間：${tripStart} ～ ${tripEnd}`);
     return;
   }
 
@@ -182,4 +184,27 @@ function addPerson(){
 function removePerson(v){
   if(!confirm(`刪除 ${v}？既有紀錄不會被刪除。`))return;
   state.people=state.people.filter(x=>x!==v);persist();renderSettings();
+}
+
+
+function normalizeTripDateValue(value){
+  if(!value) return '';
+  if(typeof value === 'string'){
+    const direct = value.match(/^\d{4}-\d{2}-\d{2}$/);
+    if(direct) return value;
+    const parsed = new Date(value);
+    if(!Number.isNaN(parsed.getTime())){
+      const y=parsed.getFullYear();
+      const m=String(parsed.getMonth()+1).padStart(2,'0');
+      const d=String(parsed.getDate()).padStart(2,'0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  if(value instanceof Date && !Number.isNaN(value.getTime())){
+    const y=value.getFullYear();
+    const m=String(value.getMonth()+1).padStart(2,'0');
+    const d=String(value.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(value).slice(0,10);
 }
