@@ -17,6 +17,7 @@ function makeTripName(place,start,end){
 }
 
 function renderHome(){
+  updateHomeSyncStatus();
   const box = document.getElementById('tripList');
   if(!state.trips.length){
     box.innerHTML = `
