@@ -227,6 +227,84 @@ async function syncPendingRecords(options={}){
   }
 }
 
+async function retrySingleSync(queueId){
+  if(!getApiUrl()){
+    alert('請先填入 Google Apps Script Web App URL。');
+    return false;
+  }
+
+  const q=(state.syncQueue||[]).find(x=>x.queueId===queueId);
+  if(!q){
+    alert('這筆待同步資料已不存在，可能已經同步完成。');
+    renderSettings();
+    return false;
+  }
+
+  const trip=getTripById(q.tripId);
+  if(!trip){
+    removeQueued(queueId);
+    persist();
+    renderSettings();
+    return false;
+  }
+
+  q.retrying=true;
+  persist();
+  renderSettings();
+
+  try{
+    let payload=q.payload;
+
+    if(q.action!=='createTrip'){
+      const spreadsheetId=trip.spreadsheetId || payload.spreadsheetId || '';
+      if(!spreadsheetId){
+        throw new Error('這趟旅行尚未成功建立 Google Sheet，請先讓「建立旅行」同步成功。');
+      }
+      payload={...payload,spreadsheetId};
+    }
+
+    const data=await postToCloud(payload);
+
+    if(q.action==='createTrip'){
+      trip.spreadsheetId=data.spreadsheetId || trip.spreadsheetId || '';
+      trip.spreadsheetUrl=data.spreadsheetUrl || trip.spreadsheetUrl || '';
+      trip.cloudStatus='synced';
+      trip.lastSyncError='';
+    }else{
+      setRecordSyncState(trip,q.recordType,q.recordId,'synced');
+      const arr=trip[q.recordType] || [];
+      const item=arr.find(x=>x.id===q.recordId);
+      if(item) item.lastSyncError='';
+      state.syncQueue=state.syncQueue.filter(x=>!(x.tripId===q.tripId && x.recordId===q.recordId));
+    }
+
+    removeQueued(queueId);
+    markSyncSuccess();
+    persist();
+    renderSettings();
+    if(currentTrip) renderTripSummary();
+    alert('這筆資料已同步完成。');
+    return true;
+
+  }catch(err){
+    const msg=err && err.message ? err.message : String(err);
+    const real=state.syncQueue.find(x=>x.queueId===queueId);
+    if(real){
+      real.lastError=msg;
+      real.retrying=false;
+    }
+    persist();
+    renderSettings();
+    alert('這筆資料仍同步失敗：\n'+msg);
+    return false;
+  }finally{
+    const real=state.syncQueue.find(x=>x.queueId===queueId);
+    if(real) real.retrying=false;
+    persist();
+    renderSettings();
+  }
+}
+
 async function autoSyncPendingRecords(){
   if(autoSyncRunning) return;
   if(!getApiUrl()) return;
