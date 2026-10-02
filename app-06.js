@@ -67,13 +67,47 @@ async function toggleCurrentTripArchive(forceArchived){
   );
 }
 
+function deleteRecordConfirmText(type,item){
+  const date=dateWithWeekday(item?.date) || item?.date || '未填日期';
+
+  if(type==='expenses'){
+    const foreign=item?.foreign
+      ? `${currencySymbol(currentTrip.currency)}${Number(item.foreign).toLocaleString('en-US')}`
+      : '';
+    const twd=(item?.twd===null || item?.twd==='' || Number(item?.twd)===0)
+      ? '待補台幣'
+      : fmtMoney(item.twd,'TWD');
+
+    return (
+      '確定要刪除這筆消費嗎？\n\n'+
+      `${date}\n${item?.name || '未命名商品'}\n${foreign}${foreign?' · ':''}${twd}\n\n`+
+      '刪除後無法復原。'
+    );
+  }
+
+  if(type==='pretrip'){
+    return (
+      '確定要刪除這筆先前費用嗎？\n\n'+
+      `${date}\n${item?.name || '先前費用'}\n${fmtMoney(item?.twd||0,'TWD')}\n\n`+
+      '刪除後無法復原。'
+    );
+  }
+
+  return (
+    '確定要刪除這筆換匯紀錄嗎？\n\n'+
+    `${date}\n${fmtMoney(item?.twd||0,'TWD')} → ${currencySymbol(currentTrip.currency)}${Number(item?.foreign||0).toLocaleString('en-US')}\n`+
+    `${item?.place ? item.place+'\n' : ''}\n`+
+    '刪除後無法復原。'
+  );
+}
+
 async function deleteCurrentExpense(){
   if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   if(!currentTrip || !editingExpenseId) return;
   const item = (currentTrip.expenses || []).find(x => x.id === editingExpenseId);
   if(!item) return;
 
-  if(!confirm('確定要刪除這筆紀錄嗎？刪除後無法復原。')) return;
+  if(!confirm(deleteRecordConfirmText('expenses',item))) return;
 
   if(getApiUrl() && item.syncStatus === 'synced'){
     try{
@@ -142,7 +176,7 @@ async function deleteCurrentPretrip(){
   if(!currentTrip || !editingPretripId) return;
   const item=(currentTrip.pretrip||[]).find(x=>x.id===editingPretripId);
   if(!item) return;
-  if(!confirm('確定要刪除這筆先前費用嗎？刪除後無法復原。')) return;
+  if(!confirm(deleteRecordConfirmText('pretrip',item))) return;
   if(getApiUrl() && item.syncStatus==='synced'){
     try{
       await postToCloud({
@@ -170,7 +204,7 @@ async function deleteCurrentExchange(){
   if(!currentTrip || !editingExchangeId) return;
   const item=(currentTrip.exchange||[]).find(x=>x.id===editingExchangeId);
   if(!item) return;
-  if(!confirm('確定要刪除這筆換匯紀錄嗎？刪除後無法復原。')) return;
+  if(!confirm(deleteRecordConfirmText('exchange',item))) return;
   if(getApiUrl() && item.syncStatus==='synced'){
     try{
       await postToCloud({
