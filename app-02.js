@@ -41,6 +41,27 @@ function getTripStatus(start,end){
   return {label:'旅行中',className:'trip-status-active'};
 }
 
+function tripDayProgressText(trip){
+  if(!trip || trip.archived) return '';
+
+  const status=getTripStatus(trip.start,trip.end);
+  if(status.label!=='旅行中') return '';
+
+  const start=parseLocalDate(normalizeTripDateValue(trip.start));
+  const end=parseLocalDate(normalizeTripDateValue(trip.end));
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0);
+
+  if(!start || !end) return '';
+
+  const oneDay=24*60*60*1000;
+  const totalDays=Math.floor((end-start)/oneDay)+1;
+  const currentDay=Math.floor((today-start)/oneDay)+1;
+
+  if(currentDay<1 || currentDay>totalDays) return '';
+  return `第 ${currentDay} 天／共 ${totalDays} 天`;
+}
+
 function renderHome(){
   updateHomeSyncStatus();
   const box = document.getElementById('tripList');
@@ -59,6 +80,11 @@ function renderHome(){
     const status = t.archived
       ? {label:'已封存',className:'trip-status-archived'}
       : getTripStatus(t.start,t.end);
+    const recordCount=(t.expenses||[]).length + (t.pretrip||[]).length + (t.exchange||[]).length;
+    const pendingTwdCount=(t.expenses||[]).filter(x=>
+      x.twd === null || x.twd === '' || Number(x.twd) === 0
+    ).length;
+    const dayProgress=tripDayProgressText(t);
     return `
       <div class="card trip-card" onclick="openTrip('${t.id}')">
         <div class="trip-head">
@@ -75,7 +101,11 @@ function renderHome(){
         <div class="trip-local-total">
           ${t.currency} ${new Intl.NumberFormat().format(totalForeign)}
         </div>
-        <div class="sub">${(t.expenses||[]).length + (t.pretrip||[]).length + (t.exchange||[]).length} 筆紀錄</div>
+        <div class="sub trip-home-meta">
+          <span>${recordCount} 筆紀錄</span>
+          ${pendingTwdCount ? `<span class="trip-home-pending">待補台幣 ${pendingTwdCount} 筆</span>` : ''}
+          ${dayProgress ? `<span>${dayProgress}</span>` : ''}
+        </div>
       </div>`;
   }).join('');
 }
