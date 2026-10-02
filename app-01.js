@@ -1,5 +1,5 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.03-v56';
+const WEB_APP_VERSION = '2026.10.03-v57';
 const EXPECTED_SCRIPT_VERSION = 'v50';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
@@ -78,31 +78,69 @@ function endCloudActivity(isWrite=false){
   updateCloudStatusUI();
 }
 
+function sleepMs(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+function isTransientFetchError(err){
+  const msg=String(err?.message || err || '').toLowerCase();
+  return (
+    err instanceof TypeError ||
+    msg.includes('load failed') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('network') ||
+    msg.includes('network request failed')
+  );
+}
+
 async function postToCloud(payload){
   const url = getApiUrl();
   if(!url) throw new Error('NO_API_URL');
 
   const isWrite=isCloudWriteAction(payload?.action);
+  const maxAttempts=3;
   beginCloudActivity(isWrite);
+
   try{
-    const res = await fetch(url,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify(payload)
-    });
-    if(!res.ok) throw new Error('HTTP_'+res.status);
-    const data = await res.json();
-    if(!data || data.success !== true){
-      const err = new Error(data?.message || 'SYNC_FAILED');
-      err.data = data || {};
-      throw err;
+    let lastErr=null;
+
+    for(let attempt=1; attempt<=maxAttempts; attempt++){
+      try{
+        const res = await fetch(url,{
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify(payload),
+          cache:'no-store'
+        });
+
+        if(!res.ok) throw new Error('HTTP_'+res.status);
+
+        const data = await res.json();
+        if(!data || data.success !== true){
+          const err = new Error(data?.message || 'SYNC_FAILED');
+          err.data = data || {};
+          throw err;
+        }
+
+        return data;
+      }catch(err){
+        lastErr=err;
+
+        // 只重試 Safari / 行動網路這類傳輸失敗；
+        // 後端明確回覆的資料錯誤不重送。
+        if(!isTransientFetchError(err) || attempt>=maxAttempts){
+          throw err;
+        }
+
+        await sleepMs(attempt===1 ? 700 : 1600);
+      }
     }
-    return data;
+
+    throw lastErr || new Error('NETWORK_FAILED');
   }finally{
     endCloudActivity(isWrite);
   }
 }
-
 function getTripById(id){
   return state.trips.find(t=>t.id===id);
 }
@@ -192,9 +230,23 @@ async function syncRecord(action, trip, type, item){
   directRecordSyncRunning = true;
   try{
     if(!trip.spreadsheetId){
+      const createQueued=(state.syncQueue || []).some(
+        q=>q.tripId===trip.id && q.action==='createTrip'
+      );
+
+      if(createQueued){
+        setRecordSyncState(trip,type,item.id,'pending');
+        item.lastSyncError='等待旅行 Google Sheet 建立完成';
+        enqueueSync(action,trip.id,type,item.id,cloudPayloadForRecord(action,trip,item));
+        persist();
+        setTimeout(autoSyncPendingRecords,1200);
+        return false;
+      }
+
       const ready=await ensureTripSpreadsheetReady(trip);
       if(!ready) throw new Error('旅行的 Google Sheet 尚未建立完成，已保留在本機等待同步。');
     }
+
     const data = await postToCloud(cloudPayloadForRecord(action, trip, item));
     setRecordSyncState(trip, type, item.id, 'synced');
     state.syncQueue = state.syncQueue.filter(q => !(q.tripId===trip.id && q.recordId===item.id));
@@ -245,7 +297,12 @@ async function syncPendingRecords(options={}){
 
   queueSyncRunning = true;
   try{
-  const queue = [...state.syncQueue];
+  const queue = [...state.syncQueue].sort((a,b)=>{
+    const ap=a.action==='createTrip' ? 0 : 1;
+    const bp=b.action==='createTrip' ? 0 : 1;
+    if(ap!==bp) return ap-bp;
+    return String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+  });
   const errors = [];
 
   for(const q of queue){
@@ -265,6 +322,19 @@ async function syncPendingRecords(options={}){
 
       if(q.action !== 'createTrip'){
         if(!trip.spreadsheetId){
+          const createStillQueued=(state.syncQueue || []).some(
+            x=>x.tripId===trip.id && x.action==='createTrip'
+          );
+
+          if(createStillQueued){
+            const real=state.syncQueue.find(x=>x.queueId===q.queueId);
+            if(real){
+              real.lastError='等待旅行 Google Sheet 建立完成';
+              real.lastErrorAt=new Date().toISOString();
+            }
+            continue;
+          }
+
           const ready=await ensureTripSpreadsheetReady(trip);
           if(!ready){
             throw new Error('旅行的 Google Sheet 尚未建立完成。');
@@ -712,7 +782,11 @@ async function refreshFromCloudNow(){
     await autoSyncPendingRecords();
 
     if((state.syncQueue || []).length){
-      alert('目前仍有 '+state.syncQueue.length+' 筆待同步資料。\n\n為避免本機資料被雲端覆蓋，請先把待同步資料處理完成，再重新讀取雲端。');
+      alert(
+        '系統已先嘗試同步，但目前仍有 '+state.syncQueue.length+' 筆待同步資料。\n\n'+
+        '為避免本機資料被雲端覆蓋，目前先不重新讀取。\n'+
+        '請到下方「同步失敗明細」查看原因，或稍後按「同步待處理」再試一次。'
+      );
       return false;
     }
 
