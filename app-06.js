@@ -140,7 +140,7 @@ async function deleteCurrentTrip(){
   }
 
   const name = currentTrip.name;
-  const hasCloudSheet = !!currentTrip.spreadsheetId;
+  const hasCloudSheet = !!currentTrip.spreadsheetId || !!getApiUrl();
 
   if(!confirm(
     hasCloudSheet
@@ -148,16 +148,16 @@ async function deleteCurrentTrip(){
       : `確定要刪除「${name}」嗎？這趟旅行裡的所有本機紀錄都會一起刪除，而且無法復原。`
   )) return;
 
-  if(getApiUrl() && hasCloudSheet){
+  if(getApiUrl()){
     try{
       await postToCloud({
         action:'deleteTrip',
-        spreadsheetId:currentTrip.spreadsheetId,
+        spreadsheetId:currentTrip.spreadsheetId || '',
         clientTripId:currentTrip.id,
         tripName:currentTrip.name
       });
     }catch(err){
-      alert('Google Sheet 刪除失敗，所以網站中的旅行先保留。請確認 Apps Script 已更新後再試一次。');
+      alert('Google Sheet 刪除失敗，所以網站中的旅行先保留。\n'+(err?.message||err));
       return;
     }
   }
@@ -167,7 +167,7 @@ async function deleteCurrentTrip(){
   state.syncQueue = (state.syncQueue || []).filter(q => q.tripId !== tripId);
   currentTrip = null;
   persist();
-  alert(hasCloudSheet ? '旅行與對應的 Google Sheet 已刪除。' : '旅行已刪除。');
+  alert(getApiUrl() ? '旅行已刪除，對應的 Google Sheet 也已移到 Google Drive 垃圾桶。' : '旅行已刪除。');
   goHome();
 }
 
