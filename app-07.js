@@ -59,7 +59,7 @@ renderHome();
 refreshConnectivityState();
 
 // 啟動時：先補傳本機待同步，再從 Google Sheets 讀回最新資料
-setTimeout(syncAndPullCloud, 1200);
+setTimeout(()=>syncAndPullCloud({pull:true}), 1200);
 
 window.addEventListener('offline', ()=>{
   renderConnectivityBanner('offline');
@@ -74,7 +74,7 @@ window.addEventListener('online', async ()=>{
   updateCloudStatusUI();
 
   try{
-    await syncAndPullCloud();
+    await syncAndPullCloud({pull:true});
   }finally{
     if(typeof navigator==='undefined' || navigator.onLine!==false){
       renderConnectivityBanner('synced');
@@ -87,7 +87,10 @@ window.addEventListener('online', async ()=>{
 // 從背景切回網站時自動補同步＋讀回
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
-    setTimeout(syncAndPullCloud, 500);
+    setTimeout(async ()=>{
+      await autoSyncPendingRecords();
+      await pullCloudIfStale(300000);
+    },500);
     setTimeout(()=>{
       if(currentTrip && typeof renderDailyCloseReminder==='function'){
         renderDailyCloseReminder();
@@ -96,9 +99,9 @@ document.addEventListener('visibilitychange', ()=>{
   }
 });
 
-// 網頁開著時每 60 秒同步一次，也更新晚間收尾提醒
+// 網頁開著時每 60 秒只補送待同步，不再整包讀回所有旅行。
 setInterval(()=>{
-  syncAndPullCloud();
+  autoSyncPendingRecords();
   if(currentTrip && typeof renderDailyCloseReminder==='function'){
     renderDailyCloseReminder();
   }
