@@ -670,7 +670,7 @@ function setExpenseCategoryValue(value){
   const v=String(value || '').trim();
   const preset=EXPENSE_CATEGORY_OPTIONS.includes(v) && v!=='其他（自行輸入）';
 
-  select.value=preset ? v : (v ? '其他（自行輸入）' : '購物');
+  select.value=preset ? v : (v ? '其他（自行輸入）' : '');
   if(custom) custom.value=preset ? '' : v;
   updateExpenseCategoryCustom();
 }
@@ -725,7 +725,7 @@ function resetExpenseForm(){
   document.getElementById('expenseForeign').value = '';
   document.getElementById('expenseTwd').value = '';
   document.getElementById('expensePlace').value = '';
-  setExpenseCategoryValue('購物');
+  setExpenseCategoryValue('');
   document.getElementById('expenseNote').value = '';
 
   if(currentTrip && currentTrip.people && currentTrip.people.length){
