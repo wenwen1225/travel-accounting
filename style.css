@@ -1580,3 +1580,144 @@
   font-size:12px;
   color:var(--muted);
 }
+
+
+/* 回國結算模式 */
+.settlement-status-card{
+  margin:8px 20px 10px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.settlement-status-icon{
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:20px;
+}
+.settlement-status-card strong{
+  display:block;
+  font-size:15px;
+}
+.settlement-status-card span{
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.45;
+  color:var(--muted);
+}
+.settlement-complete{
+  border-color:#cfe9d8;
+  background:#f4fbf6;
+}
+.settlement-complete .settlement-status-icon{
+  background:#dff3e5;
+  color:#2f7d4e;
+}
+.settlement-incomplete{
+  border-color:#eeddbb;
+  background:#fffaf0;
+}
+.settlement-incomplete .settlement-status-icon{
+  background:#fff0cf;
+  color:#9a6518;
+}
+.settlement-checklist{
+  padding:0 15px;
+  overflow:hidden;
+}
+.settlement-check-row{
+  display:grid;
+  grid-template-columns:26px 1fr auto;
+  align-items:center;
+  gap:8px;
+  min-height:48px;
+  border-bottom:1px solid var(--line);
+}
+.settlement-check-row:last-child{
+  border-bottom:none;
+}
+.settlement-check-dot{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:900;
+}
+.settlement-check-row strong{
+  font-size:12px;
+}
+.settlement-check-row span{
+  font-size:11px;
+  color:var(--muted);
+  text-align:right;
+}
+.settlement-check-row.is-ok .settlement-check-dot{
+  background:#e4f5ea;
+  color:#2f7d4e;
+}
+.settlement-check-row.is-warn .settlement-check-dot{
+  background:#fff0cf;
+  color:#9a6518;
+}
+.settlement-total-card{
+  padding:16px;
+  margin-bottom:10px;
+  background:linear-gradient(135deg,#faf7ff,#fff);
+}
+.settlement-total-card > span{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+}
+.settlement-total-card > strong{
+  display:block;
+  margin-top:5px;
+  font-size:24px;
+}
+.settlement-total-card > small{
+  display:block;
+  margin-top:3px;
+  color:var(--primary-dark);
+  font-weight:800;
+}
+.settlement-list{
+  padding:0 15px;
+}
+.settlement-row{
+  min-height:58px;
+  padding:11px 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  border-bottom:1px solid var(--line);
+}
+.settlement-row:last-child{
+  border-bottom:none;
+}
+.settlement-row > div{
+  min-width:0;
+}
+.settlement-row > div:last-child{
+  text-align:right;
+}
+.settlement-row strong{
+  display:block;
+  font-size:12px;
+}
+.settlement-row span{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  color:var(--muted);
+}
