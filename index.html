@@ -208,6 +208,11 @@
           <strong>旅行統計</strong>
           <span>人員、付款方式與每日支出</span>
         </button>
+        <button class="card action-card settlement-action-card" onclick="openTripSettlement()">
+          <div class="action-icon">✅</div>
+          <strong>回國結算</strong>
+          <span>檢查待補、同步與最終支出</span>
+        </button>
       </div>
     </div>
 
@@ -530,6 +535,55 @@
     </div>
     </div>
   </section>
+
+  <section id="page-settlement" class="page">
+    <div class="top">
+      <button class="back" onclick="backToTrip()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 style="font-size:22px">回國結算</h1>
+        <p id="settlementSubtitle"></p>
+      </div>
+    </div>
+
+    <div id="settlementStatusCard" class="settlement-status-card card">
+      <div class="settlement-status-icon" id="settlementStatusIcon">✓</div>
+      <div>
+        <strong id="settlementStatusTitle">正在檢查</strong>
+        <span id="settlementStatusText">確認這趟旅行是否還有待處理項目</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">收尾檢查</div>
+      <div id="settlementChecklist" class="card settlement-checklist"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">最終支出</div>
+      <div class="settlement-total-card card">
+        <span>旅行總支出（含先前費用）</span>
+        <strong id="settlementTotalTwd">NT$0</strong>
+        <small id="settlementTotalForeign"></small>
+      </div>
+      <div id="settlementPayments" class="card settlement-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">每人最終支出</div>
+      <div id="settlementPeople" class="card settlement-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">換匯整理</div>
+      <div id="settlementExchange" class="card settlement-list"></div>
+    </div>
+
+    <div class="section">
+      <button id="settlementPendingBtn" class="secondary" type="button" onclick="openPendingTwd()">前往補台幣</button>
+      <button id="settlementSyncBtn" class="primary" style="margin-top:10px" type="button" onclick="syncPendingRecords().then(()=>renderTripSettlement())">立即同步待處理資料</button>
+    </div>
+  </section>
+
 
   <section id="page-settings" class="page">
     <div class="top">
