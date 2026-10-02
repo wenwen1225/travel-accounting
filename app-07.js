@@ -88,11 +88,21 @@ window.addEventListener('online', async ()=>{
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
     setTimeout(syncAndPullCloud, 500);
+    setTimeout(()=>{
+      if(currentTrip && typeof renderDailyCloseReminder==='function'){
+        renderDailyCloseReminder();
+      }
+    },600);
   }
 });
 
-// 網頁開著時每 60 秒同步一次
-setInterval(syncAndPullCloud, 60000);
+// 網頁開著時每 60 秒同步一次，也更新晚間收尾提醒
+setInterval(()=>{
+  syncAndPullCloud();
+  if(currentTrip && typeof renderDailyCloseReminder==='function'){
+    renderDailyCloseReminder();
+  }
+},60000);
 
 
 function scrollToTop(){
