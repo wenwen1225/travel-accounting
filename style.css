@@ -1,15 +1,15 @@
 :root{
-      --bg:#fbf9ff;
+      --bg:#faf8fd;
       --card:#fffefe;
       --text:#2f2a3a;
       --muted:#7b7489;
       --line:#e9e3f2;
       --primary:#a78bfa;
       --primary-dark:#8b6ee8;
-      --soft:#f4efff;
+      --soft:#f3eefa;
       --success:#0f9d74;
-      --warning:#b7791f;
-      --danger:#d64545;
+      --warning:#b07a3f;
+      --danger:#c95f5f;
       --shadow:0 10px 30px rgba(31,41,55,.08);
       --radius:22px;
     }
@@ -26,7 +26,7 @@
       max-width:520px;
       min-height:100vh;
       margin:0 auto;
-      background:linear-gradient(180deg,#fffdfd 0,#faf7ff 250px,#f8f4ff 100%);
+      background:linear-gradient(180deg,#fffefe 0,#faf8fd 250px,#f4f0f8 100%);
       position:relative;
       padding-bottom:95px;
     }
@@ -287,9 +287,9 @@
       margin:10px 20px;
       padding:13px 15px;
       border-radius:16px;
-      background:#fff9e8;
-      border:1px solid #f3e4b2;
-      color:#7a5a16;
+      background:#fff7ea;
+      border:1px solid #ead7b8;
+      color:#8a6231;
       font-size:12px;
       line-height:1.5;
     }
@@ -473,7 +473,7 @@
 }
 .sync-error-card{
   border:1px solid #f1d7a8;
-  background:#fffaf0;
+  background:#fff8ee;
   border-radius:14px;
   padding:11px 12px;
   margin-top:8px;
@@ -491,7 +491,7 @@
 .sync-error-message{
   font-size:12px;
   line-height:1.5;
-  color:#9a6518;
+  color:#9a6732;
   word-break:break-word;
 }
 .sync-error-empty{
@@ -1326,7 +1326,7 @@
 .sync-error-message strong{
   display:block;
   margin:0;
-  color:#9a6518;
+  color:#9a6732;
   font-size:11px;
   line-height:1.5;
   word-break:break-word;
@@ -1396,9 +1396,9 @@
   line-height:1.45;
 }
 .connectivity-offline{
-  background:#fff6e7;
-  color:#855b19;
-  border-color:#f0ddb8;
+  background:#fff7ea;
+  color:#8a6231;
+  border-color:#ead7b8;
 }
 .connectivity-online{
   background:#f5f0ff;
@@ -1621,11 +1621,11 @@
   color:#2f7d4e;
 }
 .settlement-incomplete{
-  border-color:#eeddbb;
+  border-color:#ead7b8;
   background:#fffaf0;
 }
 .settlement-incomplete .settlement-status-icon{
-  background:#fff0cf;
+  background:#f8ead7;
   color:#9a6518;
 }
 .settlement-checklist{
