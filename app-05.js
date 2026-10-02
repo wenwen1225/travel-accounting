@@ -605,13 +605,12 @@ function renderSettings(){
 }
 
 function addPerson(){
-  const v=document.getElementById('newPerson').value.trim();
-  if(!v || state.people.includes(v)) return;
-  state.people.push(v);persist();document.getElementById('newPerson').value='';renderSettings();
+  alert('固定記帳對象為 Wen、Clark、Anna。其他同行人請在建立旅行時用「＋新增同行人」，只會套用在該趟旅行。');
+  const input=document.getElementById('newPerson');
+  if(input) input.value='';
 }
 function removePerson(v){
-  if(!confirm(`刪除 ${v}？既有紀錄不會被刪除。`))return;
-  state.people=state.people.filter(x=>x!==v);persist();renderSettings();
+  alert('Wen、Clark、Anna 為固定記帳對象，不會從設定中刪除。');
 }
 
 
