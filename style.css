@@ -1154,3 +1154,49 @@
     width:100%;
   }
 }
+
+
+/* 前後端版本檢查 */
+.version-check-card{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#faf8ff;
+}
+.version-check-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:4px 0;
+  font-size:11px;
+}
+.version-check-row span{
+  color:var(--muted);
+}
+.version-check-row strong{
+  text-align:right;
+  word-break:break-word;
+}
+.version-check-status{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:#f3f1f7;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  line-height:1.4;
+}
+.version-check-ok{
+  background:#eef9f3;
+  color:#4c8c69;
+}
+.version-check-warn{
+  background:#fff8eb;
+  color:#9a6b1d;
+}
+.version-check-error{
+  background:#fff1ef;
+  color:#b45f55;
+}
