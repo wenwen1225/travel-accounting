@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v50';
-const EXPECTED_SCRIPT_VERSION = 'v48';
+const WEB_APP_VERSION = '2026.10.02-v51';
+const EXPECTED_SCRIPT_VERSION = 'v49';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -229,9 +229,12 @@ async function syncPendingRecords(options={}){
   const errors = [];
 
   for(const q of queue){
+    // v51：舊版留下的 conflict 標記不再阻擋重試。
+    // v49 後端改採 record ID + last-write-wins。
     if(q.conflictCloudRecord){
-      errors.push('有資料衝突尚未處理');
-      continue;
+      q.conflictCloudRecord=null;
+      const realConflictItem=state.syncQueue.find(x=>x.queueId===q.queueId);
+      if(realConflictItem) realConflictItem.conflictCloudRecord=null;
     }
 
     const trip = getTripById(q.tripId);
@@ -313,9 +316,9 @@ async function retrySingleSync(queueId){
     return false;
   }
 
+  // v51：舊版 conflict 標記直接解除，允許只重送這一筆。
   if(q.conflictCloudRecord){
-    alert('這筆資料有同步衝突，請先選擇「保留本機」或「使用雲端」。');
-    return false;
+    q.conflictCloudRecord=null;
   }
 
   const trip=getTripById(q.tripId);
