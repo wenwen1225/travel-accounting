@@ -44,7 +44,8 @@ function applyTripArchiveUi(){
     const handler=btn.getAttribute('onclick') || '';
     const readonlyAllowed =
       handler.includes('openRecords') ||
-      handler.includes('openTripStats');
+      handler.includes('openTripStats') ||
+      handler.includes('openTripSettlement');
 
     btn.disabled=archived && !readonlyAllowed;
     btn.classList.toggle('archive-disabled',archived && !readonlyAllowed);
@@ -171,6 +172,249 @@ function renderTodayOverview(){
         </div>
       </div>
     `).join('');
+  }
+}
+
+function settlementSpendRecords(){
+  if(!currentTrip) return [];
+  return [
+    ...(currentTrip.expenses || []),
+    ...(currentTrip.pretrip || [])
+  ];
+}
+
+function settlementPaymentLabel(item){
+  if(!item) return '未分類';
+  if(item.pay==='信用卡'){
+    return item.card && item.card!=='無'
+      ? '信用卡 · '+item.card
+      : '信用卡';
+  }
+  if(item.pay==='交通卡') return '交通卡';
+  if(item.pay==='現金') return '現金';
+  if(item.pay==='Wowpass') return 'Wowpass';
+  if(item.pay==='電子支付') return '電子支付';
+  if(item.pay==='轉帳') return '轉帳';
+  return item.pay || '其他';
+}
+
+function settlementMoneyRows(map){
+  const rows=Object.values(map).sort(
+    (a,b)=>(b.twd||0)-(a.twd||0) || (b.foreign||0)-(a.foreign||0)
+  );
+
+  if(!rows.length){
+    return '<div class="empty">目前沒有可整理的支出</div>';
+  }
+
+  return rows.map(row=>`
+    <div class="settlement-row">
+      <div>
+        <strong>${row.label}</strong>
+        <span>${row.count} 筆</span>
+      </div>
+      <div>
+        <strong>${fmtMoney(row.twd||0,'TWD')}</strong>
+        <span>${currencySymbol(currentTrip.currency)}${Number(row.foreign||0).toLocaleString('en-US')}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openTripSettlement(){
+  if(!currentTrip) return;
+  renderTripSettlement();
+  showPage('page-settlement');
+}
+
+function renderTripSettlement(){
+  if(!currentTrip) return;
+
+  const spendRecords=settlementSpendRecords();
+  const expenses=currentTrip.expenses || [];
+  const pretrip=currentTrip.pretrip || [];
+  const exchange=currentTrip.exchange || [];
+
+  const pendingTwd=expenses.filter(
+    item=>item.twd===null || item.twd==='' || Number(item.twd)===0
+  ).length;
+
+  const tripQueue=(state.syncQueue || []).filter(q=>q.tripId===currentTrip.id);
+  const conflictQueue=tripQueue.filter(
+    q=>q.conflictCloudRecord || q.lastError==='資料衝突：雲端版本已被修改'
+  );
+  const pendingSync=tripQueue.length;
+  const cloudConfigured=!!getApiUrl();
+  const offline=typeof navigator!=='undefined' && navigator.onLine===false;
+
+  const totalTwd=spendRecords.reduce(
+    (sum,item)=>sum+Number(item.twd||0),0
+  );
+  const totalForeign=spendRecords.reduce(
+    (sum,item)=>sum+Number(item.foreign||0),0
+  );
+
+  const subtitle=document.getElementById('settlementSubtitle');
+  if(subtitle){
+    subtitle.textContent=
+      currentTrip.name+' · '+dateWithWeekday(currentTrip.start)+' ～ '+dateWithWeekday(currentTrip.end);
+  }
+
+  const totalTwdEl=document.getElementById('settlementTotalTwd');
+  const totalForeignEl=document.getElementById('settlementTotalForeign');
+  if(totalTwdEl) totalTwdEl.textContent=fmtMoney(totalTwd,'TWD');
+  if(totalForeignEl){
+    totalForeignEl.textContent=
+      currentTrip.currency+' '+
+      Number(totalForeign).toLocaleString('en-US');
+  }
+
+  const checklist=[
+    {
+      label:'待補台幣',
+      ok:pendingTwd===0,
+      value:pendingTwd===0 ? '已完成' : pendingTwd+' 筆'
+    },
+    {
+      label:'待同步資料',
+      ok:pendingSync===0,
+      value:pendingSync===0 ? '已同步' : pendingSync+' 筆'
+    },
+    {
+      label:'同步衝突',
+      ok:conflictQueue.length===0,
+      value:conflictQueue.length===0 ? '沒有衝突' : conflictQueue.length+' 筆'
+    },
+    {
+      label:'網路狀態',
+      ok:!offline,
+      value:offline ? '目前離線' : '已連線'
+    },
+    {
+      label:'Google Sheets',
+      ok:cloudConfigured && !!currentTrip.spreadsheetId,
+      value:!cloudConfigured
+        ? '尚未設定同步'
+        : currentTrip.spreadsheetId
+          ? '已連結'
+          : '尚未建立 Sheet'
+    }
+  ];
+
+  const checklistEl=document.getElementById('settlementChecklist');
+  if(checklistEl){
+    checklistEl.innerHTML=checklist.map(item=>`
+      <div class="settlement-check-row ${item.ok?'is-ok':'is-warn'}">
+        <div class="settlement-check-dot">${item.ok?'✓':'!'}</div>
+        <strong>${item.label}</strong>
+        <span>${item.value}</span>
+      </div>
+    `).join('');
+  }
+
+  const unfinished=
+    pendingTwd+
+    pendingSync+
+    conflictQueue.length+
+    (offline?1:0)+
+    ((!cloudConfigured || !currentTrip.spreadsheetId)?1:0);
+
+  const statusCard=document.getElementById('settlementStatusCard');
+  const statusIcon=document.getElementById('settlementStatusIcon');
+  const statusTitle=document.getElementById('settlementStatusTitle');
+  const statusText=document.getElementById('settlementStatusText');
+
+  if(statusCard){
+    statusCard.classList.toggle('settlement-complete',unfinished===0);
+    statusCard.classList.toggle('settlement-incomplete',unfinished>0);
+  }
+  if(statusIcon) statusIcon.textContent=unfinished===0 ? '✓' : '!';
+  if(statusTitle){
+    statusTitle.textContent=unfinished===0
+      ? '這趟旅行已整理完成'
+      : '還有項目需要處理';
+  }
+  if(statusText){
+    statusText.textContent=unfinished===0
+      ? '台幣金額、同步與雲端資料目前都已完成。'
+      : '依照下方收尾檢查逐項處理即可。';
+  }
+
+  const paymentMap={};
+  spendRecords.forEach(item=>{
+    const label=settlementPaymentLabel(item);
+    if(!paymentMap[label]){
+      paymentMap[label]={label,twd:0,foreign:0,count:0};
+    }
+    paymentMap[label].count++;
+    paymentMap[label].twd+=Number(item.twd||0);
+    paymentMap[label].foreign+=Number(item.foreign||0);
+  });
+
+  const paymentEl=document.getElementById('settlementPayments');
+  if(paymentEl) paymentEl.innerHTML=settlementMoneyRows(paymentMap);
+
+  const personMap={};
+  const individualExpenses=expenses.filter(
+    item=>item.pay==='信用卡' || item.pay==='交通卡'
+  );
+
+  [...individualExpenses,...pretrip].forEach(item=>{
+    const label=item.person || '未指定';
+    if(!personMap[label]){
+      personMap[label]={label,twd:0,foreign:0,count:0};
+    }
+    personMap[label].count++;
+    personMap[label].twd+=Number(item.twd||0);
+    personMap[label].foreign+=Number(item.foreign||0);
+  });
+
+  const peopleEl=document.getElementById('settlementPeople');
+  if(peopleEl){
+    peopleEl.innerHTML=Object.keys(personMap).length
+      ? settlementMoneyRows(personMap)
+      : '<div class="empty">目前沒有可歸屬到個人的支出</div>';
+  }
+
+  const exchangeTwd=exchange.reduce(
+    (sum,item)=>sum+Number(item.twd||0),0
+  );
+  const exchangeForeign=exchange.reduce(
+    (sum,item)=>sum+Number(item.foreign||0),0
+  );
+
+  const exchangeEl=document.getElementById('settlementExchange');
+  if(exchangeEl){
+    exchangeEl.innerHTML=exchange.length
+      ? `
+        <div class="settlement-row">
+          <div>
+            <strong>換匯總額</strong>
+            <span>${exchange.length} 筆換匯紀錄</span>
+          </div>
+          <div>
+            <strong>${fmtMoney(exchangeTwd,'TWD')}</strong>
+            <span>${currencySymbol(currentTrip.currency)}${Number(exchangeForeign).toLocaleString('en-US')}</span>
+          </div>
+        </div>
+      `
+      : '<div class="empty">這趟旅行沒有換匯紀錄</div>';
+  }
+
+  const pendingBtn=document.getElementById('settlementPendingBtn');
+  if(pendingBtn){
+    pendingBtn.disabled=pendingTwd===0 || isCurrentTripArchived();
+    pendingBtn.textContent=pendingTwd
+      ? '前往補台幣（'+pendingTwd+' 筆）'
+      : '台幣金額已補完';
+  }
+
+  const syncBtn=document.getElementById('settlementSyncBtn');
+  if(syncBtn){
+    syncBtn.disabled=pendingSync===0 || offline || !cloudConfigured;
+    syncBtn.textContent=pendingSync
+      ? '立即同步待處理資料（'+pendingSync+' 筆）'
+      : '同步已完成';
   }
 }
 
