@@ -136,6 +136,41 @@
     </div>
 
     <div class="section">
+      <div class="section-title">
+        今日快速總覽
+        <small id="todayOverviewDate"></small>
+      </div>
+      <div id="todayQuickOverview" class="card today-overview-card">
+        <div id="todayOverviewEmpty" class="today-overview-empty hidden">今天還沒有記帳</div>
+        <div id="todayOverviewContent">
+          <div class="today-overview-top">
+            <div>
+              <span>今日台幣</span>
+              <strong id="todayOverviewTwd">NT$0</strong>
+            </div>
+            <div>
+              <span>今日外幣</span>
+              <strong id="todayOverviewForeign">0</strong>
+            </div>
+          </div>
+
+          <div class="today-overview-mini-grid">
+            <div>
+              <span>今日筆數</span>
+              <strong id="todayOverviewCount">0</strong>
+            </div>
+            <div>
+              <span>待補台幣</span>
+              <strong id="todayOverviewPending">0</strong>
+            </div>
+          </div>
+
+          <div id="todayOverviewPayments" class="today-payment-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
       <div class="section-title">快速新增</div>
       <div class="grid">
         <button class="card action-card" onclick="openAdd('credit')">
