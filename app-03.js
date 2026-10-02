@@ -223,6 +223,291 @@ function settlementMoneyRows(map){
   `).join('');
 }
 
+
+function healthMedian(values){
+  const nums=values.map(Number).filter(v=>Number.isFinite(v) && v>0).sort((a,b)=>a-b);
+  if(!nums.length) return 0;
+  const mid=Math.floor(nums.length/2);
+  return nums.length%2 ? nums[mid] : (nums[mid-1]+nums[mid])/2;
+}
+
+function healthDuplicateGroups(){
+  const groups=[];
+  const configs=[
+    ['expenses', currentTrip?.expenses || [], item =>
+      [
+        normalizeTripDateValue(item.date),
+        normalizedRecordName(item.name),
+        Number(item.foreign||0)
+      ].join('|')
+    ],
+    ['pretrip', currentTrip?.pretrip || [], item =>
+      [
+        normalizeTripDateValue(item.date),
+        normalizedRecordName(item.name),
+        Number(item.twd||0),
+        Number(item.foreign||0)
+      ].join('|')
+    ],
+    ['exchange', currentTrip?.exchange || [], item =>
+      [
+        normalizeTripDateValue(item.date),
+        Number(item.twd||0),
+        Number(item.foreign||0)
+      ].join('|')
+    ]
+  ];
+
+  configs.forEach(([type,list,keyFn])=>{
+    const map=new Map();
+    list.forEach(item=>{
+      const key=keyFn(item);
+      if(!key || key.startsWith('||')) return;
+      if(!map.has(key)) map.set(key,[]);
+      map.get(key).push(item);
+    });
+    for(const items of map.values()){
+      if(items.length>1) groups.push({type,items});
+    }
+  });
+  return groups;
+}
+
+function healthMissingFieldIssues(){
+  const issues=[];
+
+  (currentTrip?.expenses || []).forEach(item=>{
+    const missing=[];
+    if(!normalizeTripDateValue(item.date)) missing.push('日期');
+    if(!String(item.name||'').trim()) missing.push('品名');
+    if(!(Number(item.qty)>0)) missing.push('數量');
+    if(!(Number(item.foreign)>0)) missing.push('外幣金額');
+    if(!String(item.place||'').trim()) missing.push('購買地點');
+    if(!String(item.category||'').trim()) missing.push('分類');
+    if(item.pay==='信用卡' && !String(item.card||'').trim()) missing.push('卡別');
+    if((item.pay==='信用卡' || item.pay==='交通卡') && !String(item.person||'').trim()) missing.push('記帳人員');
+    if(missing.length) issues.push({type:'expenses',item,missing});
+  });
+
+  (currentTrip?.pretrip || []).forEach(item=>{
+    const missing=[];
+    if(!normalizeTripDateValue(item.date)) missing.push('日期');
+    if(!String(item.name||'').trim()) missing.push('項目');
+    if(!String(item.person||'').trim()) missing.push('付款人員');
+    if(!String(item.pay||'').trim()) missing.push('付款方式');
+    if(Number(item.twd||0)<=0 && Number(item.foreign||0)<=0) missing.push('金額');
+    if(item.pay==='信用卡' && (!item.card || item.card==='無')) missing.push('卡別');
+    if(missing.length) issues.push({type:'pretrip',item,missing});
+  });
+
+  (currentTrip?.exchange || []).forEach(item=>{
+    const missing=[];
+    if(!normalizeTripDateValue(item.date)) missing.push('日期');
+    if(!(Number(item.twd)>0)) missing.push('台幣金額');
+    if(!(Number(item.foreign)>0)) missing.push('外幣金額');
+    if(!String(item.place||'').trim()) missing.push('地點');
+    if(missing.length) issues.push({type:'exchange',item,missing});
+  });
+
+  return issues;
+}
+
+function healthAnomalousAmountIssues(){
+  const all=[
+    ...(currentTrip?.expenses || []).map(item=>({type:'expenses',item})),
+    ...(currentTrip?.pretrip || []).map(item=>({type:'pretrip',item}))
+  ];
+
+  const twdMedian=healthMedian(all.map(x=>x.item.twd));
+  const foreignMedian=healthMedian(all.map(x=>x.item.foreign));
+
+  const twdThreshold=Math.max(100000, twdMedian ? twdMedian*20 : 0);
+  const foreignThreshold=Math.max(
+    currentTrip?.currency==='KRW' ? 5000000 :
+    currentTrip?.currency==='JPY' ? 500000 :
+    currentTrip?.currency==='USD' ? 5000 :
+    currentTrip?.currency==='EUR' ? 5000 :
+    200000,
+    foreignMedian ? foreignMedian*20 : 0
+  );
+
+  return all.filter(({item})=>{
+    const twd=Number(item.twd||0);
+    const foreign=Number(item.foreign||0);
+    return twd>=1000000 || twd>twdThreshold || foreign>foreignThreshold;
+  }).map(x=>({...x,twdThreshold,foreignThreshold}));
+}
+
+function healthRecordTitle(type,item){
+  if(type==='expenses') return item.name || '未命名消費';
+  if(type==='pretrip') return item.name || '未命名先前費用';
+  return '換匯紀錄';
+}
+
+function healthRecordAmount(type,item){
+  if(type==='exchange'){
+    return fmtMoney(item.twd||0,'TWD')+' → '+currencySymbol(currentTrip.currency)+Number(item.foreign||0).toLocaleString('en-US');
+  }
+  const parts=[];
+  if(item.twd!==null && item.twd!=='' && Number(item.twd)!==0) parts.push(fmtMoney(item.twd,'TWD'));
+  if(Number(item.foreign||0)!==0) parts.push(currencySymbol(currentTrip.currency)+Number(item.foreign||0).toLocaleString('en-US'));
+  return parts.join(' / ') || '未填金額';
+}
+
+function openHealthRecord(type,id){
+  if(type==='expenses') return editExpense(id);
+  if(type==='pretrip' && typeof editPretrip==='function') return editPretrip(id);
+  if(type==='exchange' && typeof editExchange==='function') return editExchange(id);
+}
+
+function healthIssueCard(title,detail,type,item,badge='需確認'){
+  const id=item?.id || '';
+  return `
+    <div class="card health-issue-card">
+      <div class="health-issue-head">
+        <div>
+          <strong>${title}</strong>
+          <span>${dateWithWeekday(item?.date) || '未填日期'} · ${healthRecordTitle(type,item)}</span>
+        </div>
+        <span class="health-issue-badge">${badge}</span>
+      </div>
+      <div class="health-issue-detail">${detail}</div>
+      <div class="health-issue-amount">${healthRecordAmount(type,item)}</div>
+      ${id ? `<button class="secondary health-open-btn" type="button" onclick="openHealthRecord('${type}','${id}')">開啟這筆紀錄</button>` : ''}
+    </div>
+  `;
+}
+
+function openTripHealthCheck(){
+  if(!currentTrip) return;
+  renderTripHealthCheck();
+  showPage('page-health');
+}
+
+function renderTripHealthCheck(){
+  if(!currentTrip) return;
+
+  const expenses=currentTrip.expenses || [];
+  const tripQueue=(state.syncQueue || []).filter(q=>q.tripId===currentTrip.id);
+  const conflicts=tripQueue.filter(q=>q.conflictCloudRecord || q.lastError==='資料衝突：雲端版本已被修改');
+  const pendingTwd=expenses.filter(item=>item.twd===null || item.twd==='' || Number(item.twd)===0);
+  const missingCategory=expenses.filter(item=>!String(item.category||'').trim());
+  const duplicates=healthDuplicateGroups();
+  const missingFields=healthMissingFieldIssues();
+  const anomalies=healthAnomalousAmountIssues();
+
+  const subtitle=document.getElementById('healthSubtitle');
+  if(subtitle) subtitle.textContent=currentTrip.name+' · '+dateWithWeekday(currentTrip.start)+' ～ '+dateWithWeekday(currentTrip.end);
+
+  const summary=[
+    {label:'待補台幣',count:pendingTwd.length,good:'都已補齊'},
+    {label:'待同步',count:tripQueue.length,good:'沒有待同步'},
+    {label:'同步衝突',count:conflicts.length,good:'沒有衝突'},
+    {label:'缺少分類',count:missingCategory.length,good:'分類完整'},
+    {label:'疑似重複',count:duplicates.length,good:'未發現重複'},
+    {label:'必要欄位缺漏',count:missingFields.length,good:'欄位完整'},
+    {label:'異常大額',count:anomalies.length,good:'未發現異常'}
+  ];
+
+  const summaryEl=document.getElementById('healthSummary');
+  if(summaryEl){
+    summaryEl.innerHTML=summary.map(x=>`
+      <div class="health-summary-row ${x.count?'is-warn':'is-ok'}">
+        <div class="health-summary-dot">${x.count?'!':'✓'}</div>
+        <strong>${x.label}</strong>
+        <span>${x.count ? x.count+' 筆' : x.good}</span>
+      </div>
+    `).join('');
+  }
+
+  const issueHtml=[];
+
+  pendingTwd.slice(0,20).forEach(item=>{
+    issueHtml.push(healthIssueCard(
+      '待補台幣',
+      '這筆消費已有外幣金額，但台幣尚未補上。',
+      'expenses',item,'待補'
+    ));
+  });
+
+  missingFields.slice(0,20).forEach(({type,item,missing})=>{
+    issueHtml.push(healthIssueCard(
+      '必要欄位缺漏',
+      '缺少：'+missing.join('、'),
+      type,item,'缺漏'
+    ));
+  });
+
+  anomalies.slice(0,20).forEach(({type,item})=>{
+    issueHtml.push(healthIssueCard(
+      '疑似異常大額',
+      '金額明顯高於這趟旅行的大多數紀錄，請確認是否多打一個 0、幣別或台幣欄位填反。',
+      type,item,'大額'
+    ));
+  });
+
+  duplicates.slice(0,10).forEach(group=>{
+    const first=group.items[0];
+    const names=group.items.map(x=>healthRecordTitle(group.type,x)).join('、');
+    issueHtml.push(healthIssueCard(
+      '疑似重複紀錄',
+      '同一天、相同項目／金額出現 '+group.items.length+' 次：'+names,
+      group.type,first,'重複'
+    ));
+  });
+
+  const issuesEl=document.getElementById('healthIssues');
+  const issueSection=document.getElementById('healthIssueSection');
+  if(issuesEl){
+    issuesEl.innerHTML=issueHtml.length
+      ? issueHtml.join('')
+      : '<div class="card health-all-clear"><div>✓</div><strong>目前沒有需要確認的紀錄</strong><span>這次健檢沒有發現缺漏、重複或異常大額。</span></div>';
+  }
+  if(issueSection) issueSection.classList.remove('hidden');
+
+  const totalProblems=
+    pendingTwd.length+
+    tripQueue.length+
+    conflicts.length+
+    missingCategory.length+
+    duplicates.length+
+    missingFields.length+
+    anomalies.length;
+
+  const statusCard=document.getElementById('healthStatusCard');
+  const statusIcon=document.getElementById('healthStatusIcon');
+  const statusTitle=document.getElementById('healthStatusTitle');
+  const statusText=document.getElementById('healthStatusText');
+
+  if(statusCard){
+    statusCard.classList.toggle('health-complete',totalProblems===0);
+    statusCard.classList.toggle('health-warning',totalProblems>0);
+  }
+  if(statusIcon) statusIcon.textContent=totalProblems===0?'✓':'!';
+  if(statusTitle) statusTitle.textContent=totalProblems===0?'資料目前看起來正常':'有資料需要確認';
+  if(statusText){
+    statusText.textContent=totalProblems===0
+      ? '沒有發現待補、同步、缺漏、重複或異常大額。'
+      : '共偵測到 '+totalProblems+' 個提醒；健檢只提示，不會自動修改資料。';
+  }
+
+  const pendingBtn=document.getElementById('healthPendingTwdBtn');
+  if(pendingBtn){
+    pendingBtn.disabled=pendingTwd.length===0 || isCurrentTripArchived();
+    pendingBtn.textContent=pendingTwd.length
+      ? '前往補台幣（'+pendingTwd.length+' 筆）'
+      : '台幣金額已補完';
+  }
+
+  const syncBtn=document.getElementById('healthSyncBtn');
+  if(syncBtn){
+    syncBtn.disabled=tripQueue.length===0 || !getApiUrl() || (typeof navigator!=='undefined' && navigator.onLine===false);
+    syncBtn.textContent=tripQueue.length
+      ? '同步待處理資料（'+tripQueue.length+' 筆）'
+      : '同步已完成';
+  }
+}
+
 function openTripSettlement(){
   if(!currentTrip) return;
   renderTripSettlement();
