@@ -831,6 +831,235 @@ function validateTravelBackup(payload){
   return payload.data;
 }
 
+let pendingBackupRestoreSummary=null;
+
+function backupDataSummary(data){
+  const trips=Array.isArray(data?.trips) ? data.trips : [];
+  const expenseCount=trips.reduce((s,t)=>s+(t.expenses||[]).length,0);
+  const pretripCount=trips.reduce((s,t)=>s+(t.pretrip||[]).length,0);
+  const exchangeCount=trips.reduce((s,t)=>s+(t.exchange||[]).length,0);
+  return {
+    tripCount:trips.length,
+    expenseCount,
+    pretripCount,
+    exchangeCount,
+    recordCount:expenseCount+pretripCount+exchangeCount
+  };
+}
+
+function showBackupRestoreChoice(payload,data){
+  const summary=backupDataSummary(data);
+  pendingBackupRestoreSummary={
+    exportedAt:payload.exportedAt || '',
+    ...summary
+  };
+
+  const overlay=document.getElementById('backupRestoreOverlay');
+  const timeEl=document.getElementById('backupRestoreTime');
+  const tripsEl=document.getElementById('backupRestoreTrips');
+  const recordsEl=document.getElementById('backupRestoreRecords');
+  const noteEl=document.getElementById('backupRestoreNote');
+  const progress=document.getElementById('backupRestoreProgress');
+  const cloudBtn=document.getElementById('backupRestoreCloudBtn');
+  const localBtn=document.getElementById('backupRestoreLocalBtn');
+
+  if(timeEl){
+    timeEl.textContent=payload.exportedAt
+      ? new Date(payload.exportedAt).toLocaleString('zh-TW')
+      : '未知時間';
+  }
+  if(tripsEl) tripsEl.textContent=summary.tripCount+' 趟';
+  if(recordsEl){
+    recordsEl.textContent=
+      summary.recordCount+' 筆（消費 '+summary.expenseCount+
+      '、先前費用 '+summary.pretripCount+
+      '、換匯 '+summary.exchangeCount+'）';
+  }
+  if(noteEl){
+    noteEl.textContent=getApiUrl()
+      ? '你可以只保留在這台裝置，或把備份中的資料新增／更新回 Google Sheets。雲端中備份沒有的額外紀錄不會被刪除。'
+      : '目前尚未設定 Apps Script 網址，因此只能先還原到這台裝置。之後設定網址後仍可再同步。';
+  }
+  if(progress){
+    progress.classList.add('hidden');
+    progress.textContent='';
+  }
+  if(cloudBtn){
+    cloudBtn.disabled=!getApiUrl();
+    cloudBtn.textContent='同步備份到 Google Sheets';
+  }
+  if(localBtn){
+    localBtn.disabled=false;
+    localBtn.textContent='只保留在這台裝置';
+  }
+  if(overlay) overlay.classList.remove('hidden');
+}
+
+function keepBackupLocalOnly(){
+  state.backupRestoreLocalOnly=true;
+  state.backupRestoreLocalOnlyAt=new Date().toISOString();
+  persist();
+  renderSettings();
+  renderHome();
+
+  const overlay=document.getElementById('backupRestoreOverlay');
+  if(overlay) overlay.classList.add('hidden');
+  pendingBackupRestoreSummary=null;
+
+  alert(
+    '已保留在這台裝置。\n\n'+
+    'Google Sheet 沒有被修改。首頁會標示「已還原備份｜目前僅此裝置」。'
+  );
+  goHome();
+}
+
+function updateBackupRestoreProgress(done,total,message){
+  const el=document.getElementById('backupRestoreProgress');
+  if(!el) return;
+  el.classList.remove('hidden');
+  const pct=total ? Math.round(done/total*100) : 0;
+  el.innerHTML=
+    '<strong>'+pct+'%</strong>'+
+    '<span>'+message+'</span>'+
+    '<div class="backup-restore-progress-bar"><i style="width:'+pct+'%"></i></div>';
+}
+
+async function syncRestoredBackupToCloud(){
+  if(!getApiUrl()){
+    alert('請先設定 Google Apps Script Web App URL。');
+    return false;
+  }
+
+  const cloudBtn=document.getElementById('backupRestoreCloudBtn');
+  const localBtn=document.getElementById('backupRestoreLocalBtn');
+  if(cloudBtn){
+    cloudBtn.disabled=true;
+    cloudBtn.textContent='同步中…';
+  }
+  if(localBtn) localBtn.disabled=true;
+
+  const trips=state.trips || [];
+  const total=
+    trips.length+
+    trips.reduce((s,t)=>
+      s+(t.expenses||[]).length+(t.pretrip||[]).length+(t.exchange||[]).length
+    ,0);
+
+  let done=0;
+  let lastRevision='';
+  const errors=[];
+
+  try{
+    for(const trip of trips){
+      updateBackupRestoreProgress(done,total,'準備 '+(trip.name||'旅行')+'…');
+
+      try{
+        const created=await postToCloud(cloudPayloadForTrip(trip));
+        trip.spreadsheetId=created.spreadsheetId || trip.spreadsheetId || '';
+        trip.spreadsheetUrl=created.spreadsheetUrl || trip.spreadsheetUrl || '';
+        trip.cloudStatus='synced';
+        trip.lastSyncError='';
+        if(created?.cloudRevision) lastRevision=String(created.cloudRevision);
+      }catch(err){
+        trip.cloudStatus='pending';
+        trip.lastSyncError=err?.message || String(err);
+        enqueueSync('createTrip',trip.id,'trip',trip.id,cloudPayloadForTrip(trip));
+        errors.push((trip.name||'旅行')+'：'+trip.lastSyncError);
+        done++;
+        continue;
+      }
+
+      done++;
+      updateBackupRestoreProgress(done,total,'已建立／確認 '+(trip.name||'旅行'));
+
+      const groups=[
+        ['expenses','addExpense'],
+        ['pretrip','addPretrip'],
+        ['exchange','addExchange']
+      ];
+
+      for(const [type,action] of groups){
+        for(const item of (trip[type] || [])){
+          try{
+            const payload={
+              ...cloudPayloadForRecord(action,trip,item),
+              spreadsheetId:trip.spreadsheetId,
+              forceOverwrite:true
+            };
+            const result=await postToCloud(payload);
+            item.syncStatus='synced';
+            item.lastSyncError='';
+            item.conflictCloudRecord=null;
+            if(result?.cloudFingerprint) item.cloudFingerprint=result.cloudFingerprint;
+            if(result?.cloudRevision) lastRevision=String(result.cloudRevision);
+            state.syncQueue=state.syncQueue.filter(
+              q=>!(q.tripId===trip.id && q.recordId===item.id)
+            );
+          }catch(err){
+            item.syncStatus='pending';
+            item.lastSyncError=err?.message || String(err);
+            enqueueSync(action,trip.id,type,item.id,{
+              ...cloudPayloadForRecord(action,trip,item),
+              spreadsheetId:trip.spreadsheetId,
+              forceOverwrite:true
+            });
+            errors.push(
+              (trip.name||'旅行')+'｜'+(item.name||item.type||item.id)+'：'+item.lastSyncError
+            );
+          }
+
+          done++;
+          updateBackupRestoreProgress(
+            done,total,
+            '同步 '+(trip.name||'旅行')+'｜'+(item.name||item.type||'紀錄')
+          );
+        }
+      }
+    }
+
+    state.backupRestoreLocalOnly=false;
+    state.backupRestoreLocalOnlyAt='';
+    state.restoredFromBackupCloudAt=new Date().toISOString();
+    if(lastRevision){
+      lastCloudRevision=lastRevision;
+      state.lastCloudRevision=lastRevision;
+    }
+    state.lastSyncAt=new Date().toISOString();
+    persist();
+    renderSettings();
+    renderHome();
+
+    const overlay=document.getElementById('backupRestoreOverlay');
+    if(overlay) overlay.classList.add('hidden');
+    pendingBackupRestoreSummary=null;
+
+    if(errors.length){
+      alert(
+        '備份已大致同步完成，但仍有 '+errors.length+' 筆待處理。\n\n'+
+        '失敗的資料已自動加入「待同步」，不需要重新匯入備份。'
+      );
+    }else{
+      alert(
+        '備份已同步回 Google Sheets。\n\n'+
+        '備份中的資料已新增／更新完成；雲端原本額外存在的紀錄沒有被刪除。'
+      );
+    }
+
+    goHome();
+    return errors.length===0;
+
+  }catch(err){
+    alert('備份同步中斷：\n'+(err?.message || err));
+    return false;
+  }finally{
+    if(cloudBtn){
+      cloudBtn.disabled=false;
+      cloudBtn.textContent='同步備份到 Google Sheets';
+    }
+    if(localBtn) localBtn.disabled=false;
+  }
+}
+
 async function handleBackupImport(event){
   const input=event && event.target;
   const file=input && input.files ? input.files[0] : null;
@@ -840,14 +1069,7 @@ async function handleBackupImport(event){
     const text=await file.text();
     const payload=JSON.parse(text);
     const data=validateTravelBackup(payload);
-
-    const tripCount=data.trips.length;
-    const recordCount=data.trips.reduce((sum,trip)=>
-      sum +
-      (trip.expenses || []).length +
-      (trip.pretrip || []).length +
-      (trip.exchange || []).length
-    ,0);
+    const summary=backupDataSummary(data);
 
     const exportedAt=payload.exportedAt
       ? new Date(payload.exportedAt).toLocaleString('zh-TW')
@@ -855,11 +1077,12 @@ async function handleBackupImport(event){
 
     const ok=confirm(
       '準備匯入備份：\n'+
-      `備份時間：${exportedAt}\n`+
-      `旅行：${tripCount} 趟\n`+
-      `紀錄：${recordCount} 筆\n\n`+
-      '這會取代「這台裝置」目前的本機旅行資料。\n'+
-      'Google Sheet 不會被自動覆蓋，而且 Apps Script 網址會保留目前這台裝置的設定。\n\n'+
+      '備份時間：'+exportedAt+'\n'+
+      '旅行：'+summary.tripCount+' 趟\n'+
+      '紀錄：'+summary.recordCount+' 筆\n\n'+
+      '這會先取代「這台裝置」目前的本機旅行資料。\n'+
+      'Apps Script 網址仍會保留。\n\n'+
+      '匯入完成後，你可以再選擇是否同步回 Google Sheets。\n\n'+
       '確定要繼續嗎？'
     );
 
@@ -875,17 +1098,18 @@ async function handleBackupImport(event){
       apiUrl:currentApiUrl,
       syncQueue:[],
       lastSyncAt:data.lastSyncAt || '',
-      restoredFromBackupAt:new Date().toISOString()
+      restoredFromBackupAt:new Date().toISOString(),
+      backupRestoreLocalOnly:true
     };
 
-    // 還原後先視為本機快照，不建立待同步佇列，
-    // 避免匯入後立刻把舊備份推到 Google Sheet。
+    // 先當成本機快照；只有使用者選擇同步雲端後才真正上傳。
     (state.trips || []).forEach(trip=>{
-      trip.cloudStatus=trip.spreadsheetId ? 'synced' : (trip.cloudStatus || 'local');
+      trip.cloudStatus='local';
       ['expenses','pretrip','exchange'].forEach(type=>{
         (trip[type] || []).forEach(item=>{
-          item.syncStatus=trip.spreadsheetId ? 'synced' : 'local';
+          item.syncStatus='local';
           item.lastSyncError='';
+          item.conflictCloudRecord=null;
         });
       });
     });
@@ -894,12 +1118,8 @@ async function handleBackupImport(event){
     persist();
     renderSettings();
     renderHome();
-
-    alert(
-      '備份已還原到這台裝置。\n\n'+
-      'Google Sheet 尚未被修改；建議先檢查旅行與紀錄內容，確認無誤後再按「立即同步」。'
-    );
     goHome();
+    showBackupRestoreChoice(payload,data);
 
   }catch(err){
     alert('匯入失敗：\n'+(err && err.message ? err.message : String(err)));
