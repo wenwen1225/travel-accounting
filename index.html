@@ -729,7 +729,7 @@
       <div class="backup-card card">
         <div class="backup-intro">
           <strong>本機資料備份</strong>
-          <span>可備份旅行、記帳、先前費用、換匯、同行人與卡別。匯入時不會自動覆蓋 Google Sheet。</span>
+          <span>可備份旅行、記帳、先前費用、換匯、同行人與卡別。匯入後可選擇只還原本機，或安全同步回 Google Sheets。</span>
         </div>
         <div id="backupSummary" class="backup-summary"></div>
         <div class="backup-actions">
@@ -751,6 +751,26 @@
     <button class="nav-btn" onclick="goSettings()"><span>⚙️</span>設定</button>
   </nav>
 
+  <div id="backupRestoreOverlay" class="save-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="backupRestoreTitle">
+    <div class="save-dialog backup-restore-dialog">
+      <div class="save-symbol">↺</div>
+      <h2 id="backupRestoreTitle">備份已還原到這台裝置</h2>
+      <p>接下來要怎麼處理這份備份？</p>
+
+      <div class="backup-restore-summary">
+        <div><span>備份時間</span><strong id="backupRestoreTime">—</strong></div>
+        <div><span>旅行</span><strong id="backupRestoreTrips">—</strong></div>
+        <div><span>紀錄</span><strong id="backupRestoreRecords">—</strong></div>
+      </div>
+
+      <div id="backupRestoreNote" class="backup-restore-note"></div>
+      <div id="backupRestoreProgress" class="backup-restore-progress hidden"></div>
+
+      <button id="backupRestoreCloudBtn" class="primary" type="button" onclick="syncRestoredBackupToCloud()">同步備份到 Google Sheets</button>
+      <button id="backupRestoreLocalBtn" class="secondary" style="margin-top:9px" type="button" onclick="keepBackupLocalOnly()">只保留在這台裝置</button>
+    </div>
+  </div>
+
   <div id="saveOverlay" class="save-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
     <div class="save-dialog">
       <div id="saveSymbol" class="save-symbol">✓</div>
@@ -760,13 +780,13 @@
     </div>
   </div>
 </div>
-<script src="app-01.js?v=53"></script>
-<script src="app-02.js?v=53"></script>
-<script src="app-03.js?v=53"></script>
-<script src="app-04.js?v=53"></script>
-<script src="app-05.js?v=53"></script>
-<script src="app-06.js?v=53"></script>
-<script src="app-07.js?v=53"></script>
+<script src="app-01.js?v=54"></script>
+<script src="app-02.js?v=54"></script>
+<script src="app-03.js?v=54"></script>
+<script src="app-04.js?v=54"></script>
+<script src="app-05.js?v=54"></script>
+<script src="app-06.js?v=54"></script>
+<script src="app-07.js?v=54"></script>
   <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
 </body>
 </html>
