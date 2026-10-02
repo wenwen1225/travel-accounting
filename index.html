@@ -647,7 +647,7 @@
           <button class="secondary" onclick="saveApiUrl()">儲存網址</button>
           <button class="primary" onclick="syncPendingRecords()">同步待處理</button>
         </div>
-        <button class="secondary" style="margin-top:10px;width:100%" onclick="refreshFromCloudNow()">↻ 重新讀取雲端最新資料</button>
+        <button id="cloudReloadBtn" class="secondary" style="margin-top:10px;width:100%" onclick="refreshFromCloudNow()">↻ 重新讀取雲端最新資料</button>
         <div class="tiny" style="margin-top:10px">
           有設定網址時會優先同步至 Google Sheets；若同步失敗，資料仍會保留在本機並標記「待同步」。
         </div>
@@ -721,13 +721,13 @@
     </div>
   </div>
 </div>
-<script src="app-01.js"></script>
-<script src="app-02.js"></script>
-<script src="app-03.js"></script>
-<script src="app-04.js"></script>
-<script src="app-05.js"></script>
-<script src="app-06.js"></script>
-<script src="app-07.js"></script>
+<script src="app-01.js?v=46"></script>
+<script src="app-02.js?v=46"></script>
+<script src="app-03.js?v=46"></script>
+<script src="app-04.js?v=46"></script>
+<script src="app-05.js?v=46"></script>
+<script src="app-06.js?v=46"></script>
+<script src="app-07.js?v=46"></script>
   <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
 </body>
 </html>
