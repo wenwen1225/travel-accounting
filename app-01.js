@@ -223,7 +223,12 @@ async function syncPendingRecords(options={}){
         setRecordSyncState(trip, q.recordType, q.recordId, 'synced');
         const arr = trip[q.recordType] || [];
         const item = arr.find(x=>x.id===q.recordId);
-        if(item) item.lastSyncError = '';
+        if(item){
+          item.lastSyncError = '';
+          item.syncStatus = 'synced';
+          item.conflictCloudRecord = null;
+          if(data?.cloudFingerprint) item.cloudFingerprint = data.cloudFingerprint;
+        }
         state.syncQueue = state.syncQueue.filter(x => !(x.tripId===q.tripId && x.recordId===q.recordId));
       }
 
@@ -305,7 +310,12 @@ async function retrySingleSync(queueId){
       setRecordSyncState(trip,q.recordType,q.recordId,'synced');
       const arr=trip[q.recordType] || [];
       const item=arr.find(x=>x.id===q.recordId);
-      if(item) item.lastSyncError='';
+      if(item){
+        item.lastSyncError='';
+        item.syncStatus='synced';
+        item.conflictCloudRecord=null;
+        if(data?.cloudFingerprint) item.cloudFingerprint=data.cloudFingerprint;
+      }
       state.syncQueue=state.syncQueue.filter(x=>!(x.tripId===q.tripId && x.recordId===q.recordId));
     }
 
