@@ -1,5 +1,5 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v55';
+const WEB_APP_VERSION = '2026.10.03-v56';
 const EXPECTED_SCRIPT_VERSION = 'v50';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
@@ -52,7 +52,7 @@ function removeQueued(queueId){
 }
 
 state.people=['Wen','Clark','Anna'];
-persist();
+localStorage.setItem(STORE_KEY, JSON.stringify(state));
 
 let cloudRequestCount = 0;
 let cloudWriteCount = 0;
