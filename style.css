@@ -1362,3 +1362,51 @@
   color:#9a6518;
   font-weight:800;
 }
+
+
+/* 海外使用：離線／恢復連線提示 */
+.connectivity-banner{
+  position:sticky;
+  top:0;
+  z-index:1200;
+  margin:0;
+  padding:11px 16px;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  border-bottom:1px solid transparent;
+  box-shadow:0 5px 16px rgba(47,42,58,.08);
+}
+.connectivity-icon{
+  flex:0 0 auto;
+  margin-top:2px;
+  font-size:10px;
+}
+.connectivity-copy{
+  min-width:0;
+}
+.connectivity-copy strong{
+  display:block;
+  font-size:12px;
+}
+.connectivity-copy span{
+  display:block;
+  margin-top:2px;
+  font-size:10px;
+  line-height:1.45;
+}
+.connectivity-offline{
+  background:#fff6e7;
+  color:#855b19;
+  border-color:#f0ddb8;
+}
+.connectivity-online{
+  background:#f5f0ff;
+  color:var(--primary-dark);
+  border-color:#e4daf7;
+}
+.connectivity-synced{
+  background:#eef9f3;
+  color:#397757;
+  border-color:#d3ebdd;
+}
