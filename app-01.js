@@ -1,5 +1,5 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v53';
+const WEB_APP_VERSION = '2026.10.02-v54';
 const EXPECTED_SCRIPT_VERSION = 'v49';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
@@ -579,6 +579,7 @@ async function pullCloudTrips(options={}){
     });
 
     cloudHasNewData=false;
+    state.backupRestoreLocalOnly=false;
     persist();
     renderHome();
     if(currentTrip){
@@ -610,6 +611,12 @@ async function syncAndPullCloud(options={}){
   if(typeof navigator !== 'undefined' && navigator.onLine === false) return;
 
   const shouldPull = options.pull !== false;
+
+  // 使用者若剛選擇「備份只還原本機」，不要在重新整理頁面後立刻用雲端舊資料蓋回去。
+  if(shouldPull && state.backupRestoreLocalOnly){
+    updateHomeSyncStatus();
+    return;
+  }
 
   // 跨裝置安全順序：
   // 1. 先讀最新雲端，確認別的裝置是否已經更新。
@@ -667,6 +674,15 @@ async function refreshFromCloudNow(){
   if(!getApiUrl()){
     alert('請先設定 Google Apps Script Web App URL。');
     return false;
+  }
+
+  if(state.backupRestoreLocalOnly){
+    const ok=confirm(
+      '目前這台裝置使用的是「只還原本機」的備份資料。\n\n'+
+      '重新讀取 Google Sheet 會用雲端資料取代目前的本機旅行資料。\n\n'+
+      '確定要繼續嗎？'
+    );
+    if(!ok) return false;
   }
 
   const btn=document.getElementById('cloudReloadBtn');
@@ -836,6 +852,14 @@ function updateHomeSyncStatus(){
     box.className='home-sync-status home-sync-syncing';
     icon.textContent='↻';
     text.textContent='同步中…';
+    return;
+  }
+
+  if(state.backupRestoreLocalOnly){
+    box.className='home-sync-status home-sync-local';
+    icon.textContent='◈';
+    text.textContent='已還原備份｜目前僅此裝置';
+    if(sub) sub.textContent='尚未同步回 Google Sheets';
     return;
   }
 
