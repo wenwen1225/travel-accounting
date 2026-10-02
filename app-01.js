@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v32';
-const EXPECTED_SCRIPT_VERSION = 'v32';
+const WEB_APP_VERSION = '2026.10.02-v33';
+const EXPECTED_SCRIPT_VERSION = 'v33';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -78,7 +78,11 @@ async function postToCloud(payload){
     });
     if(!res.ok) throw new Error('HTTP_'+res.status);
     const data = await res.json();
-    if(!data || data.success !== true) throw new Error(data?.message || 'SYNC_FAILED');
+    if(!data || data.success !== true){
+      const err = new Error(data?.message || 'SYNC_FAILED');
+      err.data = data || {};
+      throw err;
+    }
     return data;
   }finally{
     endCloudActivity();
@@ -113,6 +117,7 @@ function cloudPayloadForRecord(action, trip, item){
     tripName:trip.name,
     currency:trip.currency,
     cards:state.cards || [],
+    baseFingerprint:item?.cloudFingerprint || '',
     record:item
   };
 }
@@ -149,16 +154,28 @@ async function syncRecord(action, trip, type, item){
     setRecordSyncState(trip, type, item.id, 'synced');
     state.syncQueue = state.syncQueue.filter(q => !(q.tripId===trip.id && q.recordId===item.id));
     item.lastSyncError = '';
+    item.conflictCloudRecord = null;
+    if(data?.cloudFingerprint) item.cloudFingerprint = data.cloudFingerprint;
     markSyncSuccess();
     return true;
   }catch(err){
-    setRecordSyncState(trip, type, item.id, 'pending');
-    item.lastSyncError = err && err.message ? err.message : String(err);
+    const isConflict = err?.data?.code === 'SYNC_CONFLICT';
+
+    setRecordSyncState(trip, type, item.id, isConflict ? 'conflict' : 'pending');
+    item.lastSyncError = isConflict
+      ? '資料衝突：雲端版本已被修改'
+      : (err && err.message ? err.message : String(err));
+    item.conflictCloudRecord = isConflict ? (err.data.cloudRecord || null) : null;
+
     enqueueSync(action, trip.id, type, item.id, cloudPayloadForRecord(action, trip, item));
     const queued = state.syncQueue.find(q => q.tripId===trip.id && q.recordId===item.id && q.action===action);
-    if(queued) queued.lastError = item.lastSyncError;
+    if(queued){
+      queued.lastError = item.lastSyncError;
+      if(isConflict) queued.conflictCloudRecord = item.conflictCloudRecord;
+    }
     persist();
-    setTimeout(autoSyncPendingRecords, 5000);
+
+    if(!isConflict) setTimeout(autoSyncPendingRecords, 5000);
     return false;
   }
 }
@@ -176,6 +193,11 @@ async function syncPendingRecords(options={}){
   const errors = [];
 
   for(const q of queue){
+    if(q.conflictCloudRecord){
+      errors.push('有資料衝突尚未處理');
+      continue;
+    }
+
     const trip = getTripById(q.tripId);
     if(!trip){ removeQueued(q.queueId); continue; }
 
@@ -244,6 +266,11 @@ async function retrySingleSync(queueId){
     return false;
   }
 
+  if(q.conflictCloudRecord){
+    alert('這筆資料有同步衝突，請先選擇「保留本機」或「使用雲端」。');
+    return false;
+  }
+
   const trip=getTripById(q.tripId);
   if(!trip){
     removeQueued(queueId);
@@ -307,6 +334,71 @@ async function retrySingleSync(queueId){
     persist();
     renderSettings();
   }
+}
+
+async function resolveSyncConflict(queueId, choice){
+  const q=(state.syncQueue||[]).find(x=>x.queueId===queueId);
+  if(!q) return false;
+
+  const trip=getTripById(q.tripId);
+  if(!trip) return false;
+
+  const arr=trip[q.recordType] || [];
+  const item=arr.find(x=>x.id===q.recordId);
+
+  if(choice==='cloud'){
+    const cloud=q.conflictCloudRecord || item?.conflictCloudRecord;
+    if(!cloud){
+      alert('找不到雲端版本，請先重新同步資料。');
+      return false;
+    }
+
+    const idx=arr.findIndex(x=>x.id===q.recordId);
+    if(idx>=0){
+      arr[idx]={...cloud,syncStatus:'synced',lastSyncError:''};
+    }
+
+    state.syncQueue=state.syncQueue.filter(x=>x.queueId!==queueId);
+    persist();
+    renderSettings();
+    if(currentTrip) renderTripSummary();
+    alert('已保留雲端版本。');
+    return true;
+  }
+
+  if(choice==='local'){
+    if(!item){
+      alert('找不到本機版本。');
+      return false;
+    }
+
+    try{
+      const payload={
+        ...cloudPayloadForRecord(q.action,trip,item),
+        spreadsheetId:trip.spreadsheetId || q.payload?.spreadsheetId || '',
+        forceOverwrite:true
+      };
+
+      const data=await postToCloud(payload);
+      item.syncStatus='synced';
+      item.lastSyncError='';
+      item.conflictCloudRecord=null;
+      if(data?.cloudFingerprint) item.cloudFingerprint=data.cloudFingerprint;
+
+      state.syncQueue=state.syncQueue.filter(x=>x.queueId!==queueId);
+      markSyncSuccess();
+      persist();
+      renderSettings();
+      if(currentTrip) renderTripSummary();
+      alert('已用本機版本覆蓋雲端資料。');
+      return true;
+    }catch(err){
+      alert('保留本機版本失敗：\n'+(err?.message||err));
+      return false;
+    }
+  }
+
+  return false;
 }
 
 async function autoSyncPendingRecords(){
