@@ -356,6 +356,49 @@ function syncQueueLabel(q){
   return '同步資料';
 }
 
+function syncTargetSheetLabel(q, record){
+  if(q.action==='createTrip') return '建立旅行 / Google Sheet';
+  if(q.recordType==='pretrip') return '先前費用';
+  if(q.recordType==='exchange') return '換匯紀錄';
+  if(q.recordType==='expenses'){
+    const pay=record?.pay || '';
+    if(pay==='信用卡') return '購買商品 信用卡';
+    if(pay==='交通卡') return '購買商品 交通卡';
+    return '購買商品 現金';
+  }
+  return '—';
+}
+
+function formatSyncErrorTime(value){
+  if(!value) return '尚未記錄';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString('zh-TW',{
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit',
+    hour12:false
+  });
+}
+
+function syncActionText(action){
+  const map={
+    createTrip:'建立旅行',
+    addExpense:'新增消費',
+    updateExpense:'修改消費',
+    deleteExpense:'刪除消費',
+    addPretrip:'新增先前費用',
+    updatePretrip:'修改先前費用',
+    deletePretrip:'刪除先前費用',
+    addExchange:'新增換匯',
+    updateExchange:'修改換匯',
+    deleteExchange:'刪除換匯'
+  };
+  return map[action] || action || '同步資料';
+}
+
 function renderSyncErrorDetails(){
   const box=document.getElementById('syncErrorDetails');
   if(!box) return;
@@ -374,13 +417,34 @@ function renderSyncErrorDetails(){
       const trip=getTripById(q.tripId);
       const record=q.payload && q.payload.record ? q.payload.record : null;
       const title=record?.name || trip?.name || syncQueueLabel(q);
-      const date=record?.date ? ` · ${record.date}` : '';
+      const date=record?.date ? dateWithWeekday(record.date) : '—';
+      const sheetLabel=syncTargetSheetLabel(q,record);
+      const actionText=syncActionText(q.action);
+      const failedAt=formatSyncErrorTime(q.lastErrorAt || q.createdAt);
+      const conflict=!!q.conflictCloudRecord;
+
       return `
-        <div class="sync-error-card">
-          <strong>${syncQueueLabel(q)}｜${title}</strong>
-          <div class="sync-error-meta">${trip?.name || '旅行資料'}${date}</div>
-          <div class="sync-error-message">${q.lastError || '未知錯誤'}</div>
-          ${q.conflictCloudRecord ? `
+        <div class="sync-error-card ${conflict?'sync-error-conflict':''}">
+          <div class="sync-error-title-row">
+            <strong>${syncQueueLabel(q)}｜${title}</strong>
+            <span class="sync-error-kind">${conflict?'資料衝突':'同步失敗'}</span>
+          </div>
+
+          <div class="sync-error-detail-grid">
+            <div><span>旅行</span><strong>${trip?.name || '旅行資料'}</strong></div>
+            <div><span>日期</span><strong>${date}</strong></div>
+            <div><span>操作</span><strong>${actionText}</strong></div>
+            <div><span>Sheet 分頁</span><strong>${sheetLabel}</strong></div>
+            <div class="sync-error-detail-wide"><span>最後失敗</span><strong>${failedAt}</strong></div>
+          </div>
+
+          <div class="sync-error-message">
+            <span>錯誤原因</span>
+            <strong>${q.lastError || '未知錯誤'}</strong>
+          </div>
+
+          ${conflict ? `
+            <div class="sync-conflict-note">雲端內容已被其他裝置或 Google Sheet 修改，請選擇要保留的版本。</div>
             <div class="sync-conflict-actions">
               <button
                 class="sync-retry-btn"
@@ -404,7 +468,6 @@ function renderSyncErrorDetails(){
         </div>`;
     }).join('');
 }
-
 
 function backupTripCount(){
   return Array.isArray(state.trips) ? state.trips.length : 0;
