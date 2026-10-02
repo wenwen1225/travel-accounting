@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v44';
-const EXPECTED_SCRIPT_VERSION = 'v44';
+const WEB_APP_VERSION = '2026.10.02-v45';
+const EXPECTED_SCRIPT_VERSION = 'v45';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -54,9 +54,10 @@ function removeQueued(queueId){
 let cloudRequestCount = 0;
 let cloudWriteCount = 0;
 let lastCloudPullAt = 0;
+let lastCloudRevision = String(state.lastCloudRevision || '');
 
 function isCloudWriteAction(action){
-  return !['getVersion','getAllData'].includes(action || '');
+  return !['getVersion','getAllData','getCloudRevision'].includes(action || '');
 }
 
 function beginCloudActivity(isWrite=false){
@@ -482,9 +483,17 @@ function mergeCloudRecordList(tripId, localList, cloudList){
   const localMap = new Map((localList || []).map(x => [x.id, x]));
   const merged = [];
 
+  function mustKeepLocal(item){
+    return !!item && (
+      pendingIds.has(item.id) ||
+      item.syncStatus === 'pending' ||
+      item.syncStatus === 'conflict'
+    );
+  }
+
   for(const cloudItem of (cloudList || [])){
     const localItem = localMap.get(cloudItem.id);
-    if(localItem && (pendingIds.has(cloudItem.id) || localItem.syncStatus === 'pending' || localItem.syncStatus === 'local')){
+    if(mustKeepLocal(localItem)){
       merged.push(localItem);
     }else{
       merged.push({...cloudItem, syncStatus:'synced', lastSyncError:''});
@@ -492,12 +501,10 @@ function mergeCloudRecordList(tripId, localList, cloudList){
     localMap.delete(cloudItem.id);
   }
 
+  // 雲端沒有的本機資料，只保留真正正在等待同步／衝突的紀錄。
+  // 舊的 syncStatus=local 不再永久混入，避免不同裝置各自累積不同資料。
   for(const localItem of localMap.values()){
-    if(
-      pendingIds.has(localItem.id) ||
-      localItem.syncStatus === 'pending' ||
-      localItem.syncStatus === 'local'
-    ){
+    if(mustKeepLocal(localItem)){
       merged.push(localItem);
     }
   }
@@ -566,6 +573,10 @@ async function pullCloudTrips(options={}){
       }
     }
     lastCloudPullAt = Date.now();
+    if(data?.cloudRevision !== undefined && data?.cloudRevision !== null){
+      lastCloudRevision = String(data.cloudRevision);
+      state.lastCloudRevision = lastCloudRevision;
+    }
     markSyncSuccess();
     return true;
   }catch(err){
@@ -590,6 +601,75 @@ async function syncAndPullCloud(options={}){
   if(shouldPull){
     await pullCloudTrips({silent:true});
   }
+}
+
+async function checkCloudRevisionAndPull(options={}){
+  if(!getApiUrl()) return false;
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  if(cloudPullRunning || cloudWriteCount > 0) return false;
+
+  const force = !!options.force;
+
+  try{
+    const data = await postToCloud({action:'getCloudRevision'});
+    const revision = String(data?.cloudRevision ?? '');
+
+    if(force || !lastCloudRevision || revision !== lastCloudRevision){
+      return await pullCloudTrips({silent:options.silent !== false});
+    }
+
+    return false;
+  }catch(err){
+    if(options.silent === false){
+      alert('檢查雲端更新失敗：' + (err?.message || err));
+    }
+    return false;
+  }
+}
+
+async function refreshFromCloudNow(){
+  if(!getApiUrl()){
+    alert('請先設定 Google Apps Script Web App URL。');
+    return false;
+  }
+
+  await autoSyncPendingRecords();
+  const ok = await checkCloudRevisionAndPull({force:true,silent:false});
+
+  if(ok){
+    alert('已重新讀取 Google Sheets 最新資料。');
+  }
+  return ok;
+}
+
+function enqueueLocalOnlyRecordsForCloud(){
+  if(!getApiUrl()) return 0;
+
+  let count=0;
+  for(const trip of (state.trips || [])){
+    if(!trip.spreadsheetId) continue;
+
+    const groups=[
+      ['expenses','addExpense'],
+      ['pretrip','addPretrip'],
+      ['exchange','addExchange']
+    ];
+
+    for(const [type,action] of groups){
+      for(const item of (trip[type] || [])){
+        if(item?.syncStatus !== 'local') continue;
+        const exists=(state.syncQueue || []).some(q=>q.tripId===trip.id && q.recordId===item.id);
+        if(exists) continue;
+
+        item.syncStatus='pending';
+        enqueueSync(action, trip.id, type, item.id, cloudPayloadForRecord(action, trip, item));
+        count++;
+      }
+    }
+  }
+
+  if(count) persist();
+  return count;
 }
 
 async function pullCloudIfStale(maxAgeMs=300000){
@@ -772,7 +852,10 @@ function saveApiUrl(){
   updateCloudStatusUI();
 
   if(v){
-    alert('Google Apps Script 網址已儲存。');
+    const queuedLocal=enqueueLocalOnlyRecordsForCloud();
+    alert(queuedLocal
+      ? 'Google Apps Script 網址已儲存，並已將 '+queuedLocal+' 筆本機資料加入待同步。'
+      : 'Google Apps Script 網址已儲存。');
     setTimeout(()=>checkBackendVersion(false),150);
   }else{
     alert('已清除 Google Apps Script 網址。');
