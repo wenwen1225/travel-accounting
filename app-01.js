@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v45';
-const EXPECTED_SCRIPT_VERSION = 'v45';
+const WEB_APP_VERSION = '2026.10.02-v46';
+const EXPECTED_SCRIPT_VERSION = 'v46';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -633,13 +633,69 @@ async function refreshFromCloudNow(){
     return false;
   }
 
-  await autoSyncPendingRecords();
-  const ok = await checkCloudRevisionAndPull({force:true,silent:false});
-
-  if(ok){
-    alert('已重新讀取 Google Sheets 最新資料。');
+  const btn=document.getElementById('cloudReloadBtn');
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='讀取 Google Sheet 中…';
   }
-  return ok;
+
+  try{
+    // 先補送真正待同步資料，避免直接讀回時把尚未上傳的修改蓋掉。
+    await autoSyncPendingRecords();
+
+    if((state.syncQueue || []).length){
+      alert('目前仍有 '+state.syncQueue.length+' 筆待同步資料。\n\n為避免本機資料被雲端覆蓋，請先把待同步資料處理完成，再重新讀取雲端。');
+      return false;
+    }
+
+    // 手動按鈕採「雲端直接取代旅行資料」，不再做 merge。
+    const data=await postToCloud({action:'getAllData'});
+    const trips=Array.isArray(data.trips) ? data.trips : [];
+
+    state.trips=trips.map(t=>({
+      ...t,
+      expenses:(t.expenses||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
+      pretrip:(t.pretrip||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
+      exchange:(t.exchange||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
+      cloudStatus:'synced',
+      lastSyncError:''
+    }));
+
+    // 共用人員名單補入雲端旅行中的人員，不刪除使用者目前的共用設定。
+    for(const trip of state.trips){
+      for(const p of (trip.people || [])){
+        if(p && !state.people.includes(p)) state.people.push(p);
+      }
+    }
+
+    if(data?.cloudRevision !== undefined && data?.cloudRevision !== null){
+      lastCloudRevision=String(data.cloudRevision);
+      state.lastCloudRevision=lastCloudRevision;
+    }
+    lastCloudPullAt=Date.now();
+    state.lastSyncAt=new Date().toISOString();
+
+    persist();
+    renderHome();
+
+    if(currentTrip){
+      const refreshed=getTripById(currentTrip.id);
+      currentTrip=refreshed || null;
+      if(currentTrip) renderTripSummary();
+      else goHome();
+    }
+
+    alert('已用 Google Sheet 最新資料重新載入。\n目前共有 '+state.trips.length+' 趟旅行。');
+    return true;
+  }catch(err){
+    alert('重新讀取 Google Sheet 失敗：\n'+(err?.message || err));
+    return false;
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='↻ 重新讀取雲端最新資料';
+    }
+  }
 }
 
 function enqueueLocalOnlyRecordsForCloud(){
