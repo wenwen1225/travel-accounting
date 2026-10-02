@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v43';
-const EXPECTED_SCRIPT_VERSION = 'v43';
+const WEB_APP_VERSION = '2026.10.02-v44';
+const EXPECTED_SCRIPT_VERSION = 'v44';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -52,15 +52,23 @@ function removeQueued(queueId){
 }
 
 let cloudRequestCount = 0;
+let cloudWriteCount = 0;
+let lastCloudPullAt = 0;
 
-function beginCloudActivity(){
+function isCloudWriteAction(action){
+  return !['getVersion','getAllData'].includes(action || '');
+}
+
+function beginCloudActivity(isWrite=false){
   cloudRequestCount++;
+  if(isWrite) cloudWriteCount++;
   updateHomeSyncStatus();
   updateCloudStatusUI();
 }
 
-function endCloudActivity(){
+function endCloudActivity(isWrite=false){
   cloudRequestCount = Math.max(0, cloudRequestCount - 1);
+  if(isWrite) cloudWriteCount = Math.max(0, cloudWriteCount - 1);
   updateHomeSyncStatus();
   updateCloudStatusUI();
 }
@@ -69,7 +77,8 @@ async function postToCloud(payload){
   const url = getApiUrl();
   if(!url) throw new Error('NO_API_URL');
 
-  beginCloudActivity();
+  const isWrite=isCloudWriteAction(payload?.action);
+  beginCloudActivity(isWrite);
   try{
     const res = await fetch(url,{
       method:'POST',
@@ -85,7 +94,7 @@ async function postToCloud(payload){
     }
     return data;
   }finally{
-    endCloudActivity();
+    endCloudActivity(isWrite);
   }
 }
 
@@ -556,6 +565,7 @@ async function pullCloudTrips(options={}){
         renderTripSummary();
       }
     }
+    lastCloudPullAt = Date.now();
     markSyncSuccess();
     return true;
   }catch(err){
@@ -568,13 +578,25 @@ async function pullCloudTrips(options={}){
   }
 }
 
-async function syncAndPullCloud(){
+async function syncAndPullCloud(options={}){
   if(!getApiUrl()) return;
   if(typeof navigator !== 'undefined' && navigator.onLine === false) return;
 
-  // 先把本機待同步推上去，再讀回最新雲端資料，避免舊雲端覆蓋本機新修改
+  const shouldPull = options.pull !== false;
+
+  // 先只補送待同步；是否整包讀回由呼叫端決定。
   await autoSyncPendingRecords();
-  await pullCloudTrips({silent:true});
+
+  if(shouldPull){
+    await pullCloudTrips({silent:true});
+  }
+}
+
+async function pullCloudIfStale(maxAgeMs=300000){
+  if(!getApiUrl()) return false;
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  if(Date.now()-lastCloudPullAt < maxAgeMs) return false;
+  return pullCloudTrips({silent:true});
 }
 
 function markSyncSuccess(){
@@ -626,7 +648,7 @@ function updateHomeSyncStatus(){
     return;
   }
 
-  if(cloudRequestCount > 0){
+  if(cloudWriteCount > 0){
     box.className='home-sync-status home-sync-syncing';
     icon.textContent='↻';
     text.textContent='同步中…';
@@ -652,7 +674,7 @@ function updateCloudStatusUI(){
   const pending = document.getElementById('pendingSyncCount');
   const input = document.getElementById('apiUrlInput');
   if(input) input.value = getApiUrl();
-  if(pending) pending.textContent = cloudRequestCount > 0 ? '同步中…' : `${state.syncQueue.length} 筆待同步`;
+  if(pending) pending.textContent = cloudWriteCount > 0 ? '同步中…' : `${state.syncQueue.length} 筆待同步`;
   if(!dot || !text) return;
 
   if(isAppOffline()){
@@ -662,7 +684,7 @@ function updateCloudStatusUI(){
   }
 
   if(getApiUrl()){
-    if(cloudRequestCount > 0){
+    if(cloudWriteCount > 0){
       dot.className='cloud-dot cloud-warn';
       text.textContent='同步中…';
     }else{
