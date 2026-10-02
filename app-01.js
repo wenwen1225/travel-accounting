@@ -1,5 +1,5 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v47';
+const WEB_APP_VERSION = '2026.10.02-v48';
 const EXPECTED_SCRIPT_VERSION = 'v46';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
@@ -595,11 +595,19 @@ async function syncAndPullCloud(options={}){
 
   const shouldPull = options.pull !== false;
 
-  // 先只補送待同步；是否整包讀回由呼叫端決定。
-  await autoSyncPendingRecords();
-
+  // 跨裝置安全順序：
+  // 1. 先讀最新雲端，確認別的裝置是否已經更新。
+  // 2. 再補送這台裝置真正的待同步資料。
+  // 這樣只是打開另一台裝置，不會先把舊待同步狀態推上雲端。
   if(shouldPull){
     await pullCloudTrips({silent:true});
+  }
+
+  await autoSyncPendingRecords();
+
+  // 如果剛剛真的有待同步成功送出，再輕量確認一次雲端版本。
+  if(shouldPull && !(state.syncQueue || []).length){
+    await checkCloudRevisionAndPull({silent:true});
   }
 }
 
