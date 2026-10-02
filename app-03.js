@@ -1,3 +1,5 @@
+const EXPENSE_CATEGORY_OPTIONS = ['餐飲','購物','交通','住宿','娛樂','專輯小卡','飾品','超商','其他（自行輸入）'];
+
 let statsChartData = {
   peopleStats:[],
   paymentStats:[],
@@ -418,6 +420,99 @@ function renderTripSettlement(){
   }
 }
 
+function renderDailyCloseReminder(){
+  if(!currentTrip) return;
+
+  const box=document.getElementById('dailyCloseReminder');
+  const subtitle=document.getElementById('dailyCloseSubtitle');
+  const badge=document.getElementById('dailyCloseBadge');
+  const itemsEl=document.getElementById('dailyCloseItems');
+  const actionsEl=document.getElementById('dailyCloseActions');
+  if(!box || !subtitle || !badge || !itemsEl || !actionsEl) return;
+
+  const now=new Date();
+  const hour=now.getHours();
+  const today=localTodayYmd();
+  const tripStatus=getTripStatus(currentTrip.start,currentTrip.end);
+
+  // 每日收尾提醒只在旅行中且晚上 7 點後出現。
+  if(currentTrip.archived || tripStatus.label!=='旅行中' || hour<19){
+    box.classList.add('hidden');
+    return;
+  }
+
+  const todayItems=(currentTrip.expenses || []).filter(
+    x=>normalizeTripDateValue(x.date)===today
+  );
+  const todayPending=todayItems.filter(
+    x=>x.twd===null || x.twd==='' || Number(x.twd)===0
+  ).length;
+  const todayPendingSync=todayItems.filter(
+    x=>x.syncStatus==='pending'
+  ).length;
+  const todayConflict=todayItems.filter(
+    x=>x.syncStatus==='conflict'
+  ).length;
+
+  const issues=[];
+  if(todayItems.length===0){
+    issues.push({
+      text:'今天還沒有任何消費紀錄，確認今天是否真的沒有支出。',
+      type:'warn'
+    });
+  }else{
+    issues.push({
+      text:`今天已記 ${todayItems.length} 筆消費。`,
+      type:'ok'
+    });
+  }
+  if(todayPending>0){
+    issues.push({
+      text:`還有 ${todayPending} 筆尚未補台幣。`,
+      type:'warn'
+    });
+  }
+  if(todayPendingSync>0){
+    issues.push({
+      text:`今天有 ${todayPendingSync} 筆等待同步 Google Sheets。`,
+      type:'warn'
+    });
+  }
+  if(todayConflict>0){
+    issues.push({
+      text:`今天有 ${todayConflict} 筆同步衝突需要處理。`,
+      type:'warn'
+    });
+  }
+
+  const done=
+    todayItems.length>0 &&
+    todayPending===0 &&
+    todayPendingSync===0 &&
+    todayConflict===0;
+
+  box.classList.remove('hidden');
+  subtitle.textContent=dateWithWeekday(today)+' · 晚上收尾檢查';
+  badge.textContent=done ? '今日完成' : '待整理';
+  badge.className='daily-close-badge '+(done?'is-done':'is-pending');
+
+  itemsEl.innerHTML=issues.map(item=>`
+    <div class="daily-close-item ${item.type}">
+      <span>${item.type==='ok'?'✓':'!'}</span>
+      <div>${item.text}</div>
+    </div>
+  `).join('');
+
+  const actions=[];
+  if(todayPending>0){
+    actions.push('<button class="pill" type="button" onclick="openPendingTwd()">補台幣</button>');
+  }
+  if(todayPendingSync>0 || todayConflict>0){
+    actions.push('<button class="pill" type="button" onclick="goSettings()">查看同步</button>');
+  }
+  actionsEl.innerHTML=actions.join('');
+}
+
 function renderTripSummary(){
   const expenses = currentTrip.expenses||[];
   const pretrip = currentTrip.pretrip||[];
@@ -431,6 +526,7 @@ function renderTripSummary(){
   const pendingTwd = expenses.filter(x => x.twd === null || x.twd === '' || Number(x.twd) === 0).length;
   document.getElementById('pendingTwdCount').textContent = pendingTwd;
   renderTodayOverview();
+  renderDailyCloseReminder();
   renderRecent();
 }
 
@@ -467,6 +563,7 @@ function recordHtml(x){
         <strong>${x.name || x.type || '紀錄'}</strong>
         <span>${dateWithWeekday(x.date)} · ${displayPerson}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
         ${x.place?`<div class="record-note">${x.place}</div>`:''}
+        ${x.category?`<div class="record-category">${x.category}</div>`:''}
         <div style="margin-top:5px">${syncBadgeHtml(x)}</div>
       </div>
       <div class="record-amt">
@@ -512,6 +609,7 @@ function editExpense(id){
   document.getElementById('expenseForeign').value = item.foreign ? Number(item.foreign).toLocaleString('en-US') : '';
   document.getElementById('expenseTwd').value = item.twd ? Number(item.twd).toLocaleString('en-US') : '';
   document.getElementById('expensePlace').value = item.place || '';
+  setExpenseCategoryValue(item.category || '');
   document.getElementById('expenseNote').value = item.note || '';
   document.getElementById('foreignLabel').innerHTML = `外幣金額 ${currentTrip.currency} <span class="danger">*</span>`;
   document.getElementById('foreignSymbol').textContent = currencySymbol(currentTrip.currency);
@@ -548,6 +646,33 @@ function updatePretripCardVisibility(){
   const pay=document.getElementById('pretripPay')?.value || '信用卡';
   const group=document.getElementById('pretripCardGroup');
   if(group) group.classList.toggle('hidden',pay!=='信用卡');
+}
+
+function updateExpenseCategoryCustom(){
+  const select=document.getElementById('expenseCategory');
+  const group=document.getElementById('expenseCategoryCustomGroup');
+  if(!select || !group) return;
+  group.classList.toggle('hidden',select.value!=='其他（自行輸入）');
+}
+
+function getExpenseCategoryValue(){
+  const select=document.getElementById('expenseCategory');
+  if(!select) return '';
+  if(select.value!=='其他（自行輸入）') return select.value;
+  return (document.getElementById('expenseCategoryCustom')?.value || '').trim();
+}
+
+function setExpenseCategoryValue(value){
+  const select=document.getElementById('expenseCategory');
+  const custom=document.getElementById('expenseCategoryCustom');
+  if(!select) return;
+
+  const v=String(value || '').trim();
+  const preset=EXPENSE_CATEGORY_OPTIONS.includes(v) && v!=='其他（自行輸入）';
+
+  select.value=preset ? v : (v ? '其他（自行輸入）' : '購物');
+  if(custom) custom.value=preset ? '' : v;
+  updateExpenseCategoryCustom();
 }
 
 function sharedPaymentMethodForCurrency(currency){
@@ -600,6 +725,7 @@ function resetExpenseForm(){
   document.getElementById('expenseForeign').value = '';
   document.getElementById('expenseTwd').value = '';
   document.getElementById('expensePlace').value = '';
+  setExpenseCategoryValue('購物');
   document.getElementById('expenseNote').value = '';
 
   if(currentTrip && currentTrip.people && currentTrip.people.length){
