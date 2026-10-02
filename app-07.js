@@ -88,7 +88,7 @@ window.addEventListener('online', async ()=>{
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
     setTimeout(async ()=>{
-      await checkCloudRevisionAndPull({silent:true});
+      await checkCloudRevisionAndPull({silent:true,autoPull:false});
       await autoSyncPendingRecords();
     },500);
     setTimeout(()=>{
@@ -101,7 +101,7 @@ document.addEventListener('visibilitychange', ()=>{
 
 // 每 60 秒只做輕量版本檢查；雲端真的有變才讀完整資料。
 setInterval(async ()=>{
-  await checkCloudRevisionAndPull({silent:true});
+  await checkCloudRevisionAndPull({silent:true,autoPull:false});
   await autoSyncPendingRecords();
   if(currentTrip && typeof renderDailyCloseReminder==='function'){
     renderDailyCloseReminder();
