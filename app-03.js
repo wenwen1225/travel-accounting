@@ -67,18 +67,126 @@ function applyTransitActionVisibility(){
   btn.classList.toggle('hidden',!supported);
 }
 
+function localTodayYmd(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function todayPaymentLabel(item){
+  if(!item) return '其他';
+  if(item.pay==='信用卡') return item.card ? `信用卡 · ${item.card}` : '信用卡';
+  if(item.pay==='交通卡') return '交通卡';
+  if(item.pay==='現金') return '現金';
+  if(item.pay==='Wowpass') return 'Wowpass';
+  if(item.pay==='電子支付') return '電子支付';
+  return item.pay || '其他';
+}
+
+function renderTodayOverview(){
+  if(!currentTrip) return;
+
+  const today=localTodayYmd();
+  const todayItems=(currentTrip.expenses || []).filter(
+    item=>normalizeTripDateValue(item.date)===today
+  );
+
+  const dateEl=document.getElementById('todayOverviewDate');
+  const emptyEl=document.getElementById('todayOverviewEmpty');
+  const contentEl=document.getElementById('todayOverviewContent');
+  const twdEl=document.getElementById('todayOverviewTwd');
+  const foreignEl=document.getElementById('todayOverviewForeign');
+  const countEl=document.getElementById('todayOverviewCount');
+  const pendingEl=document.getElementById('todayOverviewPending');
+  const paymentsEl=document.getElementById('todayOverviewPayments');
+
+  if(dateEl) dateEl.textContent=dateWithWeekday(today);
+
+  if(!todayItems.length){
+    if(emptyEl) emptyEl.classList.remove('hidden');
+    if(contentEl) contentEl.classList.add('hidden');
+    return;
+  }
+
+  if(emptyEl) emptyEl.classList.add('hidden');
+  if(contentEl) contentEl.classList.remove('hidden');
+
+  const totalTwd=todayItems.reduce(
+    (sum,item)=>sum+Number(item.twd || 0),
+    0
+  );
+
+  const totalForeign=todayItems.reduce(
+    (sum,item)=>sum+Number(item.foreign || 0),
+    0
+  );
+
+  const pending=todayItems.filter(
+    item=>item.twd===null || item.twd==='' || Number(item.twd)===0
+  ).length;
+
+  if(twdEl) twdEl.textContent=fmtMoney(totalTwd,'TWD');
+  if(foreignEl){
+    foreignEl.textContent=
+      currencySymbol(currentTrip.currency)+
+      Number(totalForeign).toLocaleString('en-US');
+  }
+  if(countEl) countEl.textContent=todayItems.length;
+  if(pendingEl) pendingEl.textContent=pending;
+
+  const paymentMap={};
+  todayItems.forEach(item=>{
+    const label=todayPaymentLabel(item);
+    if(!paymentMap[label]){
+      paymentMap[label]={
+        label,
+        twd:0,
+        foreign:0,
+        count:0
+      };
+    }
+    paymentMap[label].count++;
+    paymentMap[label].twd += Number(item.twd || 0);
+    paymentMap[label].foreign += Number(item.foreign || 0);
+  });
+
+  const rows=Object.values(paymentMap).sort(
+    (a,b)=>
+      (b.twd||0)-(a.twd||0) ||
+      (b.foreign||0)-(a.foreign||0)
+  );
+
+  if(paymentsEl){
+    paymentsEl.innerHTML=rows.map(row=>`
+      <div class="today-payment-row">
+        <div>
+          <strong>${row.label}</strong>
+          <span>${row.count} 筆</span>
+        </div>
+        <div>
+          <strong>${fmtMoney(row.twd,'TWD')}</strong>
+          <span>${currencySymbol(currentTrip.currency)}${Number(row.foreign||0).toLocaleString('en-US')}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
 function renderTripSummary(){
   const expenses = currentTrip.expenses||[];
   const pretrip = currentTrip.pretrip||[];
   const totalTwd = [...expenses,...pretrip].reduce((s,x)=>s+Number(x.twd||0),0);
   const totalForeign = [...expenses,...pretrip].reduce((s,x)=>s+Number(x.foreign||0),0);
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayYmd();
   const todayTwd = expenses.filter(x=>x.date===today).reduce((s,x)=>s+Number(x.twd||0),0);
   document.getElementById('totalTwd').textContent = fmtMoney(totalTwd,'TWD');
   document.getElementById('totalForeign').textContent = `${currentTrip.currency} ${new Intl.NumberFormat().format(totalForeign)}`;
   document.getElementById('todayTwd').textContent = fmtMoney(todayTwd,'TWD');
   const pendingTwd = expenses.filter(x => x.twd === null || x.twd === '' || Number(x.twd) === 0).length;
   document.getElementById('pendingTwdCount').textContent = pendingTwd;
+  renderTodayOverview();
   renderRecent();
 }
 
