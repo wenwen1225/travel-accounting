@@ -6,6 +6,7 @@
       --line:#e9e3f2;
       --primary:#a78bfa;
       --primary-dark:#8b6ee8;
+      --amount-purple:#6f52c8;
       --soft:#f3eefa;
       --success:#0f9d74;
       --warning:#b07a3f;
@@ -1720,4 +1721,22 @@
   margin-top:3px;
   font-size:10px;
   color:var(--muted);
+}
+
+
+/* 主要總額金額色 */
+.trip-card .amount,
+#totalTwd,
+#todayTwd,
+#statsTotalTwd,
+#settlementTotalTwd,
+#todayOverviewTwd{
+  color:var(--amount-purple);
+}
+
+#totalForeign,
+#statsTotalForeign,
+#settlementTotalForeign,
+#todayOverviewForeign{
+  color:#8b78b8;
 }
