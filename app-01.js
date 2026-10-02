@@ -576,12 +576,23 @@ function updateLastSyncUI(){
   if(settings) settings.textContent = text;
 }
 
+function isAppOffline(){
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
 function updateHomeSyncStatus(){
   updateLastSyncUI();
   const box = document.getElementById('homeSyncStatus');
   const text = document.getElementById('homeSyncText');
   const icon = document.getElementById('homeSyncIcon');
   if(!box || !text || !icon) return;
+
+  if(isAppOffline()){
+    box.className='home-sync-status home-sync-pending';
+    icon.textContent='⌁';
+    text.textContent='目前離線・已保存在手機';
+    return;
+  }
 
   if(!getApiUrl()){
     box.className='home-sync-status home-sync-local';
@@ -618,6 +629,13 @@ function updateCloudStatusUI(){
   if(input) input.value = getApiUrl();
   if(pending) pending.textContent = cloudRequestCount > 0 ? '同步中…' : `${state.syncQueue.length} 筆待同步`;
   if(!dot || !text) return;
+
+  if(isAppOffline()){
+    dot.className='cloud-dot cloud-warn';
+    text.textContent='目前離線・資料會先保存在本機';
+    return;
+  }
+
   if(getApiUrl()){
     if(cloudRequestCount > 0){
       dot.className='cloud-dot cloud-warn';
