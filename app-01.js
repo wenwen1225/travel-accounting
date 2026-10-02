@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v54';
-const EXPECTED_SCRIPT_VERSION = 'v49';
+const WEB_APP_VERSION = '2026.10.02-v55';
+const EXPECTED_SCRIPT_VERSION = 'v50';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -50,6 +50,9 @@ function removeQueued(queueId){
   state.syncQueue = state.syncQueue.filter(q=>q.queueId!==queueId);
   persist();
 }
+
+state.people=['Wen','Clark','Anna'];
+persist();
 
 let cloudRequestCount = 0;
 let cloudWriteCount = 0;
@@ -165,6 +168,15 @@ async function syncTripCreation(trip){
   }
 }
 
+async function ensureTripSpreadsheetReady(trip){
+  if(!trip) return false;
+  if(trip.spreadsheetId) return true;
+  if(!getApiUrl()) return false;
+
+  const ok=await syncTripCreation(trip);
+  return !!(ok && trip.spreadsheetId);
+}
+
 let directRecordSyncRunning = false;
 let queueSyncRunning = false;
 
@@ -179,6 +191,10 @@ async function syncRecord(action, trip, type, item){
 
   directRecordSyncRunning = true;
   try{
+    if(!trip.spreadsheetId){
+      const ready=await ensureTripSpreadsheetReady(trip);
+      if(!ready) throw new Error('旅行的 Google Sheet 尚未建立完成，已保留在本機等待同步。');
+    }
     const data = await postToCloud(cloudPayloadForRecord(action, trip, item));
     setRecordSyncState(trip, type, item.id, 'synced');
     state.syncQueue = state.syncQueue.filter(q => !(q.tripId===trip.id && q.recordId===item.id));
@@ -248,10 +264,13 @@ async function syncPendingRecords(options={}){
       let payload = q.payload;
 
       if(q.action !== 'createTrip'){
-        const spreadsheetId = trip.spreadsheetId || payload.spreadsheetId || '';
-        if(!spreadsheetId){
-          throw new Error('這趟旅行尚未成功建立 Google Sheet，請先讓「建立旅行」同步成功。');
+        if(!trip.spreadsheetId){
+          const ready=await ensureTripSpreadsheetReady(trip);
+          if(!ready){
+            throw new Error('旅行的 Google Sheet 尚未建立完成。');
+          }
         }
+        const spreadsheetId = trip.spreadsheetId || payload.spreadsheetId || '';
         payload = {
           ...payload,
           spreadsheetId,
@@ -345,10 +364,11 @@ async function retrySingleSync(queueId){
     let payload=q.payload;
 
     if(q.action!=='createTrip'){
-      const spreadsheetId=trip.spreadsheetId || payload.spreadsheetId || '';
-      if(!spreadsheetId){
-        throw new Error('這趟旅行尚未成功建立 Google Sheet，請先讓「建立旅行」同步成功。');
+      if(!trip.spreadsheetId){
+        const ready=await ensureTripSpreadsheetReady(trip);
+        if(!ready) throw new Error('旅行的 Google Sheet 尚未建立完成。');
       }
+      const spreadsheetId=trip.spreadsheetId || payload.spreadsheetId || '';
       payload={
         ...payload,
         spreadsheetId,
@@ -571,12 +591,8 @@ async function pullCloudTrips(options={}){
 
     trips.forEach(mergeCloudTrip);
 
-    // 雲端讀回時，也把新同行人補進共用名單
-    trips.forEach(t => {
-      (t.people || []).forEach(p => {
-        if(p && !state.people.includes(p)) state.people.push(p);
-      });
-    });
+    // 同行人屬於單次旅行，不再加入全域人員名單。
+    state.people=['Wen','Clark','Anna'];
 
     cloudHasNewData=false;
     state.backupRestoreLocalOnly=false;
@@ -713,12 +729,8 @@ async function refreshFromCloudNow(){
       lastSyncError:''
     }));
 
-    // 共用人員名單補入雲端旅行中的人員，不刪除使用者目前的共用設定。
-    for(const trip of state.trips){
-      for(const p of (trip.people || [])){
-        if(p && !state.people.includes(p)) state.people.push(p);
-      }
-    }
+    // 只有三位固定人員跨旅行保留；其他同行人只存在各自旅行。
+    state.people=['Wen','Clark','Anna'];
 
     if(data?.cloudRevision !== undefined && data?.cloudRevision !== null){
       lastCloudRevision=String(data.cloudRevision);
