@@ -30,6 +30,75 @@ async function guardedSave(kind, button){
   }
 }
 
+function normalizedRecordName(value){
+  return String(value || '').trim().toLowerCase().replace(/\s+/g,' ');
+}
+
+function isSameMoneyValue(a,b){
+  const aa=a===null || a==='' || a===undefined ? null : Number(a);
+  const bb=b===null || b==='' || b===undefined ? null : Number(b);
+  return aa===bb;
+}
+
+function findPotentialDuplicate(type,item,excludeId=''){
+  const list = type==='expenses'
+    ? (currentTrip?.expenses || [])
+    : type==='pretrip'
+      ? (currentTrip?.pretrip || [])
+      : (currentTrip?.exchange || []);
+
+  return list.find(existing=>{
+    if(!existing || existing.id===excludeId) return false;
+    if(normalizeTripDateValue(existing.date)!==normalizeTripDateValue(item.date)) return false;
+
+    if(type==='expenses'){
+      return (
+        normalizedRecordName(existing.name)===normalizedRecordName(item.name) &&
+        isSameMoneyValue(existing.foreign,item.foreign)
+      );
+    }
+
+    if(type==='pretrip'){
+      return (
+        normalizedRecordName(existing.name)===normalizedRecordName(item.name) &&
+        isSameMoneyValue(existing.twd,item.twd) &&
+        isSameMoneyValue(existing.foreign,item.foreign)
+      );
+    }
+
+    return (
+      isSameMoneyValue(existing.twd,item.twd) &&
+      isSameMoneyValue(existing.foreign,item.foreign)
+    );
+  }) || null;
+}
+
+function duplicateRecordSummary(type,item){
+  const date=dateWithWeekday(item.date) || item.date || '未填日期';
+
+  if(type==='expenses'){
+    return `${date} · ${item.name || '未命名'} · ${currencySymbol(currentTrip.currency)}${Number(item.foreign||0).toLocaleString('en-US')}`;
+  }
+
+  if(type==='pretrip'){
+    const twd=fmtMoney(item.twd||0,'TWD');
+    return `${date} · ${item.name || '先前費用'} · ${twd}`;
+  }
+
+  return `${date} · ${fmtMoney(item.twd||0,'TWD')} → ${currencySymbol(currentTrip.currency)}${Number(item.foreign||0).toLocaleString('en-US')}`;
+}
+
+function confirmPotentialDuplicate(type,item,excludeId=''){
+  const duplicate=findPotentialDuplicate(type,item,excludeId);
+  if(!duplicate) return true;
+
+  return confirm(
+    '可能有重複紀錄：\n\n'+
+    duplicateRecordSummary(type,item)+
+    '\n\n同一天、相同項目／金額已有紀錄。\n仍要繼續儲存嗎？'
+  );
+}
+
 async function saveExpense(){
   if(isCurrentTripArchived()) return archiveReadOnlyAlert();
   clearRequiredErrors();
@@ -64,6 +133,8 @@ async function saveExpense(){
     note:document.getElementById('expenseNote').value.trim()
   };
   if(!item.updatedAt) item.updatedAt=new Date().toISOString();
+
+  if(!confirmPotentialDuplicate('expenses',item,editingExpenseId || '')) return;
 
   if(editingExpenseId){
     const idx = currentTrip.expenses.findIndex(x=>x.id===editingExpenseId);
@@ -128,6 +199,8 @@ async function savePretrip(){
   };
   if(!item.updatedAt) item.updatedAt=new Date().toISOString();
 
+  if(!confirmPotentialDuplicate('pretrip',item,editingPretripId || '')) return;
+
   if(editingPretripId){
     const idx=currentTrip.pretrip.findIndex(x=>x.id===editingPretripId);
     if(idx===-1) return;
@@ -161,6 +234,8 @@ async function saveExchange(){
     note:document.getElementById('exchangeNote').value.trim()
   };
   if(!item.updatedAt) item.updatedAt=new Date().toISOString();
+
+  if(!confirmPotentialDuplicate('exchange',item,editingExchangeId || '')) return;
 
   if(editingExchangeId){
     const idx=currentTrip.exchange.findIndex(x=>x.id===editingExchangeId);
