@@ -107,6 +107,16 @@ async function saveExpense(){
   const okName = requireTextField('expenseName','請填寫品名');
   const okForeign = requireNumberField('expenseForeign','請填寫外幣金額');
   const okPlace = requireTextField('expensePlace','請填寫購買地點');
+  const selectedCategory=document.getElementById('expenseCategory')?.value || '';
+  if(!selectedCategory){
+    alert('請選擇分類標籤。');
+    return;
+  }
+  if(selectedCategory==='其他（自行輸入）' && !document.getElementById('expenseCategoryCustom')?.value.trim()){
+    alert('請輸入自訂分類名稱。');
+    document.getElementById('expenseCategoryCustom')?.focus();
+    return;
+  }
   if(!(okDate && okQty && okName && okForeign && okPlace)) return;
 
   const expenseDateValue=document.getElementById('expenseDate').value;
@@ -173,7 +183,7 @@ async function saveExpense(){
       document.getElementById('expenseForeign').value = '';
       document.getElementById('expenseTwd').value = '';
       document.getElementById('expensePlace').value = '';
-      setExpenseCategoryValue('購物');
+      setExpenseCategoryValue('');
       document.getElementById('expenseNote').value = '';
       document.getElementById('expenseQty').value = 1;
     }
@@ -315,6 +325,7 @@ function recordSearchText(item){
     item.name,
     item.type,
     item.place,
+    item.category,
     item.website,
     item.note,
     item.person,
