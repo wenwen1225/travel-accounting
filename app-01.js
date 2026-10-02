@@ -1,5 +1,5 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v51';
+const WEB_APP_VERSION = '2026.10.02-v52';
 const EXPECTED_SCRIPT_VERSION = 'v49';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
@@ -120,6 +120,7 @@ function cloudPayloadForTrip(trip){
 }
 
 function cloudPayloadForRecord(action, trip, item){
+  const overwrite = /^update|^delete/.test(String(action || ''));
   return {
     action,
     clientTripId:trip.id,
@@ -128,6 +129,7 @@ function cloudPayloadForRecord(action, trip, item){
     currency:trip.currency,
     cards:state.cards || [],
     baseFingerprint:item?.cloudFingerprint || '',
+    forceOverwrite: overwrite,
     record:item
   };
 }
@@ -248,7 +250,11 @@ async function syncPendingRecords(options={}){
         if(!spreadsheetId){
           throw new Error('這趟旅行尚未成功建立 Google Sheet，請先讓「建立旅行」同步成功。');
         }
-        payload = {...payload, spreadsheetId};
+        payload = {
+          ...payload,
+          spreadsheetId,
+          forceOverwrite: /^update|^delete/.test(String(q.action || '')) ? true : payload.forceOverwrite
+        };
       }
 
       const data = await postToCloud(payload);
@@ -341,7 +347,11 @@ async function retrySingleSync(queueId){
       if(!spreadsheetId){
         throw new Error('這趟旅行尚未成功建立 Google Sheet，請先讓「建立旅行」同步成功。');
       }
-      payload={...payload,spreadsheetId};
+      payload={
+        ...payload,
+        spreadsheetId,
+        forceOverwrite:/^update|^delete/.test(String(q.action || '')) ? true : payload.forceOverwrite
+      };
     }
 
     const data=await postToCloud(payload);
