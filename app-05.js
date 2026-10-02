@@ -300,6 +300,7 @@ function goSettings(){
 function renderSettings(){
   setTimeout(updateCloudStatusUI,0);
   setTimeout(renderSyncErrorDetails,0);
+  setTimeout(renderBackupSummary,0);
   setTimeout(()=>checkBackendVersion(true),150);
   document.getElementById('peopleSettings').innerHTML = state.people.map((p,i)=>`
     <div class="setting-row">
@@ -402,4 +403,154 @@ function renderSyncErrorDetails(){
           `}
         </div>`;
     }).join('');
+}
+
+
+function backupTripCount(){
+  return Array.isArray(state.trips) ? state.trips.length : 0;
+}
+
+function backupRecordCount(){
+  return (state.trips || []).reduce((sum,trip)=>
+    sum +
+    (trip.expenses || []).length +
+    (trip.pretrip || []).length +
+    (trip.exchange || []).length
+  ,0);
+}
+
+function renderBackupSummary(){
+  const el=document.getElementById('backupSummary');
+  if(!el) return;
+  el.textContent=`目前：${backupTripCount()} 趟旅行 · ${backupRecordCount()} 筆紀錄`;
+}
+
+function backupFileName(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  return `travel-ledger-backup_${y}${m}${day}_${hh}${mm}.json`;
+}
+
+function exportTravelBackup(){
+  const payload={
+    app:'travel-accounting',
+    backupVersion:1,
+    exportedAt:new Date().toISOString(),
+    webVersion:typeof WEB_APP_VERSION==='string' ? WEB_APP_VERSION : '',
+    data:{
+      people:[...(state.people || [])],
+      cards:[...(state.cards || [])],
+      trips:JSON.parse(JSON.stringify(state.trips || [])),
+      lastSyncAt:state.lastSyncAt || ''
+    }
+  };
+
+  const blob=new Blob(
+    [JSON.stringify(payload,null,2)],
+    {type:'application/json;charset=utf-8'}
+  );
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=backupFileName();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  alert(`備份已建立：${backupTripCount()} 趟旅行、${backupRecordCount()} 筆紀錄。`);
+}
+
+function validateTravelBackup(payload){
+  if(!payload || payload.app!=='travel-accounting'){
+    throw new Error('這不是旅遊記帳網站的備份檔。');
+  }
+  if(!payload.data || !Array.isArray(payload.data.trips)){
+    throw new Error('備份檔內容不完整，找不到旅行資料。');
+  }
+  if(!Array.isArray(payload.data.people) || !Array.isArray(payload.data.cards)){
+    throw new Error('備份檔缺少記帳對象或卡別設定。');
+  }
+  return payload.data;
+}
+
+async function handleBackupImport(event){
+  const input=event && event.target;
+  const file=input && input.files ? input.files[0] : null;
+  if(!file) return;
+
+  try{
+    const text=await file.text();
+    const payload=JSON.parse(text);
+    const data=validateTravelBackup(payload);
+
+    const tripCount=data.trips.length;
+    const recordCount=data.trips.reduce((sum,trip)=>
+      sum +
+      (trip.expenses || []).length +
+      (trip.pretrip || []).length +
+      (trip.exchange || []).length
+    ,0);
+
+    const exportedAt=payload.exportedAt
+      ? new Date(payload.exportedAt).toLocaleString('zh-TW')
+      : '未知時間';
+
+    const ok=confirm(
+      '準備匯入備份：\n'+
+      `備份時間：${exportedAt}\n`+
+      `旅行：${tripCount} 趟\n`+
+      `紀錄：${recordCount} 筆\n\n`+
+      '這會取代「這台裝置」目前的本機旅行資料。\n'+
+      'Google Sheet 不會被自動覆蓋，而且 Apps Script 網址會保留目前這台裝置的設定。\n\n'+
+      '確定要繼續嗎？'
+    );
+
+    if(!ok) return;
+
+    const currentApiUrl=state.apiUrl || '';
+
+    state={
+      ...state,
+      people:[...data.people],
+      cards:[...data.cards],
+      trips:JSON.parse(JSON.stringify(data.trips)),
+      apiUrl:currentApiUrl,
+      syncQueue:[],
+      lastSyncAt:data.lastSyncAt || '',
+      restoredFromBackupAt:new Date().toISOString()
+    };
+
+    // 還原後先視為本機快照，不建立待同步佇列，
+    // 避免匯入後立刻把舊備份推到 Google Sheet。
+    (state.trips || []).forEach(trip=>{
+      trip.cloudStatus=trip.spreadsheetId ? 'synced' : (trip.cloudStatus || 'local');
+      ['expenses','pretrip','exchange'].forEach(type=>{
+        (trip[type] || []).forEach(item=>{
+          item.syncStatus=trip.spreadsheetId ? 'synced' : 'local';
+          item.lastSyncError='';
+        });
+      });
+    });
+
+    currentTrip=null;
+    persist();
+    renderSettings();
+    renderHome();
+
+    alert(
+      '備份已還原到這台裝置。\n\n'+
+      'Google Sheet 尚未被修改；建議先檢查旅行與紀錄內容，確認無誤後再按「立即同步」。'
+    );
+    goHome();
+
+  }catch(err){
+    alert('匯入失敗：\n'+(err && err.message ? err.message : String(err)));
+  }finally{
+    if(input) input.value='';
+  }
 }
