@@ -262,6 +262,10 @@ function backToTrip(){
 let allRecordSource = [];
 
 function openRecords(){
+  pendingTwdQuickMode=false;
+  pendingTwdQuickItems=[];
+  pendingTwdQuickIndex=0;
+  setPendingTwdQuickUi(false);
   document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 點任一紀錄可修改或刪除';
   allRecordSource = [
     ...(currentTrip.expenses||[]),
@@ -357,15 +361,214 @@ function clearRecordFilters(refresh=true){
 }
 
 
-function openPendingTwd(){
-  document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 待補台幣金額';
-  const items = (currentTrip.expenses||[])
+let pendingTwdQuickMode=false;
+let pendingTwdQuickItems=[];
+let pendingTwdQuickIndex=0;
+
+function setPendingTwdQuickUi(active){
+  const panel=document.getElementById('pendingTwdQuickPanel');
+  const filters=document.getElementById('recordsFilterCard');
+  const all=document.getElementById('allRecords');
+
+  if(panel) panel.classList.toggle('hidden',!active);
+  if(filters) filters.classList.toggle('hidden',active);
+  if(all) all.classList.toggle('hidden',active);
+}
+
+function pendingTwdItems(){
+  return (currentTrip?.expenses || [])
     .filter(x => x.twd === null || x.twd === '' || Number(x.twd) === 0)
-    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const box = document.getElementById('allRecords');
-  box.innerHTML = items.length ? items.map(recordHtml).join('') : `<div class="empty">目前沒有待補台幣的紀錄</div>`;
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+}
+
+function pendingTwdQuickCard(item){
+  const foreignText =
+    currencySymbol(currentTrip.currency) +
+    Number(item.foreign || 0).toLocaleString('en-US');
+
+  const shared=isSharedExpensePay(item.pay);
+  const who=shared ? '共同支出' : (item.person || '');
+  const payInfo=[
+    who,
+    item.pay || '',
+    item.card || ''
+  ].filter(Boolean).join(' · ');
+
+  return `
+    <div class="pending-twd-item">
+      <div class="pending-twd-item-date">${dateWithWeekday(item.date)}</div>
+      <div class="pending-twd-item-head">
+        <div>
+          <strong>${item.name || '未命名商品'}</strong>
+          <span>${payInfo}</span>
+          ${item.place ? `<span>${item.place}</span>` : ''}
+        </div>
+        <div class="pending-twd-foreign">${foreignText}</div>
+      </div>
+
+      <div class="pending-twd-input-wrap">
+        <label for="pendingTwdQuickInput">補上台幣金額</label>
+        <div class="money-wrap">
+          <span class="money-prefix">NT$</span>
+          <input
+            id="pendingTwdQuickInput"
+            type="text"
+            inputmode="decimal"
+            placeholder="輸入台幣"
+            autocomplete="off"
+            onkeydown="if(event.key==='Enter'){savePendingTwdAndNext()}"
+          />
+        </div>
+      </div>
+
+      <button
+        id="pendingTwdQuickSaveBtn"
+        class="primary"
+        type="button"
+        onclick="savePendingTwdAndNext()"
+      >儲存並下一筆</button>
+
+      <button
+        class="secondary"
+        type="button"
+        style="margin-top:8px"
+        onclick="editExpense('${item.id}')"
+      >開啟完整紀錄</button>
+    </div>
+  `;
+}
+
+function renderPendingTwdQuick(){
+  const content=document.getElementById('pendingTwdQuickContent');
+  const progress=document.getElementById('pendingTwdProgress');
+  if(!content || !progress) return;
+
+  pendingTwdQuickItems=pendingTwdItems();
+
+  if(!pendingTwdQuickItems.length){
+    progress.textContent='已完成';
+    content.innerHTML=`
+      <div class="pending-twd-done">
+        <div>✓</div>
+        <strong>台幣金額都補完了</strong>
+        <span>目前沒有待補台幣的消費紀錄。</span>
+        <button class="primary" type="button" onclick="backToTrip()">返回旅行首頁</button>
+      </div>
+    `;
+    renderTripSummary();
+    return;
+  }
+
+  if(pendingTwdQuickIndex >= pendingTwdQuickItems.length){
+    pendingTwdQuickIndex=0;
+  }
+
+  const item=pendingTwdQuickItems[pendingTwdQuickIndex];
+  progress.textContent=`${pendingTwdQuickIndex+1} / ${pendingTwdQuickItems.length}`;
+  content.innerHTML=pendingTwdQuickCard(item);
+
+  attachMoneyFormat('pendingTwdQuickInput');
+
+  setTimeout(()=>{
+    const input=document.getElementById('pendingTwdQuickInput');
+    if(input) input.focus();
+  },80);
+}
+
+function openPendingTwd(){
+  if(isCurrentTripArchived()){
+    // 封存旅行維持原本的查看模式，不提供快速修改。
+    document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 待補台幣金額';
+    allRecordSource=pendingTwdItems();
+    setupRecordFilters();
+    applyRecordFilters();
+    showPage('page-records');
+    return;
+  }
+
+  pendingTwdQuickMode=true;
+  pendingTwdQuickIndex=0;
+  document.getElementById('recordsSubtitle').textContent =
+    currentTrip.name + ' · 快速補台幣';
+
+  setPendingTwdQuickUi(true);
+  renderPendingTwdQuick();
   showPage('page-records');
 }
+
+function exitPendingTwdQuickMode(){
+  pendingTwdQuickMode=false;
+  pendingTwdQuickItems=[];
+  pendingTwdQuickIndex=0;
+  setPendingTwdQuickUi(false);
+
+  document.getElementById('recordsSubtitle').textContent =
+    currentTrip.name + ' · 待補台幣金額';
+
+  allRecordSource=pendingTwdItems();
+  setupRecordFilters();
+  applyRecordFilters();
+}
+
+async function savePendingTwdAndNext(){
+  if(!currentTrip || isCurrentTripArchived()) return;
+
+  const item=pendingTwdQuickItems[pendingTwdQuickIndex];
+  const input=document.getElementById('pendingTwdQuickInput');
+  const btn=document.getElementById('pendingTwdQuickSaveBtn');
+  if(!item || !input) return;
+
+  const raw=rawNumber(input.value);
+  const amount=Number(raw);
+
+  if(raw==='' || !Number.isFinite(amount) || amount<=0){
+    alert('請輸入大於 0 的台幣金額。');
+    input.focus();
+    return;
+  }
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='儲存中…';
+  }
+
+  const idx=(currentTrip.expenses || []).findIndex(x=>x.id===item.id);
+  if(idx<0){
+    renderPendingTwdQuick();
+    return;
+  }
+
+  const previous=currentTrip.expenses[idx];
+  const updated={
+    ...previous,
+    twd:amount,
+    updatedAt:new Date().toISOString(),
+    cloudFingerprint:previous.cloudFingerprint || '',
+    syncStatus:getApiUrl() ? 'pending' : 'local',
+    lastSyncError:''
+  };
+
+  currentTrip.expenses[idx]=updated;
+  persist();
+  renderTripSummary();
+
+  // 快速模式先確保本機已存好，再切下一筆。
+  pendingTwdQuickIndex=0;
+  renderPendingTwdQuick();
+
+  if(getApiUrl()){
+    syncRecord(
+      'updateExpense',
+      currentTrip,
+      'expenses',
+      updated
+    ).then(()=>{
+      persist();
+      renderTripSummary();
+    });
+  }
+}
+
 
 function goSettings(){
   renderSettings();
