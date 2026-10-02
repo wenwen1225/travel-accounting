@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.03-v57';
-const EXPECTED_SCRIPT_VERSION = 'v50';
+const WEB_APP_VERSION = '2026.10.03-v58';
+const EXPECTED_SCRIPT_VERSION = 'v51';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -89,7 +89,8 @@ function isTransientFetchError(err){
     msg.includes('load failed') ||
     msg.includes('failed to fetch') ||
     msg.includes('network') ||
-    msg.includes('network request failed')
+    msg.includes('network request failed') ||
+    msg.includes('sync_busy')
   );
 }
 
@@ -98,7 +99,7 @@ async function postToCloud(payload){
   if(!url) throw new Error('NO_API_URL');
 
   const isWrite=isCloudWriteAction(payload?.action);
-  const maxAttempts=3;
+  const maxAttempts=4;
   beginCloudActivity(isWrite);
 
   try{
@@ -132,7 +133,8 @@ async function postToCloud(payload){
           throw err;
         }
 
-        await sleepMs(attempt===1 ? 700 : 1600);
+        const delays=[900,2200,4500,8000];
+        await sleepMs(delays[Math.min(attempt-1,delays.length-1)]);
       }
     }
 
@@ -182,27 +184,51 @@ function setRecordSyncState(trip, type, id, status){
   if(item) item.syncStatus = status;
 }
 
+const tripCreationPromises = new Map();
+
 async function syncTripCreation(trip){
-  try{
-    const data = await postToCloud(cloudPayloadForTrip(trip));
-    trip.spreadsheetId = data.spreadsheetId || trip.spreadsheetId || '';
-    trip.spreadsheetUrl = data.spreadsheetUrl || trip.spreadsheetUrl || '';
-    trip.cloudStatus = 'synced';
-    cloudHasNewData = false;
-    markSyncSuccess();
-    return true;
-  }catch(err){
-    trip.cloudStatus = 'pending';
-    trip.lastSyncError = err && err.message ? err.message : String(err);
-    enqueueSync('createTrip', trip.id, 'trip', trip.id, cloudPayloadForTrip(trip));
-    const queued = state.syncQueue.find(q => q.tripId===trip.id && q.action==='createTrip');
-    if(queued){
-      queued.lastError = trip.lastSyncError;
-      queued.lastErrorAt = new Date().toISOString();
+  if(!trip) return false;
+  if(trip.spreadsheetId) return true;
+
+  if(tripCreationPromises.has(trip.id)){
+    return tripCreationPromises.get(trip.id);
+  }
+
+  const task=(async ()=>{
+    try{
+      const data = await postToCloud(cloudPayloadForTrip(trip));
+      trip.spreadsheetId = data.spreadsheetId || trip.spreadsheetId || '';
+      trip.spreadsheetUrl = data.spreadsheetUrl || trip.spreadsheetUrl || '';
+      trip.cloudStatus = 'synced';
+      trip.lastSyncError = '';
+      state.syncQueue = (state.syncQueue || []).filter(
+        q=>!(q.tripId===trip.id && q.action==='createTrip')
+      );
+      cloudHasNewData = false;
+      markSyncSuccess();
+      persist();
+      return true;
+    }catch(err){
+      trip.cloudStatus = 'pending';
+      trip.lastSyncError = err && err.message ? err.message : String(err);
+      enqueueSync('createTrip', trip.id, 'trip', trip.id, cloudPayloadForTrip(trip));
+      const queued = state.syncQueue.find(q => q.tripId===trip.id && q.action==='createTrip');
+      if(queued){
+        queued.lastError = trip.lastSyncError;
+        queued.lastErrorAt = new Date().toISOString();
+      }
+      persist();
+      setTimeout(autoSyncPendingRecords, 7000);
+      return false;
     }
-    persist();
-    setTimeout(autoSyncPendingRecords, 5000);
-    return false;
+  })();
+
+  tripCreationPromises.set(trip.id,task);
+
+  try{
+    return await task;
+  }finally{
+    tripCreationPromises.delete(trip.id);
   }
 }
 
