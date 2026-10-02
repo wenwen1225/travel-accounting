@@ -1849,3 +1849,164 @@
 .daily-close-actions:empty{
   display:none;
 }
+
+
+/* 資料健檢 */
+.health-status-card{
+  margin:8px 20px 10px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.health-status-icon{
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:20px;
+}
+.health-status-card strong{
+  display:block;
+  font-size:15px;
+}
+.health-status-card span{
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.45;
+  color:var(--muted);
+}
+.health-complete{
+  border-color:#cfe9d8;
+  background:#f4fbf6;
+}
+.health-complete .health-status-icon{
+  background:#dff3e5;
+  color:#2f7d4e;
+}
+.health-warning{
+  border-color:#ead7b8;
+  background:#fffaf0;
+}
+.health-warning .health-status-icon{
+  background:#f8ead7;
+  color:#9a6518;
+}
+.health-summary-list{
+  padding:0 15px;
+  overflow:hidden;
+}
+.health-summary-row{
+  display:grid;
+  grid-template-columns:26px 1fr auto;
+  align-items:center;
+  gap:8px;
+  min-height:48px;
+  border-bottom:1px solid var(--line);
+}
+.health-summary-row:last-child{border-bottom:none}
+.health-summary-dot{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:900;
+}
+.health-summary-row strong{font-size:12px}
+.health-summary-row span{
+  font-size:11px;
+  color:var(--muted);
+  text-align:right;
+}
+.health-summary-row.is-ok .health-summary-dot{
+  background:#e4f5ea;
+  color:#2f7d4e;
+}
+.health-summary-row.is-warn .health-summary-dot{
+  background:#fff0cf;
+  color:#9a6518;
+}
+.health-issue-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.health-issue-card{
+  padding:15px;
+}
+.health-issue-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.health-issue-head strong{
+  display:block;
+  font-size:13px;
+}
+.health-issue-head > div > span{
+  display:block;
+  margin-top:4px;
+  font-size:10px;
+  color:var(--muted);
+}
+.health-issue-badge{
+  flex:0 0 auto;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#fff0cf;
+  color:#9a6518;
+  font-size:10px;
+  font-weight:800;
+}
+.health-issue-detail{
+  margin-top:10px;
+  font-size:11px;
+  line-height:1.55;
+  color:#5f596d;
+}
+.health-issue-amount{
+  margin-top:8px;
+  font-size:13px;
+  font-weight:900;
+  color:var(--amount-purple);
+}
+.health-open-btn{
+  margin-top:10px;
+  width:100%;
+}
+.health-all-clear{
+  padding:24px 16px;
+  text-align:center;
+}
+.health-all-clear > div{
+  width:42px;
+  height:42px;
+  margin:0 auto 10px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#e4f5ea;
+  color:#2f7d4e;
+  font-size:20px;
+  font-weight:900;
+}
+.health-all-clear strong{
+  display:block;
+  font-size:14px;
+}
+.health-all-clear span{
+  display:block;
+  margin-top:5px;
+  font-size:11px;
+  color:var(--muted);
+}
