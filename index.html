@@ -505,6 +505,18 @@
         <div class="tiny" style="margin-top:10px">
           有設定網址時會優先同步至 Google Sheets；若同步失敗，資料仍會保留在本機並標記「待同步」。
         </div>
+        <div id="versionCheckCard" class="version-check-card">
+          <div class="version-check-row">
+            <span>網站版本</span>
+            <strong id="webVersionText">—</strong>
+          </div>
+          <div class="version-check-row">
+            <span>Apps Script 版本</span>
+            <strong id="scriptVersionText">尚未檢查</strong>
+          </div>
+          <div id="versionMatchStatus" class="version-check-status">尚未檢查版本</div>
+          <button id="versionCheckBtn" class="sync-retry-btn" type="button" onclick="checkBackendVersion(false)">檢查版本</button>
+        </div>
         <div id="syncErrorDetails" class="sync-error-list"></div>
       </div>
     </div>
