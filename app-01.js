@@ -1,4 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
+const WEB_APP_VERSION = '2026.10.02-v31';
+const EXPECTED_SCRIPT_VERSION = 'v31';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -520,12 +522,87 @@ function updateCloudStatusUI(){
   }
 }
 
+async function checkBackendVersion(silent=true){
+  const webEl=document.getElementById('webVersionText');
+  const scriptEl=document.getElementById('scriptVersionText');
+  const statusEl=document.getElementById('versionMatchStatus');
+  const btn=document.getElementById('versionCheckBtn');
+
+  if(webEl) webEl.textContent=WEB_APP_VERSION;
+
+  if(!getApiUrl()){
+    if(scriptEl) scriptEl.textContent='尚未設定';
+    if(statusEl){
+      statusEl.textContent='請先設定 Apps Script Web App URL';
+      statusEl.className='version-check-status version-check-warn';
+    }
+    return false;
+  }
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='檢查中…';
+  }
+  if(statusEl){
+    statusEl.textContent='正在確認後端版本…';
+    statusEl.className='version-check-status';
+  }
+
+  try{
+    const data=await postToCloud({action:'getVersion'});
+    const version=String(data.scriptVersion || '');
+    const matched=version===EXPECTED_SCRIPT_VERSION;
+
+    state.lastScriptVersion=version;
+    state.lastVersionCheckAt=new Date().toISOString();
+    persist();
+
+    if(scriptEl) scriptEl.textContent=version || '未知版本';
+
+    if(statusEl){
+      statusEl.textContent = matched
+        ? '版本一致，可以正常同步'
+        : '版本不一致：網站需要 '+EXPECTED_SCRIPT_VERSION+'，目前後端是 '+(version||'未知');
+      statusEl.className='version-check-status '+(matched?'version-check-ok':'version-check-error');
+    }
+
+    if(!matched && !silent){
+      alert('Apps Script 版本不一致。\n網站需要：'+EXPECTED_SCRIPT_VERSION+'\n目前後端：'+(version||'未知版本')+'\n\n請重新部署最新 Apps Script。');
+    }
+
+    return matched;
+  }catch(err){
+    const msg=err && err.message ? err.message : String(err);
+    if(scriptEl) scriptEl.textContent='檢查失敗';
+    if(statusEl){
+      statusEl.textContent = msg==='HTTP_404'
+        ? 'Web App 網址無法使用，請確認最新 /exec 網址'
+        : '版本檢查失敗：'+msg;
+      statusEl.className='version-check-status version-check-error';
+    }
+    if(!silent) alert('Apps Script 版本檢查失敗：\n'+msg);
+    return false;
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='檢查版本';
+    }
+  }
+}
+
 function saveApiUrl(){
   const v = document.getElementById('apiUrlInput').value.trim();
   state.apiUrl = v;
   persist();
   updateCloudStatusUI();
-  alert(v ? 'Google Apps Script 網址已儲存。' : '已清除 Google Apps Script 網址。');
+
+  if(v){
+    alert('Google Apps Script 網址已儲存。');
+    setTimeout(()=>checkBackendVersion(false),150);
+  }else{
+    alert('已清除 Google Apps Script 網址。');
+    checkBackendVersion(true);
+  }
 }
 
 function syncBadgeHtml(item){
