@@ -123,6 +123,7 @@ renderHome();
 }
 
 function openCreateTrip(){
+  draftTripPeople=[...CORE_TRIP_PEOPLE];
   document.getElementById('tripPlace').value = '';
   document.getElementById('tripStart').value = '';
   document.getElementById('tripEnd').value = '';
@@ -136,18 +137,21 @@ function openCreateTrip(){
 }
 
 
+const CORE_TRIP_PEOPLE=['Wen','Clark','Anna'];
+let draftTripPeople=[...CORE_TRIP_PEOPLE];
+
 function personClass(name){
   if(name==='Wen') return 'person-wen';
   if(name==='Clark') return 'person-clark';
   if(name==='Anna') return 'person-anna';
-  const extras = state.people.filter(p=>!['Wen','Clark','Anna'].includes(p));
+  const extras = draftTripPeople.filter(p=>!CORE_TRIP_PEOPLE.includes(p));
   const idx = Math.max(0, extras.indexOf(name));
   return 'person-extra-' + (idx % 5);
 }
 
 function renderTripPeopleChips(){
   const box = document.getElementById('tripPeopleChips');
-  const peopleButtons = state.people.map(p=>`<button class="chip person-chip ${personClass(p)} active" data-person="${p}" onclick="this.classList.toggle('active')">${p}</button>`).join('');
+  const peopleButtons = draftTripPeople.map(p=>`<button class="chip person-chip ${personClass(p)} active" data-person="${p}" onclick="this.classList.toggle('active')">${p}</button>`).join('');
   box.innerHTML = peopleButtons + `<button class="chip" onclick="addTripPersonInline()">＋新增同行人</button>`;
 }
 
@@ -156,9 +160,8 @@ function addTripPersonInline(){
   if(!name) return;
   const v = name.trim();
   if(!v) return;
-  if(!state.people.includes(v)){
-    state.people.push(v);
-    persist();
+  if(!draftTripPeople.includes(v)){
+    draftTripPeople.push(v);
   }
   renderTripPeopleChips();
   const btn = [...document.querySelectorAll('#tripPeopleChips .chip')].find(b=>b.dataset.person===v);
