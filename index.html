@@ -351,8 +351,22 @@
         <p id="recordsSubtitle"></p>
       </div>
     </div>
+    <div id="pendingTwdQuickPanel" class="section hidden">
+      <div class="card pending-twd-quick-card">
+        <div class="pending-twd-progress-row">
+          <div>
+            <strong>快速補台幣</strong>
+            <span id="pendingTwdProgress">0 / 0</span>
+          </div>
+          <button class="pill" type="button" onclick="exitPendingTwdQuickMode()">查看全部待補</button>
+        </div>
+
+        <div id="pendingTwdQuickContent"></div>
+      </div>
+    </div>
+
     <div class="section">
-      <div class="card records-filter-card">
+      <div id="recordsFilterCard" class="card records-filter-card">
         <div class="form-group" style="margin-bottom:10px">
           <label>搜尋</label>
           <input id="recordSearch" placeholder="品名、項目、地點、網站、備註" oninput="applyRecordFilters()" />
