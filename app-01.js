@@ -1,5 +1,5 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v52';
+const WEB_APP_VERSION = '2026.10.02-v53';
 const EXPECTED_SCRIPT_VERSION = 'v49';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
@@ -55,6 +55,7 @@ let cloudRequestCount = 0;
 let cloudWriteCount = 0;
 let lastCloudPullAt = 0;
 let lastCloudRevision = String(state.lastCloudRevision || '');
+let cloudHasNewData = false;
 
 function isCloudWriteAction(action){
   return !['getVersion','getAllData','getCloudRevision'].includes(action || '');
@@ -146,6 +147,7 @@ async function syncTripCreation(trip){
     trip.spreadsheetId = data.spreadsheetId || trip.spreadsheetId || '';
     trip.spreadsheetUrl = data.spreadsheetUrl || trip.spreadsheetUrl || '';
     trip.cloudStatus = 'synced';
+    cloudHasNewData = false;
     markSyncSuccess();
     return true;
   }catch(err){
@@ -576,6 +578,7 @@ async function pullCloudTrips(options={}){
       });
     });
 
+    cloudHasNewData=false;
     persist();
     renderHome();
     if(currentTrip){
@@ -630,16 +633,28 @@ async function checkCloudRevisionAndPull(options={}){
   if(cloudPullRunning || cloudWriteCount > 0) return false;
 
   const force = !!options.force;
+  const autoPull = !!options.autoPull;
 
   try{
     const data = await postToCloud({action:'getCloudRevision'});
     const revision = String(data?.cloudRevision ?? '');
+    const changed = !!revision && !!lastCloudRevision && revision !== lastCloudRevision;
 
-    if(force || !lastCloudRevision || revision !== lastCloudRevision){
-      return await pullCloudTrips({silent:options.silent !== false});
+    if(changed){
+      cloudHasNewData = true;
+      updateHomeSyncStatus();
     }
 
-    return false;
+    if(force || !lastCloudRevision || (changed && autoPull)){
+      const ok = await pullCloudTrips({silent:options.silent !== false});
+      if(ok){
+        cloudHasNewData = false;
+        updateHomeSyncStatus();
+      }
+      return ok;
+    }
+
+    return changed;
   }catch(err){
     if(options.silent === false){
       alert('檢查雲端更新失敗：' + (err?.message || err));
@@ -784,17 +799,28 @@ function isAppOffline(){
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
+async function handleHomeSyncStatusClick(){
+  if(cloudHasNewData && !(state.syncQueue || []).length){
+    return refreshFromCloudNow();
+  }
+  return goSettings();
+}
+
 function updateHomeSyncStatus(){
   updateLastSyncUI();
   const box = document.getElementById('homeSyncStatus');
   const text = document.getElementById('homeSyncText');
   const icon = document.getElementById('homeSyncIcon');
+  const sub = document.getElementById('homeLastSync');
   if(!box || !text || !icon) return;
+
+  box.classList.remove('home-sync-new');
 
   if(isAppOffline()){
     box.className='home-sync-status home-sync-pending';
     icon.textContent='⌁';
     text.textContent='目前離線・已保存在手機';
+    if(sub) sub.textContent='恢復連線後再同步';
     return;
   }
 
@@ -802,6 +828,7 @@ function updateHomeSyncStatus(){
     box.className='home-sync-status home-sync-local';
     icon.textContent='●';
     text.textContent='僅本機';
+    if(sub) sub.textContent='尚未連接 Google Sheets';
     return;
   }
 
@@ -816,14 +843,23 @@ function updateHomeSyncStatus(){
   if(pendingCount > 0){
     box.className='home-sync-status home-sync-pending';
     icon.textContent='↻';
-    text.textContent=`${pendingCount} 筆待同步`;
-  }else{
-    box.className='home-sync-status home-sync-ok';
-    icon.textContent='☁';
-    text.textContent='已全部同步';
+    text.textContent='有待同步資料｜先上傳本機變更';
+    if(sub) sub.textContent=pendingCount+' 筆待同步';
+    return;
   }
-}
 
+  if(cloudHasNewData){
+    box.className='home-sync-status home-sync-new';
+    icon.textContent='↓';
+    text.textContent='雲端有新資料｜點此更新';
+    if(sub) sub.textContent='Google Sheet 已有較新的資料';
+    return;
+  }
+
+  box.className='home-sync-status home-sync-ok';
+  icon.textContent='☁';
+  text.textContent='已全部同步｜雲端最新';
+}
 function updateCloudStatusUI(){
   updateHomeSyncStatus();
   const dot = document.getElementById('cloudDot');
