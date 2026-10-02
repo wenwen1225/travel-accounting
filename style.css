@@ -1200,3 +1200,25 @@
   background:#fff1ef;
   color:#b45f55;
 }
+
+
+/* 同步衝突 */
+.sync-conflict-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+.sync-conflict-actions .sync-retry-btn{
+  margin-top:0;
+}
+.sync-conflict-local{
+  background:#fff8eb;
+  border-color:#f0dfb6;
+  color:#8a651f;
+}
+@media (max-width:480px){
+  .sync-conflict-actions{
+    grid-template-columns:1fr;
+  }
+}
