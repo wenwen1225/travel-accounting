@@ -89,7 +89,7 @@ document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
     setTimeout(async ()=>{
       await autoSyncPendingRecords();
-      await pullCloudIfStale(300000);
+      await checkCloudRevisionAndPull({silent:true});
     },500);
     setTimeout(()=>{
       if(currentTrip && typeof renderDailyCloseReminder==='function'){
@@ -99,9 +99,10 @@ document.addEventListener('visibilitychange', ()=>{
   }
 });
 
-// 網頁開著時每 60 秒只補送待同步，不再整包讀回所有旅行。
-setInterval(()=>{
-  autoSyncPendingRecords();
+// 每 60 秒只做輕量版本檢查；雲端真的有變才讀完整資料。
+setInterval(async ()=>{
+  await autoSyncPendingRecords();
+  await checkCloudRevisionAndPull({silent:true});
   if(currentTrip && typeof renderDailyCloseReminder==='function'){
     renderDailyCloseReminder();
   }
