@@ -130,6 +130,7 @@ async function saveExpense(){
     foreign:Number(rawNumber(document.getElementById('expenseForeign').value)),
     twd:twdRaw === '' ? null : Number(twdRaw),
     place:document.getElementById('expensePlace').value.trim(),
+    category:getExpenseCategoryValue(),
     note:document.getElementById('expenseNote').value.trim()
   };
   if(!item.updatedAt) item.updatedAt=new Date().toISOString();
@@ -172,6 +173,7 @@ async function saveExpense(){
       document.getElementById('expenseForeign').value = '';
       document.getElementById('expenseTwd').value = '';
       document.getElementById('expensePlace').value = '';
+      setExpenseCategoryValue('購物');
       document.getElementById('expenseNote').value = '';
       document.getElementById('expenseQty').value = 1;
     }
