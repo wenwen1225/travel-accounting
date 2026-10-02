@@ -63,10 +63,14 @@ async function saveExpense(){
     place:document.getElementById('expensePlace').value.trim(),
     note:document.getElementById('expenseNote').value.trim()
   };
+  if(!item.updatedAt) item.updatedAt=new Date().toISOString();
 
   if(editingExpenseId){
     const idx = currentTrip.expenses.findIndex(x=>x.id===editingExpenseId);
     if(idx === -1){ showSaveModal(false); return; }
+    const previous = currentTrip.expenses[idx];
+    item.cloudFingerprint = previous?.cloudFingerprint || '';
+    item.updatedAt = new Date().toISOString();
     currentTrip.expenses[idx] = item;
     try{
       persist();
@@ -122,10 +126,14 @@ async function savePretrip(){
     card:pretripPay==='信用卡' ? (document.getElementById('pretripCard').value || '無') : '無',
     note:document.getElementById('pretripNote').value.trim()
   };
+  if(!item.updatedAt) item.updatedAt=new Date().toISOString();
 
   if(editingPretripId){
     const idx=currentTrip.pretrip.findIndex(x=>x.id===editingPretripId);
     if(idx===-1) return;
+    const previous=currentTrip.pretrip[idx];
+    item.cloudFingerprint=previous?.cloudFingerprint || '';
+    item.updatedAt=new Date().toISOString();
     currentTrip.pretrip[idx]=item;
     persist();
     let cloudOk=true;
@@ -152,10 +160,14 @@ async function saveExchange(){
     place:document.getElementById('exchangePlace').value.trim(),
     note:document.getElementById('exchangeNote').value.trim()
   };
+  if(!item.updatedAt) item.updatedAt=new Date().toISOString();
 
   if(editingExchangeId){
     const idx=currentTrip.exchange.findIndex(x=>x.id===editingExchangeId);
     if(idx===-1) return;
+    const previous=currentTrip.exchange[idx];
+    item.cloudFingerprint=previous?.cloudFingerprint || '';
+    item.updatedAt=new Date().toISOString();
     currentTrip.exchange[idx]=item;
     persist();
     let cloudOk=true;
@@ -367,12 +379,27 @@ function renderSyncErrorDetails(){
           <strong>${syncQueueLabel(q)}｜${title}</strong>
           <div class="sync-error-meta">${trip?.name || '旅行資料'}${date}</div>
           <div class="sync-error-message">${q.lastError || '未知錯誤'}</div>
-          <button
-            class="sync-retry-btn"
-            type="button"
-            onclick="retrySingleSync('${q.queueId}')"
-            ${q.retrying?'disabled':''}
-          >${q.retrying?'重新同步中…':'重新同步這筆'}</button>
+          ${q.conflictCloudRecord ? `
+            <div class="sync-conflict-actions">
+              <button
+                class="sync-retry-btn"
+                type="button"
+                onclick="resolveSyncConflict('${q.queueId}','cloud')"
+              >使用雲端版本</button>
+              <button
+                class="sync-retry-btn sync-conflict-local"
+                type="button"
+                onclick="resolveSyncConflict('${q.queueId}','local')"
+              >保留本機版本</button>
+            </div>
+          ` : `
+            <button
+              class="sync-retry-btn"
+              type="button"
+              onclick="retrySingleSync('${q.queueId}')"
+              ${q.retrying?'disabled':''}
+            >${q.retrying?'重新同步中…':'重新同步這筆'}</button>
+          `}
         </div>`;
     }).join('');
 }
