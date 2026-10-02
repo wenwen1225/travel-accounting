@@ -81,7 +81,8 @@ async function deleteCurrentExpense(){
         action:'deleteExpense',
         spreadsheetId:currentTrip.spreadsheetId || '',
         clientTripId:currentTrip.id,
-        recordId:item.id
+        recordId:item.id,
+        baseFingerprint:item.cloudFingerprint || ''
       });
     }catch(err){
       alert('Google Sheets 刪除失敗，所以這筆本機紀錄先保留。請確認 Apps Script 已更新後再試一次。');
@@ -148,7 +149,8 @@ async function deleteCurrentPretrip(){
         action:'deletePretrip',
         spreadsheetId:currentTrip.spreadsheetId||'',
         clientTripId:currentTrip.id,
-        recordId:item.id
+        recordId:item.id,
+        baseFingerprint:item.cloudFingerprint || ''
       });
     }catch(err){
       alert('Google Sheets 刪除失敗，本機資料先保留：'+(err?.message||err));
@@ -175,7 +177,8 @@ async function deleteCurrentExchange(){
         action:'deleteExchange',
         spreadsheetId:currentTrip.spreadsheetId||'',
         clientTripId:currentTrip.id,
-        recordId:item.id
+        recordId:item.id,
+        baseFingerprint:item.cloudFingerprint || ''
       });
     }catch(err){
       alert('Google Sheets 刪除失敗，本機資料先保留：'+(err?.message||err));
