@@ -216,6 +216,20 @@
       </div>
     </div>
 
+    <div id="dailyCloseReminder" class="section hidden">
+      <div id="dailyCloseCard" class="card daily-close-card">
+        <div class="daily-close-head">
+          <div>
+            <strong>🌙 今日收尾提醒</strong>
+            <span id="dailyCloseSubtitle"></span>
+          </div>
+          <span id="dailyCloseBadge" class="daily-close-badge"></span>
+        </div>
+        <div id="dailyCloseItems" class="daily-close-items"></div>
+        <div id="dailyCloseActions" class="daily-close-actions"></div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-title">
         最近紀錄
@@ -289,6 +303,26 @@
       <div class="form-group">
         <label>購買地點 <span class="danger">*</span></label>
         <input id="expensePlace" placeholder="例如：明洞" />
+      </div>
+
+      <div class="form-group">
+        <label>分類標籤</label>
+        <select id="expenseCategory" onchange="updateExpenseCategoryCustom()">
+          <option value="餐飲">餐飲</option>
+          <option value="購物">購物</option>
+          <option value="交通">交通</option>
+          <option value="住宿">住宿</option>
+          <option value="娛樂">娛樂</option>
+          <option value="專輯小卡">專輯小卡</option>
+          <option value="飾品">飾品</option>
+          <option value="超商">超商</option>
+          <option value="其他（自行輸入）">其他（自行輸入）</option>
+        </select>
+      </div>
+
+      <div id="expenseCategoryCustomGroup" class="form-group hidden">
+        <label>自訂分類</label>
+        <input id="expenseCategoryCustom" placeholder="例如：藥妝、伴手禮" />
       </div>
 
       <div class="form-group">
