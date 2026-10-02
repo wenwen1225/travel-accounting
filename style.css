@@ -1726,17 +1726,32 @@
 
 /* 主要總額金額色 */
 .trip-card .amount,
-#totalTwd,
-#todayTwd,
 #statsTotalTwd,
 #settlementTotalTwd,
 #todayOverviewTwd{
   color:var(--amount-purple);
 }
 
-#totalForeign,
 #statsTotalForeign,
 #settlementTotalForeign,
 #todayOverviewForeign{
   color:#8b78b8;
+}
+
+/* 紫色旅行總額卡：維持高對比 */
+.hero #totalTwd,
+.hero #todayTwd{
+  color:#ffffff;
+}
+
+.hero #totalForeign{
+  color:rgba(255,255,255,.88);
+}
+
+.hero .hero-stat span{
+  color:rgba(255,255,255,.82);
+}
+
+.hero .hero-stat strong{
+  color:#ffffff;
 }
