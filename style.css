@@ -1504,3 +1504,79 @@
   font-size:11px;
   color:var(--muted);
 }
+
+
+/* 當日快速總覽 */
+.today-overview-card{
+  padding:15px;
+}
+.today-overview-top{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.today-overview-top > div,
+.today-overview-mini-grid > div{
+  padding:12px;
+  border-radius:15px;
+  background:#faf7ff;
+}
+.today-overview-top span,
+.today-overview-mini-grid span{
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+}
+.today-overview-top strong{
+  display:block;
+  margin-top:4px;
+  font-size:18px;
+}
+.today-overview-mini-grid{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.today-overview-mini-grid strong{
+  display:block;
+  margin-top:4px;
+  font-size:15px;
+}
+.today-payment-list{
+  margin-top:12px;
+  border-top:1px solid var(--line);
+}
+.today-payment-row{
+  padding:11px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid var(--line);
+}
+.today-payment-row:last-child{
+  border-bottom:none;
+}
+.today-payment-row > div{
+  min-width:0;
+}
+.today-payment-row > div:last-child{
+  text-align:right;
+}
+.today-payment-row strong{
+  display:block;
+  font-size:12px;
+}
+.today-payment-row span{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  color:var(--muted);
+}
+.today-overview-empty{
+  padding:22px 10px;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+}
