@@ -645,8 +645,9 @@
         </div>
         <div class="row">
           <button class="secondary" onclick="saveApiUrl()">儲存網址</button>
-          <button class="primary" onclick="syncPendingRecords()">立即同步</button>
+          <button class="primary" onclick="syncPendingRecords()">同步待處理</button>
         </div>
+        <button class="secondary" style="margin-top:10px;width:100%" onclick="refreshFromCloudNow()">↻ 重新讀取雲端最新資料</button>
         <div class="tiny" style="margin-top:10px">
           有設定網址時會優先同步至 Google Sheets；若同步失敗，資料仍會保留在本機並標記「待同步」。
         </div>
