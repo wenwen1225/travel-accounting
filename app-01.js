@@ -141,7 +141,10 @@ async function syncTripCreation(trip){
     trip.lastSyncError = err && err.message ? err.message : String(err);
     enqueueSync('createTrip', trip.id, 'trip', trip.id, cloudPayloadForTrip(trip));
     const queued = state.syncQueue.find(q => q.tripId===trip.id && q.action==='createTrip');
-    if(queued) queued.lastError = trip.lastSyncError;
+    if(queued){
+      queued.lastError = trip.lastSyncError;
+      queued.lastErrorAt = new Date().toISOString();
+    }
     persist();
     setTimeout(autoSyncPendingRecords, 5000);
     return false;
@@ -171,6 +174,7 @@ async function syncRecord(action, trip, type, item){
     const queued = state.syncQueue.find(q => q.tripId===trip.id && q.recordId===item.id && q.action===action);
     if(queued){
       queued.lastError = item.lastSyncError;
+      queued.lastErrorAt = new Date().toISOString();
       if(isConflict) queued.conflictCloudRecord = item.conflictCloudRecord;
     }
     persist();
@@ -239,7 +243,10 @@ async function syncPendingRecords(options={}){
       const msg = err && err.message ? err.message : String(err);
       q.lastError = msg;
       const realQueueItem = state.syncQueue.find(x=>x.queueId===q.queueId);
-      if(realQueueItem) realQueueItem.lastError = msg;
+      if(realQueueItem){
+        realQueueItem.lastError = msg;
+        realQueueItem.lastErrorAt = new Date().toISOString();
+      }
       errors.push(msg);
     }
   }
@@ -332,6 +339,7 @@ async function retrySingleSync(queueId){
     const real=state.syncQueue.find(x=>x.queueId===queueId);
     if(real){
       real.lastError=msg;
+      real.lastErrorAt=new Date().toISOString();
       real.retrying=false;
     }
     persist();
