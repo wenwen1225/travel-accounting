@@ -2020,3 +2020,74 @@
 .home-sync-new:hover{
   filter:brightness(.99);
 }
+
+
+/* 備份還原後同步選擇 */
+.backup-restore-dialog{
+  max-width:390px;
+}
+.backup-restore-summary{
+  margin:14px 0 10px;
+  display:grid;
+  gap:7px;
+  text-align:left;
+}
+.backup-restore-summary > div{
+  padding:9px 10px;
+  border-radius:11px;
+  background:#faf7ff;
+}
+.backup-restore-summary span{
+  display:block;
+  font-size:9px;
+  color:var(--muted);
+}
+.backup-restore-summary strong{
+  display:block;
+  margin-top:3px;
+  font-size:11px;
+  line-height:1.4;
+}
+.backup-restore-note{
+  margin:10px 0 14px;
+  padding:10px 11px;
+  border-radius:12px;
+  background:#fff8eb;
+  color:#8a6231;
+  font-size:10px;
+  line-height:1.55;
+  text-align:left;
+}
+.backup-restore-progress{
+  margin:10px 0 14px;
+  padding:10px 11px;
+  border-radius:12px;
+  background:#f5f0ff;
+  text-align:left;
+}
+.backup-restore-progress strong{
+  display:block;
+  font-size:13px;
+  color:var(--primary-dark);
+}
+.backup-restore-progress span{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.4;
+}
+.backup-restore-progress-bar{
+  height:6px;
+  margin-top:8px;
+  border-radius:999px;
+  overflow:hidden;
+  background:#e9e2f8;
+}
+.backup-restore-progress-bar i{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:#a68aec;
+  transition:width .2s ease;
+}
