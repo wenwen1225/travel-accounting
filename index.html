@@ -213,6 +213,11 @@
           <strong>回國結算</strong>
           <span>檢查待補、同步與最終支出</span>
         </button>
+        <button class="card action-card health-action-card" onclick="openTripHealthCheck()">
+          <div class="action-icon">🩺</div>
+          <strong>資料健檢</strong>
+          <span>找出異常、缺漏與疑似重複</span>
+        </button>
       </div>
     </div>
 
@@ -571,6 +576,40 @@
     </div>
   </section>
 
+  <section id="page-health" class="page">
+    <div class="top">
+      <button class="back" onclick="backToTrip()">‹</button>
+      <div class="title-wrap" style="flex:1">
+        <h1 style="font-size:22px">資料健檢</h1>
+        <p id="healthSubtitle"></p>
+      </div>
+    </div>
+
+    <div id="healthStatusCard" class="health-status-card card">
+      <div class="health-status-icon" id="healthStatusIcon">⌕</div>
+      <div>
+        <strong id="healthStatusTitle">正在檢查</strong>
+        <span id="healthStatusText">只檢查，不會自動修改任何資料</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">健檢項目</div>
+      <div id="healthSummary" class="card health-summary-list"></div>
+    </div>
+
+    <div id="healthIssueSection" class="section">
+      <div class="section-title">需要確認的紀錄</div>
+      <div id="healthIssues" class="health-issue-list"></div>
+    </div>
+
+    <div class="section">
+      <button class="secondary" type="button" onclick="renderTripHealthCheck()">重新檢查</button>
+      <button id="healthPendingTwdBtn" class="secondary" style="margin-top:10px" type="button" onclick="openPendingTwd()">前往補台幣</button>
+      <button id="healthSyncBtn" class="primary" style="margin-top:10px" type="button" onclick="syncPendingRecords().then(()=>renderTripHealthCheck())">同步待處理資料</button>
+    </div>
+  </section>
+
   <section id="page-settlement" class="page">
     <div class="top">
       <button class="back" onclick="backToTrip()">‹</button>
@@ -721,13 +760,13 @@
     </div>
   </div>
 </div>
-<script src="app-01.js?v=46"></script>
-<script src="app-02.js?v=46"></script>
-<script src="app-03.js?v=46"></script>
-<script src="app-04.js?v=46"></script>
-<script src="app-05.js?v=46"></script>
-<script src="app-06.js?v=46"></script>
-<script src="app-07.js?v=46"></script>
+<script src="app-01.js?v=47"></script>
+<script src="app-02.js?v=47"></script>
+<script src="app-03.js?v=47"></script>
+<script src="app-04.js?v=47"></script>
+<script src="app-05.js?v=47"></script>
+<script src="app-06.js?v=47"></script>
+<script src="app-07.js?v=47"></script>
   <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
 </body>
 </html>
