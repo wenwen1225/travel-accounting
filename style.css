@@ -2010,3 +2010,13 @@
   font-size:11px;
   color:var(--muted);
 }
+
+
+.home-sync-new{
+  background:#f3efff;
+  color:#6f52c8;
+  border-color:#ded4ff;
+}
+.home-sync-new:hover{
+  filter:brightness(.99);
+}
