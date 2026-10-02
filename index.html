@@ -539,6 +539,22 @@
       </div>
     </div>
 
+    <div class="section">
+      <div class="section-title">資料備份與還原</div>
+      <div class="backup-card card">
+        <div class="backup-intro">
+          <strong>本機資料備份</strong>
+          <span>可備份旅行、記帳、先前費用、換匯、同行人與卡別。匯入時不會自動覆蓋 Google Sheet。</span>
+        </div>
+        <div id="backupSummary" class="backup-summary"></div>
+        <div class="backup-actions">
+          <button class="secondary" type="button" onclick="exportTravelBackup()">下載備份</button>
+          <button class="primary" type="button" onclick="document.getElementById('backupFileInput').click()">匯入備份</button>
+        </div>
+        <input id="backupFileInput" class="hidden" type="file" accept=".json,application/json" onchange="handleBackupImport(event)" />
+      </div>
+    </div>
+
     <div class="notice">
       這版已改成「Google Sheets 優先＋本機備份」架構。填入 Apps Script Web App URL 後即可開始同步；若雲端失敗，資料會保留在本機並等待下次同步。
     </div>
