@@ -592,7 +592,6 @@ function renderSettings(){
   setTimeout(updateCloudStatusUI,0);
   setTimeout(renderSyncErrorDetails,0);
   setTimeout(renderBackupSummary,0);
-  setTimeout(()=>checkBackendVersion(true),150);
   document.getElementById('peopleSettings').innerHTML = state.people.map((p,i)=>`
     <div class="setting-row">
       <div><strong><span class="${personClass(p)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--person);margin-right:7px"></span>${p}</strong><br><span>${i===0?'預設自己':'記帳對象'}</span></div>
@@ -754,7 +753,7 @@ function renderSyncErrorDetails(){
               type="button"
               onclick="retrySingleSync('${q.queueId}')"
               ${q.retrying?'disabled':''}
-            >${q.retrying?'重新同步中…':'重新同步這筆'}</button>
+            >${q.retrying?'只同步這筆中…':'只同步這一筆'}</button>
           `}
         </div>`;
     }).join('');
