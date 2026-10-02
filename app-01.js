@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.02-v38';
-const EXPECTED_SCRIPT_VERSION = 'v38';
+const WEB_APP_VERSION = '2026.10.02-v39';
+const EXPECTED_SCRIPT_VERSION = 'v39';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
@@ -151,7 +151,19 @@ async function syncTripCreation(trip){
   }
 }
 
+let directRecordSyncRunning = false;
+let queueSyncRunning = false;
+
 async function syncRecord(action, trip, type, item){
+  if(queueSyncRunning){
+    setRecordSyncState(trip, type, item.id, 'pending');
+    item.lastSyncError = '正在處理其他同步，已加入待同步佇列';
+    enqueueSync(action, trip.id, type, item.id, cloudPayloadForRecord(action, trip, item));
+    persist();
+    return false;
+  }
+
+  directRecordSyncRunning = true;
   try{
     const data = await postToCloud(cloudPayloadForRecord(action, trip, item));
     setRecordSyncState(trip, type, item.id, 'synced');
@@ -181,6 +193,8 @@ async function syncRecord(action, trip, type, item){
 
     if(!isConflict) setTimeout(autoSyncPendingRecords, 5000);
     return false;
+  }finally{
+    directRecordSyncRunning = false;
   }
 }
 
@@ -188,11 +202,19 @@ let autoSyncRunning = false;
 
 async function syncPendingRecords(options={}){
   const silent = !!options.silent;
+
+  if(queueSyncRunning || directRecordSyncRunning){
+    if(!silent) alert('目前還有一筆資料正在同步，請稍後再按一次。');
+    return;
+  }
+
   if(!getApiUrl()){
     if(!silent) alert('請先填入 Google Apps Script Web App URL。');
     return;
   }
 
+  queueSyncRunning = true;
+  try{
   const queue = [...state.syncQueue];
   const errors = [];
 
@@ -262,6 +284,9 @@ async function syncPendingRecords(options={}){
     }else{
       alert('全部資料已同步完成。');
     }
+  }
+  }finally{
+    queueSyncRunning = false;
   }
 }
 
