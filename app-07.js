@@ -56,9 +56,9 @@ window.addEventListener('online', ()=>{
   updateCloudStatusUI();
 });
 
-// v58.2：手機快速連續記帳。
-// UI 只等本機儲存，不等待 Google Sheets 回應；雲端寫入在背景逐筆排隊。
-const MOBILE_WRITE_ONLY_VERSION='2026.10.03-v58.2';
+// v58.3：手機快速記帳。
+// 儲存只等本機完成，立刻回旅行首頁；Google Sheets 在背景逐筆同步。
+const MOBILE_WRITE_ONLY_VERSION='2026.10.03-v58.3';
 let mobileWriteRetryTimers=new Map();
 let fastWriteChain=Promise.resolve();
 let quickToastTimer=null;
@@ -140,7 +140,7 @@ checkCloudRevisionAndPull=async function(){ return false; };
 
 const originalSyncRecord=syncRecord;
 
-// 呼叫端會立即拿到成功，讓表單馬上可繼續輸入；真正雲端寫入依序在背景執行。
+// 呼叫端會立即拿到成功；真正雲端寫入依序在背景執行。
 syncRecord=async function(action,trip,type,item){
   if(!trip || !item) return false;
 
@@ -180,11 +180,12 @@ syncRecord=async function(action,trip,type,item){
   return true;
 };
 
-// 原本的 modal 會擋住下一筆輸入；手機快速記帳改成非阻塞提示。
+// 不用等雲端，也不顯示阻塞 modal；儲存後直接回旅行首頁。
 showCloudResultModal=function(_success,message){
   const text=!getApiUrl()
     ? '已儲存在手機（尚未設定雲端）'
     : (String(message||'').includes('尚未同步') ? '已儲存在手機，稍後補同步' : '已儲存在手機，正在同步雲端');
+  if(currentTrip) backToTrip();
   showQuickSaveToast(text);
 };
 
