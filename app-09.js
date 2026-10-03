@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64/v65 UI、v66 刪除/版本，再以 v67 修正自由日期與雲端刪除確認。
+// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64/v65 UI、v66 刪除/版本、v67 自由日期與雲端刪除，再以 v68 套用列表交錯底色。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -27,6 +27,12 @@
               const v67=document.createElement('script');
               v67.src='app-15.js?v=67';
               v67.async=false;
+              v67.onload=()=>{
+                const v68=document.createElement('script');
+                v68.src='app-16.js?v=68';
+                v68.async=false;
+                document.body.appendChild(v68);
+              };
               document.body.appendChild(v67);
             };
             document.body.appendChild(v66);
