@@ -56,10 +56,27 @@ window.addEventListener('online', ()=>{
   updateCloudStatusUI();
 });
 
-// 手機優先：不要在啟動、切回頁面或每分鐘時批次重送舊 queue。
-// 新增／修改時只同步「當下那一筆」。若失敗，只重試同一筆。
-const MOBILE_WRITE_ONLY_VERSION='2026.10.03-v58.1';
+// v58.2：手機快速連續記帳。
+// UI 只等本機儲存，不等待 Google Sheets 回應；雲端寫入在背景逐筆排隊。
+const MOBILE_WRITE_ONLY_VERSION='2026.10.03-v58.2';
 let mobileWriteRetryTimers=new Map();
+let fastWriteChain=Promise.resolve();
+let quickToastTimer=null;
+
+function showQuickSaveToast(text='已儲存在手機，正在同步雲端'){
+  let toast=document.getElementById('quickSaveToast');
+  if(!toast){
+    toast=document.createElement('div');
+    toast.id='quickSaveToast';
+    toast.style.cssText='position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:9999;background:rgba(35,31,43,.92);color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:86vw;text-align:center;transition:opacity .2s ease;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent=text;
+  toast.style.opacity='1';
+  toast.style.pointerEvents='none';
+  if(quickToastTimer) clearTimeout(quickToastTimer);
+  quickToastTimer=setTimeout(()=>{ toast.style.opacity='0'; },1400);
+}
 
 function scheduleSameRecordRetry(queueId,delay=8000){
   if(!queueId || mobileWriteRetryTimers.has(queueId)) return;
@@ -102,7 +119,7 @@ function scheduleSameRecordRetry(queueId,delay=8000){
       markSyncSuccess();
       persist();
       if(currentTrip) renderTripSummary();
-      renderSettings();
+      if(typeof renderSettings==='function') renderSettings();
     }catch(err){
       const live=(state.syncQueue||[]).find(x=>x.queueId===queueId);
       if(live){
@@ -116,41 +133,62 @@ function scheduleSameRecordRetry(queueId,delay=8000){
   mobileWriteRetryTimers.set(queueId,timer);
 }
 
-// 關掉舊版「把整個待同步佇列全部跑一遍」的背景工作。
+// 不在啟動、切回頁面或每分鐘時批次重送歷史 queue。
 autoSyncPendingRecords=async function(){ return false; };
 syncAndPullCloud=async function(){ return false; };
 checkCloudRevisionAndPull=async function(){ return false; };
 
 const originalSyncRecord=syncRecord;
+
+// 呼叫端會立即拿到成功，讓表單馬上可繼續輸入；真正雲端寫入依序在背景執行。
 syncRecord=async function(action,trip,type,item){
   if(!trip || !item) return false;
 
-  // 如果目前真的有另一筆正在傳，這一筆只排隊自己，不啟動整批 queue。
-  if(directRecordSyncRunning || queueSyncRunning){
-    setRecordSyncState(trip,type,item.id,'pending');
-    item.lastSyncError='上一筆正在同步，稍後只補傳這一筆';
-    enqueueSync(action,trip.id,type,item.id,cloudPayloadForRecord(action,trip,item));
-    const q=(state.syncQueue||[]).find(x=>x.tripId===trip.id && x.recordId===item.id);
-    persist();
-    if(q) scheduleSameRecordRetry(q.queueId,3000);
-    return false;
-  }
+  setRecordSyncState(trip,type,item.id,'pending');
+  item.lastSyncError='雲端同步中';
+  persist();
 
-  // 直接使用原本 v58 已驗證可寫入的單筆同步。
-  const ok=await originalSyncRecord(action,trip,type,item);
-  if(ok){
-    state.syncQueue=(state.syncQueue||[]).filter(q=>!(q.tripId===trip.id && q.recordId===item.id));
-    persist();
-    return true;
-  }
+  const tripId=trip.id;
+  const recordId=item.id;
+  const snapshot=JSON.parse(JSON.stringify(item));
 
-  // 原本失敗時只針對這個 record 重試，不碰其他歷史 queue。
-  const q=(state.syncQueue||[]).find(x=>x.tripId===trip.id && x.recordId===item.id);
-  if(q) scheduleSameRecordRetry(q.queueId,8000);
-  return false;
+  fastWriteChain=fastWriteChain.then(async ()=>{
+    const liveTrip=getTripById(tripId) || trip;
+    const liveArr=liveTrip[type] || [];
+    const liveItem=liveArr.find(x=>x.id===recordId) || snapshot;
+
+    const ok=await originalSyncRecord(action,liveTrip,type,liveItem);
+    if(ok){
+      state.syncQueue=(state.syncQueue||[]).filter(q=>!(q.tripId===tripId && q.recordId===recordId));
+      const current=(liveTrip[type]||[]).find(x=>x.id===recordId);
+      if(current){ current.lastSyncError=''; current.syncStatus='synced'; }
+      persist();
+      if(currentTrip && currentTrip.id===tripId) renderTripSummary();
+      if(typeof renderSettings==='function') renderSettings();
+      return;
+    }
+
+    const q=(state.syncQueue||[]).find(x=>x.tripId===tripId && x.recordId===recordId);
+    if(q) scheduleSameRecordRetry(q.queueId,8000);
+  }).catch(err=>{
+    console.error('background sync error',err);
+    const q=(state.syncQueue||[]).find(x=>x.tripId===tripId && x.recordId===recordId);
+    if(q) scheduleSameRecordRetry(q.queueId,8000);
+  });
+
+  showQuickSaveToast();
+  return true;
 };
 
-// 「同步待處理」按鈕也改成一次只處理一筆，避免整批重送造成 Sheet 看起來一直更新舊資料。
+// 原本的 modal 會擋住下一筆輸入；手機快速記帳改成非阻塞提示。
+showCloudResultModal=function(_success,message){
+  const text=!getApiUrl()
+    ? '已儲存在手機（尚未設定雲端）'
+    : (String(message||'').includes('尚未同步') ? '已儲存在手機，稍後補同步' : '已儲存在手機，正在同步雲端');
+  showQuickSaveToast(text);
+};
+
+// 「同步待處理」仍一次只處理一筆。
 syncPendingRecords=async function(options={}){
   const silent=!!options.silent;
   if(queueSyncRunning || directRecordSyncRunning) return false;
