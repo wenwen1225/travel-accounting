@@ -277,7 +277,161 @@ updateCloudStatusUI=function(){
   if(text) text.textContent='尚有資料等待同步';
 };
 
+// ===== v59：同步進度條＋匯率模式按鈕高亮＋交通卡同套匯率顯示 =====
+const FORMAL_WEB_VERSION='2026.10.03-v59';
+let syncProgressBatchTotal=0;
+let syncProgressHideTimer=null;
+
+function ensureV59Styles(){
+  if(document.getElementById('v59UiStyle')) return;
+  const style=document.createElement('style');
+  style.id='v59UiStyle';
+  style.textContent=`
+    #cashRateGroup .secondary{transition:.16s ease;border:1px solid #ddd3ef;background:#fff;color:#746783}
+    #cashRateGroup .secondary.active{background:#7c5ce7!important;border-color:#7c5ce7!important;color:#fff!important;box-shadow:0 5px 14px rgba(124,92,231,.22)}
+    #cashRateGroup .secondary.active::after{content:' ✓';font-weight:900}
+    .sync-progress-card{margin-top:8px;padding:10px 12px;border-radius:14px;background:#f7f3ff;border:1px solid #e6dcfb}
+    .sync-progress-head{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px;font-weight:700;color:#6f52c8;margin-bottom:7px}
+    .sync-progress-track{height:8px;border-radius:999px;background:#e7e1ef;overflow:hidden}
+    .sync-progress-fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#9d86ef,#7658dc);transition:width .28s ease}
+    .sync-progress-card.sync-done .sync-progress-head{color:#4f8d67}
+    .sync-progress-card.sync-done .sync-progress-fill{background:#69a980}
+  `;
+  document.head.appendChild(style);
+}
+
+function ensureSyncProgressUi(){
+  const host=document.querySelector('.home-sync-wrap');
+  if(!host) return null;
+  let box=document.getElementById('syncProgressCard');
+  if(!box){
+    box=document.createElement('div');
+    box.id='syncProgressCard';
+    box.className='sync-progress-card hidden';
+    box.innerHTML=`
+      <div class="sync-progress-head">
+        <span id="syncProgressText">同步進度</span>
+        <span id="syncProgressPercent">0%</span>
+      </div>
+      <div class="sync-progress-track"><div id="syncProgressFill" class="sync-progress-fill"></div></div>`;
+    host.appendChild(box);
+  }
+  return box;
+}
+
+function refreshSyncProgress(){
+  ensureV59Styles();
+  const box=ensureSyncProgressUi();
+  if(!box) return;
+  const pending=actualPendingSyncCount();
+
+  if(pending>0){
+    if(syncProgressHideTimer){ clearTimeout(syncProgressHideTimer); syncProgressHideTimer=null; }
+    if(syncProgressBatchTotal<=0) syncProgressBatchTotal=pending;
+    if(pending>syncProgressBatchTotal) syncProgressBatchTotal=pending;
+    const done=Math.max(0,syncProgressBatchTotal-pending);
+    const pct=Math.max(5,Math.min(95,Math.round(done/syncProgressBatchTotal*100)));
+    box.classList.remove('hidden','sync-done');
+    document.getElementById('syncProgressText').textContent=`同步進度 ${done}/${syncProgressBatchTotal}｜剩 ${pending} 筆`;
+    document.getElementById('syncProgressPercent').textContent=`${pct}%`;
+    document.getElementById('syncProgressFill').style.width=`${pct}%`;
+    return;
+  }
+
+  if(syncProgressBatchTotal>0){
+    box.classList.remove('hidden');
+    box.classList.add('sync-done');
+    document.getElementById('syncProgressText').textContent=`同步完成 ${syncProgressBatchTotal}/${syncProgressBatchTotal}`;
+    document.getElementById('syncProgressPercent').textContent='100%';
+    document.getElementById('syncProgressFill').style.width='100%';
+    syncProgressHideTimer=setTimeout(()=>{
+      box.classList.add('hidden');
+      box.classList.remove('sync-done');
+      syncProgressBatchTotal=0;
+    },1800);
+  }else{
+    box.classList.add('hidden');
+  }
+}
+
+// 信用卡、交通卡、現金都顯示匯率模式；只有現金開放直接輸入匯率。
+const v584RefreshExpenseRateUi=refreshExpenseRateUi;
+refreshExpenseRateUi=function(){
+  ensureExpenseRateUi();
+  const group=document.getElementById('cashRateGroup');
+  const rateInput=document.getElementById('cashRate');
+  const direct=document.getElementById('cashRateDirectBtn');
+  const inverse=document.getElementById('cashRateInverseBtn');
+  const cashHint=document.getElementById('cashRateHint');
+  const implied=document.getElementById('expenseImpliedRateHint');
+  const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value||''));
+  const twd=Number(rawNumber(document.getElementById('expenseTwd')?.value||''));
+  const supported=['信用卡','交通卡','現金'].includes(selectedPay);
+  const isCash=selectedPay==='現金';
+  const mode=rateModeCurrent();
+  const code=currentTrip?.currency||'';
+
+  if(group) group.classList.toggle('hidden',!supported);
+  if(direct){
+    direct.textContent=`1 ${code} = ? TWD`;
+    direct.classList.toggle('active',mode===RATE_MODE_FOREIGN_TO_TWD);
+  }
+  if(inverse){
+    inverse.textContent=`1 TWD = ? ${code}`;
+    inverse.classList.toggle('active',mode===RATE_MODE_TWD_TO_FOREIGN);
+  }
+  if(rateInput){
+    rateInput.classList.toggle('hidden',!isCash);
+    rateInput.disabled=!isCash;
+    if(isCash && !rateInput.value && Number(currentTrip?.cashRate)>0) rateInput.value=rateFmt(currentTrip.cashRate);
+  }
+  if(cashHint){
+    cashHint.textContent=isCash
+      ? (mode===RATE_MODE_FOREIGN_TO_TWD ? `${code} × 匯率 = TWD` : `${code} ÷ 匯率 = TWD`)
+      : '選擇你想看的匯率方向；填入外幣與台幣後會自動推算';
+  }
+
+  if(implied){
+    if((selectedPay==='信用卡' || selectedPay==='交通卡') && foreign>0 && twd>0){
+      implied.textContent=impliedRateLabel(foreign,twd,mode);
+      implied.classList.remove('hidden');
+    }else{
+      implied.textContent='';
+      implied.classList.add('hidden');
+    }
+  }
+};
+
+const v584SetExpenseCashRateMode=setExpenseCashRateMode;
+setExpenseCashRateMode=function(mode){
+  if(!currentTrip) return;
+  currentTrip.cashRateMode=mode;
+  persist();
+  const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value||''));
+  const twd=Number(rawNumber(document.getElementById('expenseTwd')?.value||''));
+  const input=document.getElementById('cashRate');
+  if(selectedPay==='現金' && input && foreign>0 && twd>0){
+    input.value=rateFmt(impliedRate(foreign,twd,mode));
+  }
+  refreshExpenseRateUi();
+};
+
+const v584UpdateHomeSyncStatus=updateHomeSyncStatus;
+updateHomeSyncStatus=function(){
+  v584UpdateHomeSyncStatus();
+  refreshSyncProgress();
+};
+
+const v584UpdateCloudStatusUI=updateCloudStatusUI;
+updateCloudStatusUI=function(){
+  v584UpdateCloudStatusUI();
+  refreshSyncProgress();
+};
+
 document.addEventListener('DOMContentLoaded',()=>{
+  ensureV59Styles();
+  ensureSyncProgressUi();
+  refreshSyncProgress();
   const webEl=document.getElementById('webVersionText');
-  if(webEl) webEl.textContent=MOBILE_WRITE_PATCH_VERSION;
+  if(webEl) webEl.textContent=FORMAL_WEB_VERSION;
 });
