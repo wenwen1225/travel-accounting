@@ -1,10 +1,11 @@
-// Stable 1：手機優先。手機只做「直接寫入 + 失敗排隊」，不在背景同時讀雲端，避免和 Apps Script v51 的鎖互撞。
+// Stable 2：手機優先。資料先存本機、直接寫 Google Sheet；不讓「同步中」UI 卡住。
 (function(){
-  const PATCH_VERSION='2026.10.03-stable1';
+  const PATCH_VERSION='2026.10.03-stable2';
   const EXPECTED_BACKEND='v51';
   const IS_MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'');
   let stableWriteRunning=false;
   let retryTimer=null;
+  let uiWatchdog=null;
 
   function scheduleRetry(ms=15000){
     if(retryTimer) clearTimeout(retryTimer);
@@ -13,15 +14,34 @@
       autoSyncPendingRecords();
     },ms);
   }
-
   function errMsg(err){ return String(err?.message || err || ''); }
 
-  // iPhone Safari 不直接打 script.google.com；改走同網域 Vercel proxy。
+  // 只處理畫面 busy 狀態，不刪 queue、不假裝資料已同步。
+  function releaseBusyUi(){
+    try{
+      cloudRequestCount=0;
+      cloudWriteCount=0;
+      updateHomeSyncStatus();
+      updateCloudStatusUI();
+    }catch(_e){}
+  }
+
+  function armUiWatchdog(){
+    if(uiWatchdog) clearTimeout(uiWatchdog);
+    uiWatchdog=setTimeout(()=>{
+      uiWatchdog=null;
+      // Apps Script 偶爾已完成寫入，但 Safari / proxy 回應仍未收尾。
+      // 此時只解除「同步中」動畫，真正同步狀態仍由 record/queue 決定。
+      releaseBusyUi();
+    },12000);
+  }
+
   postToCloud = async function(payload){
     const targetUrl=getApiUrl();
     if(!targetUrl) throw new Error('NO_API_URL');
     const isWrite=isCloudWriteAction(payload?.action);
     beginCloudActivity(isWrite);
+    if(isWrite) armUiWatchdog();
     const controller=typeof AbortController!=='undefined' ? new AbortController() : null;
     const timeoutMs=isWrite ? 90000 : 45000;
     let timer=null;
@@ -46,7 +66,9 @@
       if(err?.name==='AbortError') throw new Error('同步逾時，資料已保留在手機');
       throw err;
     }finally{
+      if(uiWatchdog){ clearTimeout(uiWatchdog); uiWatchdog=null; }
       endCloudActivity(isWrite);
+      releaseBusyUi();
     }
   };
 
@@ -62,10 +84,8 @@
     persist();
   }
 
-  // 手機儲存後立刻「直接寫一次」。不先進背景 worker，不重送四次。
   syncRecord = async function(action,trip,type,item){
     if(!trip || !item) return false;
-
     if(stableWriteRunning){
       queueRecord(action,trip,type,item,'上一筆正在同步，稍後自動補傳');
       scheduleRetry(12000);
@@ -100,12 +120,12 @@
     }finally{
       stableWriteRunning=false;
       directRecordSyncRunning=false;
+      releaseBusyUi();
       if(typeof renderSettings==='function') renderSettings();
       if(currentTrip && typeof renderTripSummary==='function') renderTripSummary();
     }
   };
 
-  // 待同步一次只補一筆，完成後再排下一筆，避免自己撞自己。
   syncPendingRecords = async function(options={}){
     const silent=!!options.silent;
     if(stableWriteRunning || queueSyncRunning || directRecordSyncRunning) return false;
@@ -121,11 +141,7 @@
     if(!q) return true;
 
     const trip=getTripById(q.tripId);
-    if(!trip){
-      removeQueued(q.queueId);
-      scheduleRetry(500);
-      return false;
-    }
+    if(!trip){ removeQueued(q.queueId); scheduleRetry(500); return false; }
 
     stableWriteRunning=true;
     queueSyncRunning=true;
@@ -165,10 +181,7 @@
       return !(state.syncQueue||[]).length;
     }catch(err){
       const live=(state.syncQueue||[]).find(x=>x.queueId===q.queueId);
-      if(live){
-        live.lastError=errMsg(err);
-        live.lastErrorAt=new Date().toISOString();
-      }
+      if(live){ live.lastError=errMsg(err); live.lastErrorAt=new Date().toISOString(); }
       persist();
       scheduleRetry(15000);
       if(!silent) alert('這筆目前尚未上雲，資料仍安全保存在手機。\n\n'+errMsg(err));
@@ -176,6 +189,7 @@
     }finally{
       stableWriteRunning=false;
       queueSyncRunning=false;
+      releaseBusyUi();
       if(typeof renderSettings==='function') renderSettings();
       if(currentTrip && typeof renderTripSummary==='function') renderTripSummary();
     }
@@ -186,19 +200,13 @@
     if(!getApiUrl() || !(state.syncQueue||[]).length) return true;
     autoSyncRunning=true;
     try{ return await syncPendingRecords({silent:true}); }
-    finally{ autoSyncRunning=false; }
+    finally{ autoSyncRunning=false; releaseBusyUi(); }
   };
 
-  retrySingleSync = async function(_queueId){
-    return syncPendingRecords({silent:false});
-  };
+  retrySingleSync = async function(_queueId){ return syncPendingRecords({silent:false}); };
 
-  // 手機旅途中不自動 pull：避免 getAllData / revision check 與寫入搶 v51 的同一把鎖。
   if(IS_MOBILE){
-    syncAndPullCloud = async function(){
-      await autoSyncPendingRecords();
-      return true;
-    };
+    syncAndPullCloud = async function(){ await autoSyncPendingRecords(); return true; };
     checkCloudRevisionAndPull = async function(){ return false; };
   }
 
@@ -229,11 +237,12 @@
       return false;
     }finally{
       if(btn){ btn.disabled=false; btn.textContent='檢查版本'; }
+      releaseBusyUi();
     }
   };
 
-  // 舊 queue 保留，但不要在載入瞬間和使用者的新寫入撞在一起。
   try{
+    releaseBusyUi();
     const webEl=document.getElementById('webVersionText');
     if(webEl) webEl.textContent=PATCH_VERSION;
     if((state.syncQueue||[]).length) scheduleRetry(8000);
