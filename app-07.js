@@ -1,4 +1,4 @@
-// v63 loader：先載入原本 app-07，再套用 v61、v62 與同網域同步代理 v63。
+// v64 loader：先載入原本 app-07，再套用 v61、v62、v63 與後端 v53 配套修正。
 (function(){
   const base=document.createElement('script');
   base.src='app-07-base-v58.js?v=58';
@@ -11,6 +11,11 @@
       patch62.onload=()=>{
         const patch63=document.createElement('script');
         patch63.src='app-sync-v63.js?v=63';
+        patch63.onload=()=>{
+          const patch64=document.createElement('script');
+          patch64.src='app-sync-v64.js?v=64';
+          document.head.appendChild(patch64);
+        };
         document.head.appendChild(patch63);
       };
       document.head.appendChild(patch62);
