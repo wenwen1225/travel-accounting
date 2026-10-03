@@ -58,7 +58,6 @@ function refreshConnectivityState(){
 renderHome();
 refreshConnectivityState();
 
-// 啟動時：先補傳本機待同步，再從 Google Sheets 讀回最新資料
 setTimeout(()=>syncAndPullCloud({pull:true}), 1200);
 
 window.addEventListener('offline', ()=>{
@@ -67,7 +66,6 @@ window.addEventListener('offline', ()=>{
   updateCloudStatusUI();
 });
 
-// 網路恢復時自動補同步＋讀回
 window.addEventListener('online', async ()=>{
   renderConnectivityBanner('online');
   updateHomeSyncStatus();
@@ -84,7 +82,6 @@ window.addEventListener('online', async ()=>{
   }
 });
 
-// 從背景切回網站時自動補同步＋讀回
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
     setTimeout(async ()=>{
@@ -99,7 +96,6 @@ document.addEventListener('visibilitychange', ()=>{
   }
 });
 
-// 每 60 秒只做輕量版本檢查；雲端真的有變才讀完整資料。
 setInterval(async ()=>{
   await checkCloudRevisionAndPull({silent:true,autoPull:false});
   await autoSyncPendingRecords();
@@ -107,7 +103,6 @@ setInterval(async ()=>{
     renderDailyCloseReminder();
   }
 },60000);
-
 
 function scrollToTop(){
   window.scrollTo({top:0,behavior:'smooth'});
@@ -121,7 +116,6 @@ function updateScrollTopButton(){
 
 window.addEventListener('scroll',updateScrollTopButton,{passive:true});
 document.addEventListener('DOMContentLoaded',updateScrollTopButton);
-
 
 // ===== 旅途中快速輸入補強：旅程日期選單＋現金匯率換算 =====
 const CASH_RATE_MODE_FOREIGN_TO_TWD='foreignToTwd';
@@ -234,14 +228,9 @@ function ensureCashRateUi(){
   if(!document.getElementById('cashRateResultHint')){
     const hint=document.createElement('div');
     hint.id='cashRateResultHint';
-    hint.className='tiny cash-rate-result-hint';
+    hint.className='tiny cash-rate-result-hint hidden';
     hint.textContent='輸入外幣與匯率後會自動算出台幣';
     twdGroup.appendChild(hint);
-  }
-
-  const twdLabel=twdGroup.querySelector('label');
-  if(twdLabel){
-    twdLabel.innerHTML='台幣金額 TWD <span class="tiny">（自動換算，可修改）</span>';
   }
 
   if(!document.getElementById('expenseQuickUiStyle')){
@@ -263,7 +252,7 @@ function ensureCashRateUi(){
 }
 
 function rememberCashRateSetting(){
-  if(!currentTrip) return;
+  if(!currentTrip || selectedPay!=='現金') return;
   const rate=Number(rawNumber(document.getElementById('cashRate')?.value || ''));
   if(rate>0) currentTrip.cashRate=rate;
   currentTrip.cashRateMode=activeCashRateMode();
@@ -271,7 +260,7 @@ function rememberCashRateSetting(){
 }
 
 function setCashRateMode(mode){
-  if(!currentTrip) return;
+  if(!currentTrip || selectedPay!=='現金') return;
   currentTrip.cashRateMode=mode;
   persist();
   refreshCashRateModeUi();
@@ -306,14 +295,25 @@ function configureCashRateUi(show){
   const group=document.getElementById('cashRateGroup');
   const rate=document.getElementById('cashRate');
   const twdGroup=document.getElementById('expenseTwd')?.closest('.form-group');
+  const twdLabel=twdGroup?.querySelector('label');
   const resultHint=document.getElementById('cashRateResultHint');
   if(!group || !rate) return;
 
-  group.classList.toggle('hidden',!show);
-  twdGroup?.classList.toggle('cash-auto-result',show);
-  if(resultHint) resultHint.classList.toggle('hidden',!show);
+  const cashOnly=!!show && selectedPay==='現金';
+  group.classList.toggle('hidden',!cashOnly);
+  twdGroup?.classList.toggle('cash-auto-result',cashOnly);
+  if(resultHint) resultHint.classList.toggle('hidden',!cashOnly);
 
-  if(!show) return;
+  if(twdLabel){
+    twdLabel.innerHTML=cashOnly
+      ? '台幣金額 TWD <span class="tiny">（自動換算，可修改）</span>'
+      : '台幣金額 TWD <span class="tiny">（可之後補）</span>';
+  }
+
+  if(!cashOnly){
+    if(resultHint) resultHint.textContent='';
+    return;
+  }
 
   refreshCashRateModeUi();
   if(!rate.value && currentTrip?.cashRate){
@@ -352,7 +352,6 @@ function calculateCashTwd(){
   rememberCashRateSetting();
 }
 
-// 包裝既有新增流程，不改原本儲存／同步資料格式。
 const originalSelectPayForQuickInput=window.selectPay;
 if(typeof originalSelectPayForQuickInput==='function'){
   window.selectPay=function(pay){
@@ -371,14 +370,13 @@ window.openAdd=function(type){
     populateExpenseTripDates();
     const rate=document.getElementById('cashRate');
     if(rate) rate.value=currentTrip?.cashRate ? String(currentTrip.cashRate) : '';
-    configureCashRateUi(type==='cash');
+    configureCashRateUi(selectedPay==='現金');
   }else{
     configureCashRateUi(false);
   }
   return result;
 };
 
-// 編輯既有消費時，也先建立旅程日期選項；匯率沿用這趟旅行最近使用的設定。
 const originalEditExpenseForQuickInput=window.editExpense;
 if(typeof originalEditExpenseForQuickInput==='function'){
   window.editExpense=function(id){
@@ -395,3 +393,4 @@ if(typeof originalEditExpenseForQuickInput==='function'){
 
 ensureExpenseDateSelect();
 ensureCashRateUi();
+configureCashRateUi(false);
