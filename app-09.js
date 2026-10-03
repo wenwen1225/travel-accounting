@@ -45,11 +45,11 @@
           };
           document.body.appendChild(swipePatch);
         };
-        document.body.appendChild(datePatch);
+        document.body.appendChild(uiPatch);
       };
-      document.body.appendChild(patch);
+      document.body.appendChild(datePatch);
     };
-    document.body.appendChild(base);
+    document.body.appendChild(patch);
   };
   document.body.appendChild(base);
 })();
