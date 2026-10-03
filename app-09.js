@@ -61,7 +61,7 @@
       };
       document.body.appendChild(patch);
     };
-    document.body.appendChild(base);
+    document.body.appendChild(patch);
   };
   document.body.appendChild(base);
 })();
