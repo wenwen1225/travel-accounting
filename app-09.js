@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64 自由換匯日期與右滑刪除。
+// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64 自由日期/刪除 UI、v65 iPhone 右滑修正。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -15,6 +15,12 @@
         const uiPatch=document.createElement('script');
         uiPatch.src='app-12.js?v=64';
         uiPatch.async=false;
+        uiPatch.onload=()=>{
+          const swipePatch=document.createElement('script');
+          swipePatch.src='app-13.js?v=65';
+          swipePatch.async=false;
+          document.body.appendChild(swipePatch);
+        };
         document.body.appendChild(uiPatch);
       };
       document.body.appendChild(datePatch);
