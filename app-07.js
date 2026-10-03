@@ -219,3 +219,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   const webEl=document.getElementById('webVersionText');
   if(webEl) webEl.textContent=MOBILE_WRITE_ONLY_VERSION;
 });
+
+// 後續補丁獨立載入，避免再碰已穩定的 v58.3 主流程。
+(()=>{
+  if(document.getElementById('v584PatchLoader')) return;
+  const s=document.createElement('script');
+  s.id='v584PatchLoader';
+  s.src='app-08.js?v=584';
+  s.async=false;
+  document.body.appendChild(s);
+})();
