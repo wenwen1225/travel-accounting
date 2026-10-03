@@ -227,5 +227,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   s.id='v584PatchLoader';
   s.src='app-08.js?v=584';
   s.async=false;
+  s.onload=()=>{
+    if(document.getElementById('v60PatchLoader')) return;
+    const p=document.createElement('script');
+    p.id='v60PatchLoader';
+    p.src='app-09.js?v=60';
+    p.async=false;
+    document.body.appendChild(p);
+  };
   document.body.appendChild(s);
 })();
