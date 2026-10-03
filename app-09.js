@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61～v69，再以 v70 徹底修正先前費用日期在 iPhone Safari 的跑版。
+// app-09 loader：依序載入 v61～v70，再以 v71 顯示快速補台幣的即時實際匯率。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -39,6 +39,12 @@
                     const v70=document.createElement('script');
                     v70.src='app-18.js?v=70';
                     v70.async=false;
+                    v70.onload=()=>{
+                      const v71=document.createElement('script');
+                      v71.src='app-19.js?v=71';
+                      v71.async=false;
+                      document.body.appendChild(v71);
+                    };
                     document.body.appendChild(v70);
                   };
                   document.body.appendChild(v69);
@@ -51,11 +57,11 @@
           };
           document.body.appendChild(swipePatch);
         };
-        document.body.appendChild(uiPatch);
+        document.body.appendChild(datePatch);
       };
-      document.body.appendChild(datePatch);
+      document.body.appendChild(patch);
     };
-    document.body.appendChild(patch);
+    document.body.appendChild(base);
   };
   document.body.appendChild(base);
 })();
