@@ -385,7 +385,8 @@ function updateCreditImpliedRate(){
   const hint=document.getElementById('expenseImpliedRateHint');
   if(!hint) return;
 
-  if(selectedPay!=='信用卡'){
+  const rateVisiblePay = selectedPay==='信用卡' || selectedPay==='交通卡';
+  if(!rateVisiblePay){
     hint.classList.add('hidden');
     hint.textContent='';
     return;
@@ -418,9 +419,7 @@ function configureCashRateUi(show){
   if(resultHint) resultHint.classList.toggle('hidden',!cashOnly);
 
   if(twdLabel){
-    twdLabel.innerHTML=cashOnly
-      ? '台幣金額 TWD <span class="tiny">（可之後補）</span>'
-      : '台幣金額 TWD <span class="tiny">（可之後補）</span>';
+    twdLabel.innerHTML='台幣金額 TWD <span class="tiny">（可之後補）</span>';
   }
 
   if(!cashOnly){
