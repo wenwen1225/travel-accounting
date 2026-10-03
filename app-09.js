@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64 自由日期/刪除 UI、v65 iPhone 右滑修正。
+// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64/v65 UI，再以 v66 修正版本顯示與右滑刪除。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -19,6 +19,12 @@
           const swipePatch=document.createElement('script');
           swipePatch.src='app-13.js?v=65';
           swipePatch.async=false;
+          swipePatch.onload=()=>{
+            const finalPatch=document.createElement('script');
+            finalPatch.src='app-14.js?v=66';
+            finalPatch.async=false;
+            document.body.appendChild(finalPatch);
+          };
           document.body.appendChild(swipePatch);
         };
         document.body.appendChild(uiPatch);
