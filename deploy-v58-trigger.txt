@@ -1,0 +1,1 @@
+Force Vercel redeploy of the verified v58 mobile-write baseline.
