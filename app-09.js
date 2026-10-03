@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61 基底、v62 表單穩定、v63 日期選擇、v64/v65 UI、v66 刪除/版本、v67 自由日期與雲端刪除、v68 列表交錯底色，再以 v69 補上純前端記帳體驗優化。
+// app-09 loader：依序載入 v61～v69，再以 v70 徹底修正先前費用日期在 iPhone Safari 的跑版。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -35,6 +35,12 @@
                   const v69=document.createElement('script');
                   v69.src='app-17.js?v=69';
                   v69.async=false;
+                  v69.onload=()=>{
+                    const v70=document.createElement('script');
+                    v70.src='app-18.js?v=70';
+                    v70.async=false;
+                    document.body.appendChild(v70);
+                  };
                   document.body.appendChild(v69);
                 };
                 document.body.appendChild(v68);
@@ -45,11 +51,11 @@
           };
           document.body.appendChild(swipePatch);
         };
-        document.body.appendChild(uiPatch);
+        document.body.appendChild(datePatch);
       };
-      document.body.appendChild(datePatch);
+      document.body.appendChild(patch);
     };
-    document.body.appendChild(patch);
+    document.body.appendChild(base);
   };
   document.body.appendChild(base);
 })();
