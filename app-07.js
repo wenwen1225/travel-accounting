@@ -189,6 +189,37 @@ function activeCashRateMode(){
   return currentTrip?.cashRateMode || defaultCashRateMode();
 }
 
+function formatRateValue(value){
+  const n=Number(value);
+  if(!Number.isFinite(n) || n<=0) return '';
+  return n.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');
+}
+
+function impliedRateFromAmounts(foreign,twd,mode=defaultCashRateMode()){
+  const f=Number(foreign);
+  const t=Number(twd);
+  if(!(f>0) || !(t>0)) return 0;
+  return mode===CASH_RATE_MODE_FOREIGN_TO_TWD ? t/f : f/t;
+}
+
+function impliedRateText(foreign,twd,mode=defaultCashRateMode()){
+  const rate=impliedRateFromAmounts(foreign,twd,mode);
+  if(!(rate>0) || !currentTrip) return '';
+  const code=currentTrip.currency;
+  return mode===CASH_RATE_MODE_FOREIGN_TO_TWD
+    ? `推算匯率：1 ${code} ≈ NT$${formatRateValue(rate)}`
+    : `推算匯率：NT$1 ≈ ${formatRateValue(rate)} ${code}`;
+}
+
+function ensureRequiredCategoryLabel(){
+  const select=document.getElementById('expenseCategory');
+  const label=select?.closest('.form-group')?.querySelector('label');
+  if(!label) return;
+  if(!label.querySelector('.danger')){
+    label.innerHTML='分類標籤 <span class="danger">*</span>';
+  }
+}
+
 function ensureCashRateUi(){
   const twd=document.getElementById('expenseTwd');
   const foreign=document.getElementById('expenseForeign');
@@ -208,12 +239,12 @@ function ensureCashRateUi(){
     group.id='cashRateGroup';
     group.className='form-group hidden cash-rate-group';
     group.innerHTML=`
-      <label id="cashRateLabel">換算匯率</label>
+      <label id="cashRateLabel">換算匯率 <span class="tiny">（可之後補）</span></label>
       <div class="cash-rate-mode">
         <button id="cashRateDirectBtn" type="button" onclick="setCashRateMode('${CASH_RATE_MODE_FOREIGN_TO_TWD}')"></button>
         <button id="cashRateInverseBtn" type="button" onclick="setCashRateMode('${CASH_RATE_MODE_TWD_TO_FOREIGN}')"></button>
       </div>
-      <input id="cashRate" type="text" inputmode="decimal" placeholder="輸入匯率" />
+      <input id="cashRate" type="text" inputmode="decimal" placeholder="可留空；之後填台幣也能反推" />
       <div id="cashRateHint" class="tiny cash-rate-hint"></div>
     `;
     moneyRow.insertBefore(group,twdGroup);
@@ -222,14 +253,38 @@ function ensureCashRateUi(){
       rememberCashRateSetting();
       calculateCashTwd();
     });
-    foreign.addEventListener('input',calculateCashTwd);
+
+    foreign.addEventListener('input',()=>{
+      if(selectedPay==='現金'){
+        const rate=Number(rawNumber(document.getElementById('cashRate')?.value || ''));
+        if(rate>0) calculateCashTwd();
+        else deriveCashRateFromTwd();
+      }else{
+        updateCreditImpliedRate();
+      }
+    });
+  }
+
+  if(!twd.dataset.rateReverseBound){
+    twd.dataset.rateReverseBound='1';
+    twd.addEventListener('input',()=>{
+      if(selectedPay==='現金') deriveCashRateFromTwd();
+      else updateCreditImpliedRate();
+    });
   }
 
   if(!document.getElementById('cashRateResultHint')){
     const hint=document.createElement('div');
     hint.id='cashRateResultHint';
     hint.className='tiny cash-rate-result-hint hidden';
-    hint.textContent='輸入外幣與匯率後會自動算出台幣';
+    hint.textContent='匯率可留空；之後補台幣時也會自動反推匯率';
+    twdGroup.appendChild(hint);
+  }
+
+  if(!document.getElementById('expenseImpliedRateHint')){
+    const hint=document.createElement('div');
+    hint.id='expenseImpliedRateHint';
+    hint.className='tiny expense-implied-rate-hint hidden';
     twdGroup.appendChild(hint);
   }
 
@@ -241,7 +296,8 @@ function ensureCashRateUi(){
       .cash-rate-mode{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
       .cash-rate-mode button{border:1px solid #ded4ef;background:#fff;color:#746783;border-radius:11px;padding:9px 6px;font-size:11px;font-weight:700;line-height:1.25}
       .cash-rate-mode button.active{background:#efe8ff;border-color:#a98df1;color:#6f52c8}
-      .cash-rate-hint,.cash-rate-result-hint{margin-top:6px;line-height:1.45}
+      .cash-rate-hint,.cash-rate-result-hint,.expense-implied-rate-hint{margin-top:6px;line-height:1.45}
+      .expense-implied-rate-hint{color:#6f52c8;font-weight:700}
       .cash-auto-result{background:#f7f2ff;border:1px solid #e4d8fb;border-radius:14px;padding:12px;margin-top:3px}
       .cash-auto-result label{color:#694fba}
       .cash-auto-result .money-wrap{background:#fff;border-color:#cdbdf5}
@@ -264,7 +320,17 @@ function setCashRateMode(mode){
   currentTrip.cashRateMode=mode;
   persist();
   refreshCashRateModeUi();
-  calculateCashTwd();
+
+  const rate=document.getElementById('cashRate');
+  const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value || ''));
+  const twd=Number(rawNumber(document.getElementById('expenseTwd')?.value || ''));
+  if(foreign>0 && twd>0 && rate){
+    rate.value=formatRateValue(impliedRateFromAmounts(foreign,twd,mode));
+    rememberCashRateSetting();
+    updateCashResultHint(foreign,twd);
+  }else{
+    calculateCashTwd();
+  }
 }
 
 function refreshCashRateModeUi(){
@@ -285,9 +351,56 @@ function refreshCashRateModeUi(){
   }
   if(hint){
     hint.textContent=mode===CASH_RATE_MODE_FOREIGN_TO_TWD
-      ? `計算方式：${code} 金額 × 匯率 = TWD`
-      : `計算方式：${code} 金額 ÷ 匯率 = TWD`;
+      ? `可留空；${code} × 匯率 = TWD`
+      : `可留空；${code} ÷ 匯率 = TWD`;
   }
+}
+
+function updateCashResultHint(foreign,twd){
+  const hint=document.getElementById('cashRateResultHint');
+  if(!hint) return;
+  const text=impliedRateText(foreign,twd,activeCashRateMode());
+  hint.textContent=text || '匯率可留空；之後補台幣時也會自動反推匯率';
+}
+
+function deriveCashRateFromTwd(){
+  if(selectedPay!=='現金') return;
+  const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value || ''));
+  const twd=Number(rawNumber(document.getElementById('expenseTwd')?.value || ''));
+  const rate=document.getElementById('cashRate');
+  if(!rate) return;
+
+  if(!(foreign>0) || !(twd>0)){
+    updateCashResultHint(0,0);
+    return;
+  }
+
+  const implied=impliedRateFromAmounts(foreign,twd,activeCashRateMode());
+  rate.value=formatRateValue(implied);
+  rememberCashRateSetting();
+  updateCashResultHint(foreign,twd);
+}
+
+function updateCreditImpliedRate(){
+  const hint=document.getElementById('expenseImpliedRateHint');
+  if(!hint) return;
+
+  if(selectedPay!=='信用卡'){
+    hint.classList.add('hidden');
+    hint.textContent='';
+    return;
+  }
+
+  const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value || ''));
+  const twd=Number(rawNumber(document.getElementById('expenseTwd')?.value || ''));
+  if(!(foreign>0) || !(twd>0)){
+    hint.classList.add('hidden');
+    hint.textContent='';
+    return;
+  }
+
+  hint.textContent=impliedRateText(foreign,twd,defaultCashRateMode());
+  hint.classList.remove('hidden');
 }
 
 function configureCashRateUi(show){
@@ -306,23 +419,34 @@ function configureCashRateUi(show){
 
   if(twdLabel){
     twdLabel.innerHTML=cashOnly
-      ? '台幣金額 TWD <span class="tiny">（自動換算，可修改）</span>'
+      ? '台幣金額 TWD <span class="tiny">（可之後補）</span>'
       : '台幣金額 TWD <span class="tiny">（可之後補）</span>';
   }
 
   if(!cashOnly){
     if(resultHint) resultHint.textContent='';
+    updateCreditImpliedRate();
     return;
+  }
+
+  const creditHint=document.getElementById('expenseImpliedRateHint');
+  if(creditHint){
+    creditHint.classList.add('hidden');
+    creditHint.textContent='';
   }
 
   refreshCashRateModeUi();
   if(!rate.value && currentTrip?.cashRate){
     rate.value=String(currentTrip.cashRate);
   }
-  if(resultHint && !document.getElementById('expenseTwd')?.value){
-    resultHint.textContent='輸入外幣與匯率後會自動算出台幣';
+
+  const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value || ''));
+  const twd=Number(rawNumber(document.getElementById('expenseTwd')?.value || ''));
+  if(foreign>0 && twd>0){
+    deriveCashRateFromTwd();
+  }else if(resultHint){
+    resultHint.textContent='匯率可留空；之後補台幣時也會自動反推匯率';
   }
-  calculateCashTwd();
 }
 
 function calculateCashTwd(){
@@ -332,11 +456,10 @@ function calculateCashTwd(){
   const foreign=Number(rawNumber(document.getElementById('expenseForeign')?.value || ''));
   const rate=Number(rawNumber(document.getElementById('cashRate')?.value || ''));
   const twd=document.getElementById('expenseTwd');
-  const hint=document.getElementById('cashRateResultHint');
-  if(!twd || !hint) return;
+  if(!twd) return;
 
   if(!(foreign>0) || !(rate>0)){
-    hint.textContent='輸入外幣與匯率後會自動算出台幣';
+    updateCashResultHint(0,0);
     return;
   }
 
@@ -346,9 +469,7 @@ function calculateCashTwd(){
     : foreign/rate;
   const rounded=Math.round(result);
   twd.value=Number(rounded).toLocaleString('en-US');
-
-  const operator=mode===CASH_RATE_MODE_FOREIGN_TO_TWD ? '×' : '÷';
-  hint.textContent=`自動換算：約 NT$${Number(rounded).toLocaleString('en-US')}（${Number(foreign).toLocaleString('en-US')} ${operator} ${rate}）`;
+  updateCashResultHint(foreign,rounded);
   rememberCashRateSetting();
 }
 
@@ -357,6 +478,7 @@ if(typeof originalSelectPayForQuickInput==='function'){
   window.selectPay=function(pay){
     const result=originalSelectPayForQuickInput(pay);
     configureCashRateUi(pay==='現金');
+    updateCreditImpliedRate();
     return result;
   };
 }
@@ -367,10 +489,12 @@ window.openAdd=function(type){
   const isExpense=['expense','credit','transit','cash'].includes(type);
 
   if(isExpense){
+    ensureRequiredCategoryLabel();
     populateExpenseTripDates();
     const rate=document.getElementById('cashRate');
     if(rate) rate.value=currentTrip?.cashRate ? String(currentTrip.cashRate) : '';
     configureCashRateUi(selectedPay==='現金');
+    updateCreditImpliedRate();
   }else{
     configureCashRateUi(false);
   }
@@ -383,14 +507,23 @@ if(typeof originalEditExpenseForQuickInput==='function'){
     const item=(currentTrip?.expenses || []).find(x=>x.id===id);
     populateExpenseTripDates(item?.date || '');
     const result=originalEditExpenseForQuickInput(id);
+    ensureRequiredCategoryLabel();
     populateExpenseTripDates(item?.date || '');
+
     const rate=document.getElementById('cashRate');
-    if(rate) rate.value=currentTrip?.cashRate ? String(currentTrip.cashRate) : '';
+    if(rate) rate.value='';
     configureCashRateUi(item?.pay==='現金');
+
+    if(item?.pay==='現金'){
+      deriveCashRateFromTwd();
+    }else{
+      updateCreditImpliedRate();
+    }
     return result;
   };
 }
 
 ensureExpenseDateSelect();
 ensureCashRateUi();
+ensureRequiredCategoryLabel();
 configureCashRateUi(false);
