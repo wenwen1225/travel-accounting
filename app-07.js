@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(document.getElementById('v60PatchLoader')) return;
     const p=document.createElement('script');
     p.id='v60PatchLoader';
-    p.src='app-09.js?v=60';
+    p.src='app-09.js?v=72';
     p.async=false;
     document.body.appendChild(p);
   };
