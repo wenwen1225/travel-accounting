@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61～v70，再以 v71 顯示快速補台幣的即時實際匯率。
+// app-09 loader：依序載入 v61～v72。僅串接前端補丁，不修改同步主流程。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -43,6 +43,12 @@
                       const v71=document.createElement('script');
                       v71.src='app-19.js?v=71';
                       v71.async=false;
+                      v71.onload=()=>{
+                        const v72=document.createElement('script');
+                        v72.src='app-20.js?v=72';
+                        v72.async=false;
+                        document.body.appendChild(v72);
+                      };
                       document.body.appendChild(v71);
                     };
                     document.body.appendChild(v70);
@@ -57,9 +63,9 @@
           };
           document.body.appendChild(swipePatch);
         };
-        document.body.appendChild(datePatch);
+        document.body.appendChild(uiPatch);
       };
-      document.body.appendChild(patch);
+      document.body.appendChild(datePatch);
     };
     document.body.appendChild(patch);
   };
