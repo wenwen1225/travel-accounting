@@ -1,4 +1,4 @@
-// app-09 loader：依序載入 v61～v74。僅串接前端補丁，不修改同步主流程。
+// app-09 loader：依序載入 v61～v75。僅串接前端補丁，不修改同步主流程。
 (()=>{
   const base=document.createElement('script');
   base.src='app-09-base-v61.js?v=61';
@@ -55,6 +55,12 @@
                             const v74=document.createElement('script');
                             v74.src='app-22.js?v=74';
                             v74.async=false;
+                            v74.onload=()=>{
+                              const v75=document.createElement('script');
+                              v75.src='app-23.js?v=75';
+                              v75.async=false;
+                              document.body.appendChild(v75);
+                            };
                             document.body.appendChild(v74);
                           };
                           document.body.appendChild(v73);
