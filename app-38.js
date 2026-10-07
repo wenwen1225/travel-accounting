@@ -1,10 +1,11 @@
-// v101：帳戶轉移安全版。
-// 只在開啟資金視窗與來源帳戶變更時更新目標帳戶；保留未儲存初始餘額草稿；餘額不足提醒納入草稿初始餘額。
+// v102：帳戶轉移安全版。
+// 來源/目標帳戶防呆、保留未儲存初始餘額，並在「加入轉移 / 儲存資金設定」兩個按鈕層保證執行餘額不足提醒。
 (()=>{
-  const FUND_TRANSFER_VERSION='2026.10.07-v101';
+  const FUND_TRANSFER_VERSION='2026.10.07-v102';
   const num=v=>{const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:0;};
   const money=v=>`${currentTrip?.currency==='KRW'?'₩':(typeof currencySymbol==='function'?currencySymbol(currentTrip?.currency):'')}${Number(v||0).toLocaleString('en-US')}`;
   const labels={CASH:'現金',WOWPASS:'WOWPASS',TOSS:'TOSS'};
+  let skipNextCoreWarning=false;
 
   function activeFundId(){
     const btn=document.querySelector('#fundAccountTabs button.active');
@@ -61,7 +62,7 @@
       balances[t.to]+=Math.abs(num(t.amount));
     });
 
-    // 若目前畫面上的初始餘額尚未儲存，餘額檢查也要以畫面值為準。
+    // 畫面上的初始餘額若尚未儲存，檢查時仍以畫面值為準。
     const draft=captureInitialDraft();
     if(draft&&draft.value.trim()!==''){
       const id=draft.accountId;
@@ -71,28 +72,77 @@
     return balances;
   }
 
-  // 來源帳戶變更時才更新「轉到帳戶」。
+  function transferValues(){
+    return {
+      from:String(document.getElementById('fundTransferFrom')?.value||''),
+      to:String(document.getElementById('fundTransferTo')?.value||''),
+      amount:Math.abs(num(document.getElementById('fundTransferAmount')?.value)),
+      fee:Math.abs(num(document.getElementById('fundTransferFee')?.value))
+    };
+  }
+
+  function confirmTransferBalance(){
+    const {from,amount,fee}=transferValues();
+    if(!from||!(amount>0))return true;
+    const balance=num(accountBalances()[from]);
+    const required=amount+fee;
+    if(required<=balance)return true;
+    return confirm(`⚠️ ${labels[from]||from} 餘額不足\n\n目前餘額：${money(balance)}\n本次需扣：${money(required)}${fee?`\n（轉入 ${money(amount)} + 手續費 ${money(fee)}）`:''}\n轉移後餘額：${money(balance-required)}\n\n仍要繼續建立這筆轉移嗎？`);
+  }
+
+  function bindTransferButtons(){
+    const overlay=document.getElementById('fundManagerOverlay');
+    if(!overlay)return;
+    const addBtn=[...overlay.querySelectorAll('button')].find(b=>String(b.getAttribute('onclick')||'').includes('addFundTransferV83'));
+    const saveBtn=document.getElementById('saveFundBtn');
+
+    if(addBtn&&addBtn.dataset.balanceGuardV102!=='1'){
+      addBtn.dataset.balanceGuardV102='1';
+      addBtn.addEventListener('click',e=>{
+        if(confirmTransferBalance()){
+          skipNextCoreWarning=true;
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      },true);
+    }
+
+    if(saveBtn&&saveBtn.dataset.balanceGuardV102!=='1'){
+      saveBtn.dataset.balanceGuardV102='1';
+      saveBtn.addEventListener('click',e=>{
+        const amount=Math.abs(num(document.getElementById('fundTransferAmount')?.value));
+        if(!(amount>0))return;
+        if(confirmTransferBalance()){
+          skipNextCoreWarning=true;
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      },true);
+    }
+  }
+
   document.addEventListener('change',e=>{
     if(e.target&&e.target.id==='fundTransferFrom')syncTransferTargetOptions();
   });
 
-  // 開啟資金管理視窗後同步一次，不監聽視窗內所有 click。
   const baseOpenFundManager=window.openFundManagerV83;
   if(typeof baseOpenFundManager==='function'){
     window.openFundManagerV83=function(){
       const r=baseOpenFundManager.apply(this,arguments);
-      setTimeout(syncTransferTargetOptions,0);
+      setTimeout(()=>{syncTransferTargetOptions();bindTransferButtons();},0);
       return r;
     };
   }
 
-  // 加入收支後 render 會重畫視窗；保留尚未儲存的初始餘額草稿。
   const baseAddFundEntry=window.addFundEntryV83;
   if(typeof baseAddFundEntry==='function'){
     window.addFundEntryV83=function(){
       const draft=captureInitialDraft();
       const r=baseAddFundEntry.apply(this,arguments);
       restoreInitialDraft(draft);
+      setTimeout(bindTransferButtons,0);
       return r;
     };
   }
@@ -101,20 +151,14 @@
   if(typeof baseAddFundTransfer==='function'){
     window.addFundTransferV83=function(){
       const draft=captureInitialDraft();
-      const from=String(document.getElementById('fundTransferFrom')?.value||'');
-      const amount=Math.abs(num(document.getElementById('fundTransferAmount')?.value));
-      const fee=Math.abs(num(document.getElementById('fundTransferFee')?.value));
-      if(from&&amount>0){
-        const balance=num(accountBalances()[from]);
-        const required=amount+fee;
-        if(required>balance){
-          const ok=confirm(`⚠️ ${labels[from]||from} 餘額不足\n\n目前餘額：${money(balance)}\n本次需扣：${money(required)}${fee?`\n（轉入 ${money(amount)} + 手續費 ${money(fee)}）`:''}\n轉移後餘額：${money(balance-required)}\n\n仍要繼續建立這筆轉移嗎？`);
-          if(!ok)return;
-        }
+      if(skipNextCoreWarning){
+        skipNextCoreWarning=false;
+      }else if(!confirmTransferBalance()){
+        return;
       }
       const r=baseAddFundTransfer.apply(this,arguments);
       restoreInitialDraft(draft);
-      setTimeout(syncTransferTargetOptions,0);
+      setTimeout(()=>{syncTransferTargetOptions();bindTransferButtons();},0);
       return r;
     };
   }
