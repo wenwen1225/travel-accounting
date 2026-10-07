@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v92；v92 僅修正全部紀錄的日期/建立時間排序。
+// app-09 loader：載入至 v93；v93 僅修正全部紀錄的寫入時間排序。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -26,7 +26,8 @@
     ['app-31.js',90],
     ['app-32.js',85],
     ['app-33.js',91],
-    ['app-34.js',92]
+    ['app-34.js',92],
+    ['app-35.js',93]
   ];
   let index=0;
   function loadNext(){
