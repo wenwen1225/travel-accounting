@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v104；共同資金同步狀態改為明確事件追蹤，不再用整包快照 diff。
+// app-09 loader：載入至 v105；緊急保護雲端重新讀取，只合併不刪除本機旅行。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -29,7 +29,8 @@
     ['app-35.js',101],
     ['app-36.js',103],
     ['app-37.js',104],
-    ['app-38.js',102]
+    ['app-38.js',102],
+    ['app-39.js',105]
   ];
   let index=0;
   function loadNext(){
