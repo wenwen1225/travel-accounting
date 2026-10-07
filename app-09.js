@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v93；v93 僅修正全部紀錄的寫入時間排序。
+// app-09 loader：載入至 v94；v94 為資金紀錄補同步狀態。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -27,7 +27,8 @@
     ['app-32.js',85],
     ['app-33.js',91],
     ['app-34.js',92],
-    ['app-35.js',93]
+    ['app-35.js',93],
+    ['app-36.js',94]
   ];
   let index=0;
   function loadNext(){
