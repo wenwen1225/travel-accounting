@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v107；指定 Sheet 一次性救援 + v57 後端版本統一。
+// app-09 loader：載入至 v108；一般紀錄與資金紀錄皆可在「全部紀錄」右滑刪除。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -31,7 +31,8 @@
     ['app-37.js',104],
     ['app-38.js',102],
     ['app-39.js',106],
-    ['app-40.js',107]
+    ['app-40.js',107],
+    ['app-41.js',108]
   ];
   let index=0;
   function loadNext(){
