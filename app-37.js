@@ -1,13 +1,13 @@
-// v103：資金同步狀態細分到 CASH / WOWPASS / TOSS；後端仍維持整包快照同步。
-// 只有真正異動的帳戶顯示待同步；轉移會標記來源與目標兩個帳戶。
+// v104：共同資金同步狀態改為「明確記錄實際異動帳戶」，不再用整包快照 diff 猜測。
+// 後端仍維持整包快照同步；前端 CASH / WOWPASS / TOSS 各自顯示同步狀態。
 (()=>{
-  const VER='2026.10.07-v103';
+  const VER='2026.10.07-v104';
   const BG_GAP=15000;
-  const lastSync={};
   const ACCOUNT_IDS=['CASH','WOWPASS','TOSS'];
+  const lastSync={};
   const num=v=>{const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:0;};
-  const snap=v=>{try{return JSON.stringify(v||{});}catch(e){return '';}};
   const clone=v=>{try{return JSON.parse(JSON.stringify(v||{}));}catch(e){return {};}};
+  const same=(a,b)=>{try{return JSON.stringify(a)===JSON.stringify(b);}catch(e){return false;}};
 
   function tripById(id){return (state?.trips||[]).find(t=>String(t.id)===String(id));}
   function activeFundId(){
@@ -24,102 +24,84 @@
     ACCOUNT_IDS.forEach(id=>{
       const a=trip.fundAccounts.accounts[id]||{};
       const remembered=Number(trip.fundInitialCreatedAt[id]||0);
-      const created=Number(a.initialCreatedAt||remembered||0);
       trip.fundAccounts.accounts[id]={...a,
         initial:num(a.initial),
         initialDate:String(a.initialDate||''),
         initialSet:typeof a.initialSet==='boolean'?a.initialSet:(num(a.initial)!==0||String(a.initialDate||'').trim()!==''),
-        initialCreatedAt:created,
+        initialCreatedAt:Number(a.initialCreatedAt||remembered||0),
         entries:Array.isArray(a.entries)?a.entries:[]
       };
-      if(created)trip.fundInitialCreatedAt[id]=created;
+      if(trip.fundAccounts.accounts[id].initialCreatedAt)trip.fundInitialCreatedAt[id]=trip.fundAccounts.accounts[id].initialCreatedAt;
     });
-    ensureAccountStatus(trip);
+    ensureTracking(trip);
     return trip.fundAccounts;
   }
-  function ensureAccountStatus(trip){
+  function ensureTracking(trip){
     if(!trip)return {};
     if(!trip.fundAccountCloudStatus||typeof trip.fundAccountCloudStatus!=='object')trip.fundAccountCloudStatus={};
-    const fallback=trip.fundCloudStatus==='synced'?'synced':(getApiUrl?.()?'pending':'local');
+    if(!trip.fundAccountRevision||typeof trip.fundAccountRevision!=='object')trip.fundAccountRevision={};
+    const fallback=trip.fundCloudStatus==='synced'?'synced':(trip.fundCloudStatus==='local'?'local':(getApiUrl?.()?'pending':'local'));
     ACCOUNT_IDS.forEach(id=>{
       if(!trip.fundAccountCloudStatus[id])trip.fundAccountCloudStatus[id]=fallback;
+      if(!Number.isFinite(Number(trip.fundAccountRevision[id])))trip.fundAccountRevision[id]=0;
     });
-    if(!trip.fundLastSyncedSnapshot&&trip.fundCloudStatus==='synced'&&trip.fundAccounts){
-      trip.fundLastSyncedSnapshot=clone(trip.fundAccounts);
-    }
     return trip.fundAccountCloudStatus;
   }
-  function fundStatus(trip){
-    if(!trip)return 'pending';
-    ensureAccountStatus(trip);
-    const vals=ACCOUNT_IDS.map(id=>trip.fundAccountCloudStatus[id]);
+  function overallStatus(trip){
+    const map=ensureTracking(trip);
+    const vals=ACCOUNT_IDS.map(id=>map[id]);
     if(vals.every(v=>v==='synced'))return 'synced';
     if(vals.every(v=>v==='local'))return 'local';
     return 'pending';
   }
-  function transferSlice(st,id){
-    return (Array.isArray(st?.transfers)?st.transfers:[])
-      .filter(t=>String(t.from||'')===id||String(t.to||'')===id)
-      .map(t=>({id:String(t.id||''),date:String(t.date||''),from:String(t.from||''),to:String(t.to||''),amount:num(t.amount),fee:num(t.fee),note:String(t.note||'')}));
-  }
-  function changedAccounts(trip,currentState=trip?.fundAccounts){
-    if(!trip||!currentState)return [];
-    const base=trip.fundLastSyncedSnapshot;
-    if(!base)return ACCOUNT_IDS.filter(id=>currentState.accounts?.[id]||transferSlice(currentState,id).length);
-    return ACCOUNT_IDS.filter(id=>{
-      const aNow=currentState.accounts?.[id]||{};
-      const aOld=base.accounts?.[id]||{};
-      if(snap(aNow)!==snap(aOld))return true;
-      return snap(transferSlice(currentState,id))!==snap(transferSlice(base,id));
-    });
-  }
-  function markFundDirty(trip,ids){
+  function touchAccounts(trip,ids){
     if(!trip)return;
-    const map=ensureAccountStatus(trip);
+    const map=ensureTracking(trip);
     const touched=[...new Set((ids||[]).filter(id=>ACCOUNT_IDS.includes(id)))];
-    touched.forEach(id=>map[id]=getApiUrl?.()?'pending':'local');
-    trip.fundCloudStatus=fundStatus(trip);
+    touched.forEach(id=>{
+      trip.fundAccountRevision[id]=Number(trip.fundAccountRevision[id]||0)+1;
+      map[id]=getApiUrl?.()?'pending':'local';
+    });
+    trip.fundCloudStatus=overallStatus(trip);
     if(touched.length)trip.fundLastSyncError='';
   }
   function accountFromPill(pill){
-    const shell=pill.closest('.fund-swipe-shell');
+    if(pill?.dataset?.fundAccount)return String(pill.dataset.fundAccount);
+    const shell=pill?.closest('.fund-swipe-shell');
     if(shell?.dataset?.account)return String(shell.dataset.account);
-    const card=pill.closest('.fund-record-card, .fund-record-v87');
+    const card=pill?.closest('.fund-record-card, .fund-record-v87');
     const onclick=card?.getAttribute('onclick')||'';
     const m=onclick.match(/openFundRecordV84\('[^']*','[^']*','([^']+)'\)/);
     return m?m[1]:'';
   }
   function refreshFundPills(){
     if(!currentTrip)return;
-    const map=ensureAccountStatus(currentTrip);
+    const map=ensureTracking(currentTrip);
     document.querySelectorAll('.fund-sync-pill').forEach(p=>{
-      const accountId=accountFromPill(p);
-      const st=accountId&&map[accountId]?map[accountId]:fundStatus(currentTrip);
+      const id=accountFromPill(p);
+      const st=id&&map[id]?map[id]:overallStatus(currentTrip);
       p.classList.toggle('synced',st==='synced');
       p.classList.toggle('pending',st!=='synced');
       p.textContent=st==='synced'?'已同步':st==='local'?'僅本機':'待同步';
-      p.dataset.fundAccount=accountId||'';
+      if(id)p.dataset.fundAccount=id;
     });
   }
 
-  async function backgroundFundSyncV103(tripId,force=false){
+  async function backgroundFundSyncV104(tripId,force=false){
     const trip=tripById(tripId);if(!trip)return false;
     ensureState(trip);
+    const map=ensureTracking(trip);
+    const attemptAccounts=ACCOUNT_IDS.filter(id=>map[id]==='pending');
+    if(!attemptAccounts.length)return true;
     if(!getApiUrl?.()){
-      const map=ensureAccountStatus(trip);
-      changedAccounts(trip).forEach(id=>map[id]='local');
-      trip.fundCloudStatus=fundStatus(trip);persist();refreshFundPills();return false;
+      attemptAccounts.forEach(id=>map[id]='local');
+      trip.fundCloudStatus=overallStatus(trip);persist();refreshFundPills();return false;
     }
     const now=Date.now();
     if(!force&&lastSync[tripId]&&now-lastSync[tripId]<BG_GAP)return false;
     lastSync[tripId]=now;
-    const snapshot=clone(trip.fundAccounts||{accounts:{},transfers:[]});
-    let attemptAccounts=changedAccounts(trip,snapshot);
-    if(!attemptAccounts.length){
-      const map=ensureAccountStatus(trip);
-      attemptAccounts=ACCOUNT_IDS.filter(id=>map[id]!=='synced');
-    }
-    markFundDirty(trip,attemptAccounts);
+    const snapshot=clone(trip.fundAccounts);
+    const startRevision={};attemptAccounts.forEach(id=>startRevision[id]=Number(trip.fundAccountRevision[id]||0));
     trip.fundLastSyncError='';persist();refreshFundPills();
     try{
       const ver=await postToCloud({action:'getVersion'});
@@ -131,55 +113,63 @@
       await postToCloud({action:'saveFundAccounts',spreadsheetId:trip.spreadsheetId,clientTripId:trip.id,fundAccounts:snapshot});
       const latest=tripById(tripId);
       if(latest){
-        ensureState(latest);
-        latest.fundLastSyncedSnapshot=clone(snapshot);
-        const pendingAfter=changedAccounts(latest,latest.fundAccounts);
-        const map=ensureAccountStatus(latest);
-        ACCOUNT_IDS.forEach(id=>{
-          map[id]=pendingAfter.includes(id)?'pending':'synced';
+        ensureState(latest);const latestMap=ensureTracking(latest);
+        attemptAccounts.forEach(id=>{
+          latestMap[id]=Number(latest.fundAccountRevision[id]||0)===startRevision[id]?'synced':'pending';
         });
-        latest.fundCloudStatus=fundStatus(latest);
-        latest.fundLastSyncError='';
-        if(typeof markSyncSuccess==='function')markSyncSuccess();
-        persist();
+        latest.fundCloudStatus=overallStatus(latest);
+        latest.fundLastSyncError='';persist();
       }
-      refreshFundPills();
-      return true;
+      refreshFundPills();return true;
     }catch(err){
       const latest=tripById(tripId);
       if(latest){
-        const map=ensureAccountStatus(latest);
-        attemptAccounts.forEach(id=>map[id]='pending');
-        latest.fundCloudStatus=fundStatus(latest);
+        const latestMap=ensureTracking(latest);
+        attemptAccounts.forEach(id=>latestMap[id]='pending');
+        latest.fundCloudStatus=overallStatus(latest);
         latest.fundLastSyncError=String(err?.message||err);persist();
       }
-      refreshFundPills();
-      return false;
+      refreshFundPills();return false;
     }
   }
-  window.backgroundFundSyncV86=backgroundFundSyncV103;
-  window.backgroundFundSyncV90=backgroundFundSyncV103;
-  window.backgroundFundSyncV91=backgroundFundSyncV103;
-  window.backgroundFundSyncV97=backgroundFundSyncV103;
-  window.backgroundFundSyncV103=backgroundFundSyncV103;
+  window.backgroundFundSyncV86=backgroundFundSyncV104;
+  window.backgroundFundSyncV90=backgroundFundSyncV104;
+  window.backgroundFundSyncV91=backgroundFundSyncV104;
+  window.backgroundFundSyncV97=backgroundFundSyncV104;
+  window.backgroundFundSyncV103=backgroundFundSyncV104;
+  window.backgroundFundSyncV104=backgroundFundSyncV104;
   window.refreshFundPillsV103=refreshFundPills;
+  window.refreshFundPillsV104=refreshFundPills;
 
   const previousAddEntry=window.addFundEntryV83;
   if(typeof previousAddEntry==='function')window.addFundEntryV83=function(){
+    const id=activeFundId();
+    const before=(currentTrip?.fundAccounts?.accounts?.[id]?.entries||[]).length;
     const r=previousAddEntry.apply(this,arguments);
-    if(currentTrip){markFundDirty(currentTrip,changedAccounts(currentTrip));persist();refreshFundPills();}
+    const after=(currentTrip?.fundAccounts?.accounts?.[id]?.entries||[]).length;
+    if(currentTrip&&after>before){touchAccounts(currentTrip,[id]);persist();refreshFundPills();}
     return r;
   };
+
   const previousAddTransfer=window.addFundTransferV83;
   if(typeof previousAddTransfer==='function')window.addFundTransferV83=function(){
+    const from=String(document.getElementById('fundTransferFrom')?.value||'');
+    const to=String(document.getElementById('fundTransferTo')?.value||'');
+    const before=(currentTrip?.fundAccounts?.transfers||[]).length;
     const r=previousAddTransfer.apply(this,arguments);
-    if(currentTrip){markFundDirty(currentTrip,changedAccounts(currentTrip));persist();refreshFundPills();}
+    const after=(currentTrip?.fundAccounts?.transfers||[]).length;
+    if(currentTrip&&after>before){touchAccounts(currentTrip,[from,to]);persist();refreshFundPills();}
     return r;
   };
+
+  // 切換頁籤本身不算異動；但舊核心會在切換時順便保存前一帳戶的初始餘額，因此只在資料真的改變時標記前一帳戶。
   const previousSelectFund=window.selectFundAccountV83;
-  if(typeof previousSelectFund==='function')window.selectFundAccountV83=function(){
+  if(typeof previousSelectFund==='function')window.selectFundAccountV83=function(id){
+    const previousId=activeFundId();
+    const before=clone(currentTrip?.fundAccounts?.accounts?.[previousId]||{});
     const r=previousSelectFund.apply(this,arguments);
-    if(currentTrip){markFundDirty(currentTrip,changedAccounts(currentTrip));persist();refreshFundPills();}
+    const after=currentTrip?.fundAccounts?.accounts?.[previousId]||{};
+    if(currentTrip&&!same(before,after)){touchAccounts(currentTrip,[previousId]);persist();refreshFundPills();}
     return r;
   };
 
@@ -192,10 +182,10 @@
 
   window.saveFundAccountsV83=function(){
     if(!currentTrip)return;
-    ensureState(currentTrip);
-    commitPending();
+    ensureState(currentTrip);commitPending();
     const st=ensureState(currentTrip),id=activeFundId();
     const a=st.accounts[id]||(st.accounts[id]={initial:0,initialDate:'',initialSet:false,initialCreatedAt:0,entries:[]});
+    const before={initial:num(a.initial),initialDate:String(a.initialDate||''),initialSet:!!a.initialSet};
     const input=document.getElementById('fundInitialInput'),date=document.getElementById('fundInitialDate');
     const raw=String(input?.value??'').trim();
     if(raw!==''){
@@ -205,13 +195,13 @@
       if(changed||!Number(a.initialCreatedAt||0))a.initialCreatedAt=Date.now();
       currentTrip.fundInitialCreatedAt[id]=Number(a.initialCreatedAt||Date.now());
     }
-    currentTrip.fundAccounts=st;
-    markFundDirty(currentTrip,changedAccounts(currentTrip));
-    persist();
+    const after={initial:num(a.initial),initialDate:String(a.initialDate||''),initialSet:!!a.initialSet};
+    if(!same(before,after))touchAccounts(currentTrip,[id]);
+    currentTrip.fundAccounts=st;persist();
     const tripId=currentTrip.id;
     if(typeof closeFundManagerV83==='function')closeFundManagerV83();
     if(typeof openTrip==='function')openTrip(tripId);
-    setTimeout(()=>backgroundFundSyncV103(tripId,true),0);
+    setTimeout(()=>backgroundFundSyncV104(tripId,true),0);
   };
 
   function deleteFund(kind,id,accountId,fromManager=false){
@@ -219,23 +209,26 @@
     if(currentTrip.archived)return typeof archiveReadOnlyAlert==='function'?archiveReadOnlyAlert():null;
     const label=kind==='transfer'?'這筆帳戶轉移（含手續費）':kind==='initial'?'這筆初始餘額':'這筆資金紀錄';
     if(!confirm(`確定要刪除${label}嗎？\n刪除後會重新計算相關帳戶餘額。`))return;
-    const st=ensureState(currentTrip);
+    const st=ensureState(currentTrip);let touched=[];
     if(kind==='transfer'){
+      const old=(st.transfers||[]).find(t=>String(t.id)===String(id));
+      if(old)touched=[String(old.from||''),String(old.to||'')];
       st.transfers=(st.transfers||[]).filter(t=>String(t.id)!==String(id));
     }else if(kind==='initial'&&st.accounts[accountId]){
+      touched=[accountId];
       st.accounts[accountId].initial=0;st.accounts[accountId].initialDate='';st.accounts[accountId].initialSet=false;st.accounts[accountId].initialCreatedAt=0;
       if(currentTrip.fundInitialCreatedAt)delete currentTrip.fundInitialCreatedAt[accountId];
     }else if(st.accounts[accountId]){
+      touched=[accountId];
       st.accounts[accountId].entries=(st.accounts[accountId].entries||[]).filter(e=>String(e.id)!==String(id));
     }
-    currentTrip.fundAccounts=st;
-    markFundDirty(currentTrip,changedAccounts(currentTrip));persist();
+    currentTrip.fundAccounts=st;touchAccounts(currentTrip,touched);persist();
     const tripId=currentTrip.id;
     if(fromManager){
       if(typeof closeFundManagerV83==='function')closeFundManagerV83();
       if(typeof openTrip==='function')openTrip(tripId);
     }else if(typeof openRecords==='function')openRecords();
-    setTimeout(()=>backgroundFundSyncV103(tripId,true),0);
+    setTimeout(()=>backgroundFundSyncV104(tripId,true),0);
   }
   window.deleteFundRecordV84=(kind,id,accountId)=>deleteFund(kind,id,accountId,false);
   window.removeFundEntryV83=id=>deleteFund('entry',id,activeFundId(),true);
@@ -247,7 +240,7 @@
     if(trip?.fundAccounts&&saved==='pending')trip.cloudStatus='fund-independent';
     const r=typeof previousOpenTrip==='function'?previousOpenTrip.apply(this,arguments):undefined;
     if(trip&&saved==='pending')trip.cloudStatus=saved;
-    if(trip?.fundAccounts&&fundStatus(trip)==='pending')setTimeout(()=>backgroundFundSyncV103(id,false),0);
+    if(trip?.fundAccounts&&overallStatus(trip)==='pending')setTimeout(()=>backgroundFundSyncV104(id,false),0);
     return r;
   };
 
@@ -265,26 +258,17 @@
   const previousApply=window.applyRecordFilters;
   window.applyRecordFilters=function(){
     const r=typeof previousApply==='function'?previousApply.apply(this,arguments):undefined;
-    refreshFundPills();
-    return r;
+    refreshFundPills();return r;
   };
   const previousRecords=window.openRecords;
   window.openRecords=function(){
     const r=typeof previousRecords==='function'?previousRecords.apply(this,arguments):undefined;
-    setTimeout(refreshFundPills,0);
-    return r;
+    setTimeout(refreshFundPills,0);return r;
   };
 
   (state?.trips||[]).forEach(trip=>{
     if(!trip?.fundAccounts)return;
-    ensureState(trip);
-    Object.entries(trip.fundAccounts.accounts||{}).forEach(([id,a])=>{
-      if(a?.initialSet&&!Number(a.initialCreatedAt||0)){
-        const ts=Date.now();a.initialCreatedAt=ts;trip.fundInitialCreatedAt[id]=ts;
-      }
-    });
-    ensureAccountStatus(trip);
-    trip.fundCloudStatus=fundStatus(trip);
+    ensureState(trip);ensureTracking(trip);trip.fundCloudStatus=overallStatus(trip);
   });
   try{persist();}catch(e){}
   try{window.WEB_VERSION=VER;}catch(e){}
