@@ -1,4 +1,4 @@
-// app-09 loader：回滾至 v97；暫停載入 v98 轉移選單補丁，恢復網站正常操作。
+// app-09 loader：載入至 v99；v99 僅限制帳戶轉移目標帳戶，不覆寫全域事件。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -29,7 +29,8 @@
     ['app-34.js',92],
     ['app-35.js',93],
     ['app-36.js',96],
-    ['app-37.js',97]
+    ['app-37.js',97],
+    ['app-38.js',99]
   ];
   let index=0;
   function loadNext(){
