@@ -1,7 +1,7 @@
-// v90：資金本機先存 / 背景同步 + 全部紀錄右滑刪除。
-// 保留既有互動，不覆寫全站 click 事件。
+// v91：資金本機先存 / 背景同步 + 全部紀錄右滑刪除。
+// 修正：按「儲存資金設定」時，自動提交尚未按「加入」的收支 / 帳戶轉移。
 (()=>{
-  const FUND_V90_VERSION='2026.10.07-v90';
+  const FUND_V91_VERSION='2026.10.07-v91';
   const BG_SYNC_GAP=15000;
   const lastBgSync={};
   const num=v=>{const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:0;};
@@ -30,7 +30,7 @@
   }
   function snapshotString(st){try{return JSON.stringify(st||{});}catch(e){return '';}}
 
-  async function backgroundFundSyncV90(tripId,force=false){
+  async function backgroundFundSyncV91(tripId,force=false){
     const trip=(state?.trips||[]).find(t=>t.id===tripId);if(!trip||!getApiUrl?.())return false;
     const now=Date.now();if(!force&&lastBgSync[tripId]&&now-lastBgSync[tripId]<BG_SYNC_GAP)return false;lastBgSync[tripId]=now;
     const snapshot=JSON.parse(JSON.stringify(trip.fundAccounts||{accounts:{},transfers:[]})),snapshotKey=snapshotString(snapshot);
@@ -46,11 +46,33 @@
       const latest=(state?.trips||[]).find(t=>t.id===tripId);if(latest){latest.cloudStatus='pending';latest.lastSyncError=String(err?.message||err);persist();}return false;
     }
   }
-  window.backgroundFundSyncV86=backgroundFundSyncV90;
-  window.backgroundFundSyncV90=backgroundFundSyncV90;
+  window.backgroundFundSyncV86=backgroundFundSyncV91;
+  window.backgroundFundSyncV90=backgroundFundSyncV91;
+  window.backgroundFundSyncV91=backgroundFundSyncV91;
+
+  function commitPendingFundFormsV91(){
+    if(!currentTrip)return;
+    const entryInput=document.getElementById('fundEntryAmount');
+    const transferInput=document.getElementById('fundTransferAmount');
+    const entryAmount=Math.abs(num(entryInput?.value));
+    const transferAmount=Math.abs(num(transferInput?.value));
+
+    // 有填金額但尚未按「＋加入這筆收支」時，儲存設定也要一起提交。
+    if(entryAmount>0 && typeof window.addFundEntryV83==='function'){
+      window.addFundEntryV83();
+    }
+    // 有填轉移金額但尚未按「＋加入轉移」時，儲存設定也要一起提交。
+    if(transferAmount>0 && typeof window.addFundTransferV83==='function'){
+      window.addFundTransferV83();
+    }
+  }
 
   window.saveFundAccountsV83=function(){
     if(!currentTrip)return;
+
+    // 先把畫面上尚未按「加入」的收支 / 轉移真正寫入本機資料。
+    commitPendingFundFormsV91();
+
     const st=ensureState(),id=activeFundId(),a=st.accounts[id]||(st.accounts[id]={initial:0,initialDate:'',initialSet:false,entries:[]});
     const input=document.getElementById('fundInitialInput'),date=document.getElementById('fundInitialDate');
     const raw=String(input?.value??'').trim();
@@ -61,7 +83,7 @@
     const tripId=currentTrip.id;
     if(typeof closeFundManagerV83==='function')closeFundManagerV83();
     if(typeof openTrip==='function')openTrip(tripId);
-    setTimeout(()=>backgroundFundSyncV90(tripId,true),0);
+    setTimeout(()=>backgroundFundSyncV91(tripId,true),0);
   };
 
   window.deleteFundRecordV84=function(kind,id,accountId){
@@ -73,7 +95,7 @@
     else if(kind==='initial'&&st.accounts[accountId]){st.accounts[accountId].initial=0;st.accounts[accountId].initialDate='';st.accounts[accountId].initialSet=false;}
     else if(st.accounts[accountId])st.accounts[accountId].entries=(st.accounts[accountId].entries||[]).filter(e=>String(e.id)!==String(id));
     currentTrip.fundAccounts=st;currentTrip.cloudStatus=getApiUrl?.()?'pending':'local';persist();
-    const tripId=currentTrip.id;if(typeof openRecords==='function')openRecords();setTimeout(()=>backgroundFundSyncV90(tripId,true),0);
+    const tripId=currentTrip.id;if(typeof openRecords==='function')openRecords();setTimeout(()=>backgroundFundSyncV91(tripId,true),0);
   };
 
   function ensureStyles(){
@@ -114,9 +136,9 @@
   const baseOpenRecordsV90=window.openRecords;
   window.openRecords=function(){const r=typeof baseOpenRecordsV90==='function'?baseOpenRecordsV90():undefined;bindSwipe();return r;};
   const baseOpenTripV90=window.openTrip;
-  window.openTrip=function(id){const r=typeof baseOpenTripV90==='function'?baseOpenTripV90(id):undefined;const trip=(state?.trips||[]).find(t=>t.id===id);if(trip?.fundAccounts&&trip.cloudStatus==='pending')setTimeout(()=>backgroundFundSyncV90(id,false),0);return r;};
+  window.openTrip=function(id){const r=typeof baseOpenTripV90==='function'?baseOpenTripV90(id):undefined;const trip=(state?.trips||[]).find(t=>t.id===id);if(trip?.fundAccounts&&trip.cloudStatus==='pending')setTimeout(()=>backgroundFundSyncV91(id,false),0);return r;};
 
-  try{window.WEB_VERSION=FUND_V90_VERSION;}catch(e){}
-  const webEl=document.getElementById('webVersionText');if(webEl)webEl.textContent=FUND_V90_VERSION;
+  try{window.WEB_VERSION=FUND_V91_VERSION;}catch(e){}
+  const webEl=document.getElementById('webVersionText');if(webEl)webEl.textContent=FUND_V91_VERSION;
   ensureStyles();
 })();
