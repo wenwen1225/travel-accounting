@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v101；移除舊 v92 日期排序，只保留 v101 寫入時間排序。
+// app-09 loader：載入至 v102；帳戶轉移餘額不足提醒改成按鈕層 + 核心雙重防呆。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -29,7 +29,7 @@
     ['app-35.js',101],
     ['app-36.js',100],
     ['app-37.js',97],
-    ['app-38.js',101]
+    ['app-38.js',102]
   ];
   let index=0;
   function loadNext(){
