@@ -1,12 +1,50 @@
-// v109：TOSS 記帳支援與現金相同的匯率換算；WOWPASS 維持不變。
-// 僅擴充既有匯率判斷與計算，不新增事件、不修改同步、資金或後端邏輯。
+// v110：TOSS 記帳支援與現金相同的匯率換算，且固定為共同支出；WOWPASS 維持不變。
+// 僅修正 TOSS 表單顯示與既有匯率判斷，不修改同步、資金或後端邏輯。
 (()=>{
-  const VER='2026.10.07-v109';
+  const VER='2026.10.07-v110';
   const RATE_PAYS=['信用卡','交通卡','現金','Toss'];
 
   function supportsRate(){
     return RATE_PAYS.includes(selectedPay);
   }
+
+  function isSharedPayV110(pay){
+    const sharedPay=typeof sharedPaymentMethodForCurrency==='function'
+      ? sharedPaymentMethodForCurrency(currentTrip?.currency)
+      : '現金';
+    return pay==='現金' || pay===sharedPay || pay==='Wowpass' || pay==='Toss' || pay==='電子支付';
+  }
+
+  // TOSS 為共同支出：不顯示記帳人員，固定 selectedPerson='共同'。
+  try{
+    v62NormalizePaymentUi=function(pay){
+      if(!currentTrip) return;
+      selectedPay=pay;
+      const personGroup=document.getElementById('expensePersonGroup');
+      const card=document.getElementById('cardType');
+      const cardGroup=card?.closest('.form-group');
+      const shared=isSharedPayV110(pay);
+
+      if(personGroup) personGroup.classList.toggle('hidden',shared);
+      if(cardGroup) cardGroup.classList.toggle('hidden',pay!=='信用卡');
+      if(card) card.disabled=pay!=='信用卡';
+
+      if(shared){
+        selectedPerson='共同';
+      }else{
+        const people=currentTrip.people||[];
+        if(!people.includes(selectedPerson)) selectedPerson=people[0]||'Wen';
+      }
+
+      document.querySelectorAll('#personSeg button').forEach(btn=>{
+        const active=!shared && btn.dataset.person===selectedPerson;
+        btn.classList.toggle('active',active);
+      });
+
+      if(typeof v61RefreshRateDisplay==='function') v61RefreshRateDisplay();
+    };
+    window.v62NormalizePaymentUi=v62NormalizePaymentUi;
+  }catch(e){}
 
   // 匯率區塊顯示判斷：TOSS 沿用現金；WOWPASS 不加入。
   try{
@@ -47,8 +85,9 @@
     window.v61DeriveRateFromAmounts=v61DeriveRateFromAmounts;
   }catch(e){}
 
-  // 若目前剛好停在記帳頁，立即刷新；沒有表單時不做任何事。
+  // 若目前剛好停在 TOSS 記帳頁，立即修正 UI。
   try{
+    if(selectedPay==='Toss' && typeof v62NormalizePaymentUi==='function')v62NormalizePaymentUi('Toss');
     if(typeof v61BindRateInput==='function')v61BindRateInput();
     if(typeof v61RefreshRateDisplay==='function')v61RefreshRateDisplay();
   }catch(e){}
