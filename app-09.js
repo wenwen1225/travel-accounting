@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v97；v97 獨立資金同步、統一刪除、補初始餘額寫入時間。
+// app-09 loader：載入至 v98；v98 帳戶轉移目標帳戶排除來源帳戶。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -29,7 +29,8 @@
     ['app-34.js',92],
     ['app-35.js',93],
     ['app-36.js',96],
-    ['app-37.js',97]
+    ['app-37.js',97],
+    ['app-38.js',98]
   ];
   let index=0;
   function loadNext(){
