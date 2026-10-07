@@ -1,17 +1,21 @@
-// v95：統一資金紀錄同步條樣式，並以韓幣金色系區分資金紀錄。
+// v96：統一資金紀錄同步條；左側類型色恢復，右側外幣金額改用外幣專用色。
 // 僅調整全部紀錄顯示，不改資金計算、排序、刪除或同步邏輯。
 (()=>{
-  const FUND_SYNC_VERSION='2026.10.07-v95';
+  const FUND_SYNC_VERSION='2026.10.07-v96';
 
   function fundSyncState(){
     if(!currentTrip) return 'pending';
     return currentTrip.cloudStatus==='synced' ? 'synced' : 'pending';
   }
 
+  function isForeignCurrency(){
+    return Boolean(currentTrip?.currency) && String(currentTrip.currency).toUpperCase()!=='TWD';
+  }
+
   function ensureStyles(){
-    if(document.getElementById('fundSyncV95Styles'))return;
+    if(document.getElementById('fundSyncV96Styles'))return;
     const s=document.createElement('style');
-    s.id='fundSyncV95Styles';
+    s.id='fundSyncV96Styles';
     s.textContent=`
       /* 資金同步狀態：跟一般記帳一樣使用長條版 */
       .fund-sync-pill{
@@ -30,13 +34,25 @@
       .fund-sync-pill.synced{background:#e8f7ef;color:#557768}
       .fund-sync-pill.pending{background:#fff4d8;color:#9a6b12}
 
-      /* 韓國旅程的資金紀錄統一用韓幣金色系，與信用卡淺藍區分 */
-      .fund-kind-badge,
-      .fund-type-badge,
-      .fund-swipe-shell .fund-record-card:before{
-        background:#fff1c9!important;
-        color:#9a6700!important;
-        border:1px solid #f3dda0!important;
+      /* 左側 icon 回到原本「初 / 收 / 支 / 調 / 轉」分類色 */
+      .fund-kind-badge.initial,.fund-type-badge.fund-badge-initial{background:#f2ecff!important;color:#7c3aed!important;border:0!important}
+      .fund-kind-badge.income,.fund-type-badge.fund-badge-income{background:#e7f8ec!important;color:#15803d!important;border:0!important}
+      .fund-kind-badge.expense,.fund-type-badge.fund-badge-expense{background:#ffe8ee!important;color:#c2415a!important;border:0!important}
+      .fund-kind-badge.adjust,.fund-type-badge.fund-badge-adjust{background:#f0e8ff!important;color:#7c3aed!important;border:0!important}
+      .fund-kind-badge.transfer,.fund-type-badge.fund-badge-transfer{background:#e6f0ff!important;color:#2563eb!important;border:0!important}
+      .fund-swipe-shell.fund-v86-income .fund-record-card:before{background:#e7f8ec!important;color:#15803d!important;border:0!important}
+      .fund-swipe-shell.fund-v86-expense .fund-record-card:before{background:#ffe8ee!important;color:#c2415a!important;border:0!important}
+      .fund-swipe-shell.fund-v86-adjust .fund-record-card:before{background:#f0e8ff!important;color:#7c3aed!important;border:0!important}
+      .fund-swipe-shell.fund-v86-transfer .fund-record-card:before{background:#e6f0ff!important;color:#2563eb!important;border:0!important}
+
+      /* 外幣資金：右側金額與餘額用固定外幣色，台幣仍維持原本深色 */
+      .fund-foreign-currency .fund-record-amount strong,
+      .fund-foreign-currency .fund-record-money strong{
+        color:#6f5bd3!important;
+      }
+      .fund-foreign-currency .fund-record-amount span,
+      .fund-foreign-currency .fund-record-money span{
+        color:#8a7fba!important;
       }
 
       /* 讓同步條真正佔滿內容欄，與一般記帳長條一致 */
@@ -50,7 +66,9 @@
   function injectSyncPills(){
     ensureStyles();
     const state=fundSyncState();
+    const foreign=isForeignCurrency();
     document.querySelectorAll('.fund-record-card, .fund-record-v87').forEach(card=>{
+      card.classList.toggle('fund-foreign-currency',foreign);
       let pill=card.querySelector('.fund-sync-pill');
       if(!pill){
         pill=document.createElement('div');
