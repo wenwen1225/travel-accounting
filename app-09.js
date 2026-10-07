@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v95；v95 統一資金同步長條與韓幣色系。
+// app-09 loader：載入至 v96；v96 統一資金同步條並用右側金額色區分外幣。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -28,7 +28,7 @@
     ['app-33.js',91],
     ['app-34.js',92],
     ['app-35.js',93],
-    ['app-36.js',95]
+    ['app-36.js',96]
   ];
   let index=0;
   function loadNext(){
