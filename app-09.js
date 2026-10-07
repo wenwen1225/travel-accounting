@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v100；資金餘額不足提醒 + 待同步原因提示。
+// app-09 loader：載入至 v101；移除舊 v92 日期排序，只保留 v101 寫入時間排序。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -26,11 +26,10 @@
     ['app-31.js',90],
     ['app-32.js',85],
     ['app-33.js',91],
-    ['app-34.js',92],
-    ['app-35.js',93],
+    ['app-35.js',101],
     ['app-36.js',100],
     ['app-37.js',97],
-    ['app-38.js',100]
+    ['app-38.js',101]
   ];
   let index=0;
   function loadNext(){
