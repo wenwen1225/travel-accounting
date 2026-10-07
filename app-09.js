@@ -1,4 +1,4 @@
-// app-09 loader：緊急回滾至 v86，先恢復網站可操作性。
+// app-09 loader：載入至 v90；資金核心直接整理於 app-30/app-31/app-33。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -22,15 +22,14 @@
     ['app-27.js',80],
     ['app-28.js',81],
     ['app-29.js',82],
-    ['app-30.js',83],
-    ['app-31.js',84],
+    ['app-30.js',90],
+    ['app-31.js',90],
     ['app-32.js',85],
-    ['app-33.js',86]
+    ['app-33.js',90]
   ];
-
   let index=0;
   function loadNext(){
-    if(index>=scripts.length) return;
+    if(index>=scripts.length)return;
     const [file,version]=scripts[index++];
     const s=document.createElement('script');
     s.src=`${file}?v=${version}`;
