@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v89。v89 僅修資金區塊 UI，不覆寫全站核心事件。
+// app-09 loader：緊急回滾至 v86，先恢復網站可操作性。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -25,8 +25,7 @@
     ['app-30.js',83],
     ['app-31.js',84],
     ['app-32.js',85],
-    ['app-33.js',86],
-    ['app-35.js',89]
+    ['app-33.js',86]
   ];
 
   let index=0;
