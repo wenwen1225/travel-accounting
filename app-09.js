@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v109；TOSS 記帳支援與現金相同的匯率換算，WOWPASS 維持不變。
+// app-09 loader：載入至 v110；TOSS 記帳支援匯率換算並固定共同支出，WOWPASS 維持不變。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -33,7 +33,7 @@
     ['app-39.js',106],
     ['app-40.js',107],
     ['app-41.js',109],
-    ['app-42.js','109-fix']
+    ['app-42.js',110]
   ];
   let index=0;
   function loadNext(){
