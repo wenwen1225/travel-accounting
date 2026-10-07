@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v108；一般紀錄與資金紀錄皆可在「全部紀錄」右滑刪除。
+// app-09 loader：載入至 v109；TOSS 記帳支援與現金相同的匯率換算，WOWPASS 維持不變。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -32,7 +32,8 @@
     ['app-38.js',102],
     ['app-39.js',106],
     ['app-40.js',107],
-    ['app-41.js',108]
+    ['app-41.js',108],
+    ['app-42.js',109]
   ];
   let index=0;
   function loadNext(){
