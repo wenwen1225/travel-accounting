@@ -92,6 +92,28 @@
     if(typeof v61RefreshRateDisplay==='function')v61RefreshRateDisplay();
   }catch(e){}
 
+  // 前一版 app-41 會在 renderSettings / checkBackendVersion 後重寫版本文字，
+  // 最後一層統一覆蓋為 v110，避免設定頁顯示舊版本。
+  const baseRenderSettingsV110=window.renderSettings;
+  if(typeof baseRenderSettingsV110==='function'){
+    window.renderSettings=function(){
+      const r=baseRenderSettingsV110.apply(this,arguments);
+      const web=document.getElementById('webVersionText');
+      if(web) web.textContent=VER;
+      return r;
+    };
+  }
+
+  const baseCheckBackendV110=window.checkBackendVersion;
+  if(typeof baseCheckBackendV110==='function'){
+    window.checkBackendVersion=async function(){
+      const r=await baseCheckBackendV110.apply(this,arguments);
+      const web=document.getElementById('webVersionText');
+      if(web) web.textContent=VER;
+      return r;
+    };
+  }
+
   try{window.WEB_VERSION=VER;}catch(e){}
   const web=document.getElementById('webVersionText');
   if(web)web.textContent=VER;
