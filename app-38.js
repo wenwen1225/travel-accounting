@@ -1,10 +1,29 @@
-// v100：帳戶轉移目標排除來源帳戶 + 來源餘額不足提醒。
-// 僅包裝「加入轉移」這一個函式；不攔截其他按鈕、不使用 MutationObserver。
+// v101：帳戶轉移安全版。
+// 只在開啟資金視窗與來源帳戶變更時更新目標帳戶；保留未儲存初始餘額草稿；餘額不足提醒納入草稿初始餘額。
 (()=>{
-  const FUND_TRANSFER_VERSION='2026.10.07-v100';
+  const FUND_TRANSFER_VERSION='2026.10.07-v101';
   const num=v=>{const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:0;};
   const money=v=>`${currentTrip?.currency==='KRW'?'₩':(typeof currencySymbol==='function'?currencySymbol(currentTrip?.currency):'')}${Number(v||0).toLocaleString('en-US')}`;
   const labels={CASH:'現金',WOWPASS:'WOWPASS',TOSS:'TOSS'};
+
+  function activeFundId(){
+    const btn=document.querySelector('#fundAccountTabs button.active');
+    const m=(btn?.getAttribute('onclick')||'').match(/selectFundAccountV83\('([^']+)'\)/);
+    return m?m[1]:'CASH';
+  }
+  function captureInitialDraft(){
+    const input=document.getElementById('fundInitialInput');
+    const date=document.getElementById('fundInitialDate');
+    if(!input)return null;
+    return {accountId:activeFundId(),value:String(input.value??''),date:String(date?.value||'')};
+  }
+  function restoreInitialDraft(draft){
+    if(!draft||draft.accountId!==activeFundId())return;
+    const input=document.getElementById('fundInitialInput');
+    const date=document.getElementById('fundInitialDate');
+    if(input)input.value=draft.value;
+    if(date&&draft.date)date.value=draft.date;
+  }
 
   function syncTransferTargetOptions(){
     const from=document.getElementById('fundTransferFrom');
@@ -41,24 +60,47 @@
       balances[t.from]-=Math.abs(num(t.amount))+Math.abs(num(t.fee));
       balances[t.to]+=Math.abs(num(t.amount));
     });
+
+    // 若目前畫面上的初始餘額尚未儲存，餘額檢查也要以畫面值為準。
+    const draft=captureInitialDraft();
+    if(draft&&draft.value.trim()!==''){
+      const id=draft.accountId;
+      const stored=num(accounts[id]?.initial);
+      balances[id]=(balances[id]||0)-stored+num(draft.value);
+    }
     return balances;
   }
 
+  // 來源帳戶變更時才更新「轉到帳戶」。
   document.addEventListener('change',e=>{
     if(e.target&&e.target.id==='fundTransferFrom')syncTransferTargetOptions();
   });
 
-  document.addEventListener('click',e=>{
-    const target=e.target instanceof Element?e.target:null;if(!target)return;
-    const button=target.closest('button');
-    const openedByFundButton=button&&String(button.getAttribute('onclick')||'').includes('openFundManagerV83');
-    const clickedInsideFundManager=Boolean(target.closest('#fundManagerOverlay'));
-    if(openedByFundButton||clickedInsideFundManager)setTimeout(syncTransferTargetOptions,0);
-  });
+  // 開啟資金管理視窗後同步一次，不監聽視窗內所有 click。
+  const baseOpenFundManager=window.openFundManagerV83;
+  if(typeof baseOpenFundManager==='function'){
+    window.openFundManagerV83=function(){
+      const r=baseOpenFundManager.apply(this,arguments);
+      setTimeout(syncTransferTargetOptions,0);
+      return r;
+    };
+  }
+
+  // 加入收支後 render 會重畫視窗；保留尚未儲存的初始餘額草稿。
+  const baseAddFundEntry=window.addFundEntryV83;
+  if(typeof baseAddFundEntry==='function'){
+    window.addFundEntryV83=function(){
+      const draft=captureInitialDraft();
+      const r=baseAddFundEntry.apply(this,arguments);
+      restoreInitialDraft(draft);
+      return r;
+    };
+  }
 
   const baseAddFundTransfer=window.addFundTransferV83;
   if(typeof baseAddFundTransfer==='function'){
     window.addFundTransferV83=function(){
+      const draft=captureInitialDraft();
       const from=String(document.getElementById('fundTransferFrom')?.value||'');
       const amount=Math.abs(num(document.getElementById('fundTransferAmount')?.value));
       const fee=Math.abs(num(document.getElementById('fundTransferFee')?.value));
@@ -70,7 +112,10 @@
           if(!ok)return;
         }
       }
-      return baseAddFundTransfer.apply(this,arguments);
+      const r=baseAddFundTransfer.apply(this,arguments);
+      restoreInitialDraft(draft);
+      setTimeout(syncTransferTargetOptions,0);
+      return r;
     };
   }
 
