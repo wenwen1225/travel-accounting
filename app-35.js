@@ -1,7 +1,7 @@
-// v93：全部紀錄只依「寫入 / 建立時間」倒序。
-// 不改交易日期、不碰資金輸入核心；刪除後重新排序顯示。
+// v101：全部紀錄依「寫入 / 建立時間」倒序。
+// 修正 v93 誤用 window.allRecordSource；直接操作全域 lexical allRecordSource。
 (()=>{
-  const FUND_V93_VERSION='2026.10.07-v93';
+  const FUND_V101_SORT_VERSION='2026.10.07-v101';
 
   function toMs(v){
     if(v===undefined||v===null||v==='')return 0;
@@ -17,7 +17,8 @@
     if(!item?._fundRecord||!currentTrip?.fundAccounts)return 0;
     const st=currentTrip.fundAccounts;
     if(item._fundKind==='initial'){
-      return toMs(st.accounts?.[item.accountId]?.initialCreatedAt);
+      return toMs(st.accounts?.[item.accountId]?.initialCreatedAt)
+        ||toMs(currentTrip?.fundInitialCreatedAt?.[item.accountId]);
     }
     if(item._fundKind==='transfer'){
       const t=(st.transfers||[]).find(x=>String(x.id)===String(item._fundId));
@@ -27,39 +28,41 @@
     return toMs(e?.createdAt)||idTime(e?.id)||idTime(item._fundId);
   }
   function writeTime(item){
-    return toMs(item?.createdAt)||toMs(item?.created_at)||toMs(item?.writeAt)||toMs(item?.updatedAt)||fundCreatedAt(item)||idTime(item?.id)||idTime(item?._fundId);
+    return toMs(item?.createdAt)
+      ||toMs(item?.created_at)
+      ||toMs(item?.writeAt)
+      ||toMs(item?.updatedAt)
+      ||fundCreatedAt(item)
+      ||idTime(item?.id)
+      ||idTime(item?._fundId);
   }
   function sortByWriteTime(){
-    if(!Array.isArray(window.allRecordSource))return;
-    window.allRecordSource=window.allRecordSource
-      .map((item,index)=>({item,index,time:writeTime(item)}))
-      .sort((a,b)=>{
-        if(b.time!==a.time)return b.time-a.time;
-        return b.index-a.index;
-      })
-      .map(x=>x.item);
+    try{
+      if(typeof allRecordSource==='undefined'||!Array.isArray(allRecordSource))return;
+      const sorted=allRecordSource
+        .map((item,index)=>({item,index,time:writeTime(item)}))
+        .sort((a,b)=>{
+          if(a.time&&b.time&&b.time!==a.time)return b.time-a.time;
+          if(a.time&&!b.time)return -1;
+          if(!a.time&&b.time)return 1;
+          return a.index-b.index;
+        })
+        .map(x=>x.item);
+      allRecordSource.length=0;
+      allRecordSource.push(...sorted);
+    }catch(e){
+      console.warn('v101 write-time sort skipped:',e);
+    }
   }
 
-  const baseOpenRecordsV93=window.openRecords;
+  const baseOpenRecordsV101=window.openRecords;
   window.openRecords=function(){
-    const r=typeof baseOpenRecordsV93==='function'?baseOpenRecordsV93():undefined;
+    const r=typeof baseOpenRecordsV101==='function'?baseOpenRecordsV101.apply(this,arguments):undefined;
     sortByWriteTime();
     if(typeof applyRecordFilters==='function')applyRecordFilters();
     return r;
   };
 
-  const baseDeleteFundRecordV93=window.deleteFundRecordV84;
-  if(typeof baseDeleteFundRecordV93==='function'){
-    window.deleteFundRecordV84=function(kind,id,accountId){
-      const r=baseDeleteFundRecordV93(kind,id,accountId);
-      setTimeout(()=>{
-        sortByWriteTime();
-        if(typeof applyRecordFilters==='function')applyRecordFilters();
-      },0);
-      return r;
-    };
-  }
-
-  try{window.WEB_VERSION=FUND_V93_VERSION;}catch(e){}
-  const webEl=document.getElementById('webVersionText');if(webEl)webEl.textContent=FUND_V93_VERSION;
+  try{window.WEB_VERSION=FUND_V101_SORT_VERSION;}catch(e){}
+  const webEl=document.getElementById('webVersionText');if(webEl)webEl.textContent=FUND_V101_SORT_VERSION;
 })();
