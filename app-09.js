@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v99；v99 僅限制帳戶轉移目標帳戶，不覆寫全域事件。
+// app-09 loader：載入至 v100；資金餘額不足提醒 + 待同步原因提示。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -28,9 +28,9 @@
     ['app-33.js',91],
     ['app-34.js',92],
     ['app-35.js',93],
-    ['app-36.js',96],
+    ['app-36.js',100],
     ['app-37.js',97],
-    ['app-38.js',99]
+    ['app-38.js',100]
   ];
   let index=0;
   function loadNext(){
