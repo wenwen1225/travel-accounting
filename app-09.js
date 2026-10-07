@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v105；緊急保護雲端重新讀取，只合併不刪除本機旅行。
+// app-09 loader：載入至 v106；安全雲端讀取 + 指定 Sheet 一次性旅行救援。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -30,7 +30,7 @@
     ['app-36.js',103],
     ['app-37.js',104],
     ['app-38.js',102],
-    ['app-39.js',105]
+    ['app-39.js',106]
   ];
   let index=0;
   function loadNext(){
