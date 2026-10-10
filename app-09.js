@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v114；快速補台幣支援雙向匯率換算，修正批次同步、Toss 匯率欄位與機台退稅完成狀態。
+// app-09 loader：載入至 v115；快速補台幣支援雙向匯率換算，修正批次同步、Toss 匯率欄位與退稅完成後保留機台名稱。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -37,7 +37,8 @@
     ['app-43.js','111-quick-twd-rate'],
     ['app-44.js','112-batch-sync'],
     ['app-45.js','113-toss-rate-ui'],
-    ['app-46.js','114-tax-refund-complete']
+    ['app-46.js','114-tax-refund-complete'],
+    ['app-47.js','115-tax-refund-machine-preserve']
   ];
   let index=0;
   function loadNext(){
