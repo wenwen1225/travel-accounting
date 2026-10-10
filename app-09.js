@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v112；快速補台幣支援雙向匯率換算，並修正手動待同步可一次跑完整批。
+// app-09 loader：載入至 v113；快速補台幣支援雙向匯率換算，修正批次同步與 Toss 匯率欄位顯示。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -35,7 +35,8 @@
     ['app-41.js',109],
     ['app-42.js','110-final'],
     ['app-43.js','111-quick-twd-rate'],
-    ['app-44.js','112-batch-sync']
+    ['app-44.js','112-batch-sync'],
+    ['app-45.js','113-toss-rate-ui']
   ];
   let index=0;
   function loadNext(){
