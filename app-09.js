@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v111；快速補台幣支援雙向匯率換算，其他既有功能維持不變。
+// app-09 loader：載入至 v112；快速補台幣支援雙向匯率換算，並修正手動待同步可一次跑完整批。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -34,7 +34,8 @@
     ['app-40.js',107],
     ['app-41.js',109],
     ['app-42.js','110-final'],
-    ['app-43.js','111-quick-twd-rate']
+    ['app-43.js','111-quick-twd-rate'],
+    ['app-44.js','112-batch-sync']
   ];
   let index=0;
   function loadNext(){
