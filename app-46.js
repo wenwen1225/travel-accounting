@@ -1,7 +1,7 @@
-// v114：新增「機台退稅完成✅」狀態，並讓首頁待退稅卡可一鍵標記完成。
+// v114.1：新增「機台退稅完成✅」狀態，首頁快捷按鈕改為二次確認後才修改資料。
 // 沿用既有 refundStatus / refundMachine 欄位與 updateExpense 同步，不修改 Apps Script 後端。
 (()=>{
-  const VER='2026.10.11-v114-tax-refund-complete';
+  const VER='2026.10.11-v114.1-tax-refund-confirm';
   const COMPLETED='機台退稅完成✅';
 
   function installStyles(){
@@ -18,7 +18,6 @@
     document.head.appendChild(style);
   }
 
-  // 在既有三個狀態後加入第四個「機台退稅完成」。
   if(typeof taxRefundEnsureExpenseUi==='function'){
     const baseEnsure=taxRefundEnsureExpenseUi;
     taxRefundEnsureExpenseUi=function(){
@@ -38,7 +37,6 @@
     };
   }
 
-  // 完成狀態仍保留原本的退稅公司／機台資訊，方便之後回查。
   if(typeof setTaxRefundStatus==='function'){
     setTaxRefundStatus=function(status){
       if(typeof taxRefundEnsureExpenseUi==='function') taxRefundEnsureExpenseUi();
@@ -109,10 +107,16 @@
     if(!item) return false;
     if(item.refundStatus!==TAX_REFUND_STATUS_MACHINE) return true;
 
+    const label=item.name || '這筆消費';
+    const machine=item.refundMachine || '未填寫退稅機台／地點';
+    const ok=confirm(
+      `確認這筆退稅已經完成嗎？\n\n${label}\n${machine}\n\n按「確定」後才會改成「機台退稅完成✅」。`
+    );
+    if(!ok) return false;
+
     if(button){ button.disabled=true; button.textContent='處理中…'; }
 
     item.refundStatus=COMPLETED;
-    // 保留 refundMachine；後端原本已有此欄，不新增資料表欄位。
     item.refundMachine=item.refundMachine||'';
     item.updatedAt=new Date().toISOString();
     item.syncStatus=getApiUrl?.() ? 'pending' : 'local';
@@ -127,9 +131,7 @@
     if(getApiUrl?.()){
       try{
         await syncRecord('updateExpense',currentTrip,'expenses',item);
-      }catch(e){
-        // syncRecord 自己會保留待同步 queue；本機狀態不回滾。
-      }
+      }catch(e){}
     }
 
     persist();
@@ -142,7 +144,6 @@
   }
   window.completeTaxRefundV114=completeRefund;
 
-  // 首頁「找機台退稅」預覽直接提供完成按鈕，不必重新打開整筆紀錄。
   if(typeof renderTaxRefundPendingSection==='function'){
     const baseRenderPending=renderTaxRefundPendingSection;
     renderTaxRefundPendingSection=function(){
@@ -171,7 +172,6 @@
     };
   }
 
-  // 若使用者從「查看」進入待處理清單，再點進紀錄編輯，也會看到第四個完成狀態。
   const baseOpenPending=window.openTaxRefundPendingList;
   if(typeof baseOpenPending==='function'){
     window.openTaxRefundPendingList=function(){
@@ -183,7 +183,6 @@
     };
   }
 
-  // 版本顯示固定到 v114。
   const baseRenderSettings=window.renderSettings;
   if(typeof baseRenderSettings==='function'){
     window.renderSettings=function(){
@@ -198,6 +197,5 @@
   if(web) web.textContent=VER;
   installStyles();
 
-  // 若目前正停在旅行首頁，立即刷新待退稅卡。
   try{ if(currentTrip && typeof renderTaxRefundPendingSection==='function') renderTaxRefundPendingSection(); }catch(e){}
 })();
