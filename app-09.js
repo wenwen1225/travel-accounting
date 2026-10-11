@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v120；快速補台幣支援雙向匯率換算，修正批次同步、Toss 匯率欄位、退稅完成後保留機台名稱，並支援退稅金額／方式與現金收入同步。
+// app-09 loader：載入至 v121；快速補台幣支援雙向匯率換算，修正批次同步、Toss 匯率欄位、退稅完成後保留機台名稱，支援退稅金額／方式與現金收入同步，並顯示原購買外幣金額。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -41,7 +41,8 @@
     ['app-47.js','117-person-aware-duplicate'],
     ['app-48.js','118-copy-item-name'],
     ['app-49.js','119-ui-cleanup'],
-    ['app-50.js','120-refund-settlement']
+    ['app-50.js','120-refund-settlement'],
+    ['app-51.js','121-refund-purchase-amount']
   ];
   let index=0;
   function loadNext(){
