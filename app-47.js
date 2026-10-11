@@ -174,3 +174,89 @@
 
   applyVersion();
 })();
+
+// v117：疑似重複判斷納入「人員」與付款方式。
+// 三個人同一天一起移動、各自刷交通卡時，即使項目與金額完全相同，也不應視為重複資料。
+(()=>{
+  const VER='2026.10.11-v117-person-aware-duplicate';
+
+  function personAwareKey(type,item){
+    if(type==='expenses'){
+      return [
+        normalizeTripDateValue(item.date),
+        normalizedRecordName(item.name),
+        Number(item.foreign||0),
+        String(item.person||''),
+        String(item.pay||''),
+        String(item.card||'')
+      ].join('|');
+    }
+    if(type==='pretrip'){
+      return [
+        normalizeTripDateValue(item.date),
+        normalizedRecordName(item.name),
+        Number(item.twd||0),
+        Number(item.foreign||0),
+        String(item.person||''),
+        String(item.pay||''),
+        String(item.card||'')
+      ].join('|');
+    }
+    return [
+      normalizeTripDateValue(item.date),
+      Number(item.twd||0),
+      Number(item.foreign||0)
+    ].join('|');
+  }
+
+  healthDuplicateGroups=function(){
+    const groups=[];
+    const configs=[
+      ['expenses',currentTrip?.expenses||[]],
+      ['pretrip',currentTrip?.pretrip||[]],
+      ['exchange',currentTrip?.exchange||[]]
+    ];
+
+    configs.forEach(([type,list])=>{
+      const map=new Map();
+      list.forEach(item=>{
+        const key=personAwareKey(type,item);
+        if(!key||key.startsWith('||'))return;
+        if(!map.has(key))map.set(key,[]);
+        map.get(key).push(item);
+      });
+      for(const items of map.values()){
+        if(items.length>1)groups.push({type,items});
+      }
+    });
+    return groups;
+  };
+
+  // 新增紀錄時的「可能重複」提醒也採同一規則，避免不同人被誤判。
+  findPotentialDuplicate=function(type,item,excludeId=''){
+    const list=type==='expenses'
+      ? (currentTrip?.expenses||[])
+      : type==='pretrip'
+        ? (currentTrip?.pretrip||[])
+        : (currentTrip?.exchange||[]);
+    const wanted=personAwareKey(type,item);
+    return list.find(existing=>existing&&existing.id!==excludeId&&personAwareKey(type,existing)===wanted)||null;
+  };
+
+  function applyVersion(){
+    try{window.WEB_VERSION=VER;}catch(e){}
+    const web=document.getElementById('webVersionText');
+    if(web)web.textContent=VER;
+  }
+
+  const baseRenderSettingsV117=window.renderSettings;
+  if(typeof baseRenderSettingsV117==='function'){
+    window.renderSettings=function(){
+      const r=baseRenderSettingsV117.apply(this,arguments);
+      applyVersion();
+      return r;
+    };
+  }
+
+  applyVersion();
+})();
