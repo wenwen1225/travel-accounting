@@ -5,10 +5,6 @@
   const VER='2026.10.11-v115';
   const COMPLETED='機台退稅完成✅';
 
-  // v73 的同步包裝只有「找機台退稅❗️」會保留 refundMachine。
-  // v114 新增完成狀態後，直接從首頁按完成會進到 syncRecord，舊邏輯因此會把機台名稱清空。
-  // 這裡在完成狀態同步期間提供既有 snapshot，讓 v114 的 taxRefundApplyToItem
-  // 同時保留 refundStatus 與 refundMachine，再交給原同步流程處理。
   if(typeof syncRecord==='function'){
     const baseSyncRecordV115=syncRecord;
     syncRecord=async function(action,trip,type,item){
@@ -20,10 +16,7 @@
         try{
           if(typeof taxRefundSaveSnapshot!=='undefined'){
             previousSnapshot=taxRefundSaveSnapshot;
-            taxRefundSaveSnapshot={
-              status:COMPLETED,
-              machine:String(item?.refundMachine||'')
-            };
+            taxRefundSaveSnapshot={status:COMPLETED,machine:String(item?.refundMachine||'')};
             canUseSnapshot=true;
           }
         }catch(e){}
@@ -39,7 +32,6 @@
     };
   }
 
-  // 再保險：每次完成狀態套回表單／紀錄時，機台名稱都維持原值。
   if(typeof taxRefundApplyToItem==='function'){
     const baseApplyToItemV115=taxRefundApplyToItem;
     taxRefundApplyToItem=function(item,snapshot){
@@ -118,7 +110,8 @@
     healthDuplicateGroups=function(){
       const groups=baseDuplicateGroups.apply(this,arguments)||[];
       return groups.filter(group=>{
-        const key=duplicateKey(group);const first=group?.items?.[0];
+        const key=duplicateKey(group);
+        const first=group?.items?.[0];
         if(first)duplicateKeyCache.set(first,key);
         return !isAck(key);
       });
@@ -139,13 +132,14 @@
       let html=baseIssueCard.apply(this,arguments);
       const confirmable=title==='疑似重複紀錄'||title==='疑似異常大額';
       if(!confirmable||!item?.id)return html;
+
       const key=title==='疑似重複紀錄'
         ? (duplicateKeyCache.get(item)||makeKey('duplicate-fallback',type,{item:stableRecordData(type,item),detail}))
         : anomalyKey(type,item);
       const encoded=encodeURIComponent(key);
       const label=title==='疑似重複紀錄'?'疑似重複紀錄':'疑似異常大額';
       const button=`<button class="secondary health-confirm-btn" type="button" onclick="confirmHealthIssueV116('${encoded}','${label}')">✓ 確認沒問題</button>`;
-      return html.replace('</div>\n  ',`${button}</div>\n  `);
+      return html.replace(/\n\s*<\/div>\s*$/,`\n      ${button}\n    </div>`);
     };
   }
 
@@ -158,11 +152,25 @@
   };
 
   if(!document.getElementById('healthAckV116Styles')){
-    const s=document.createElement('style');s.id='healthAckV116Styles';
+    const s=document.createElement('style');
+    s.id='healthAckV116Styles';
     s.textContent='.health-confirm-btn{margin-top:10px;border-color:#d9cff7!important;background:#f8f5ff!important;color:#6f55cf!important;font-weight:900!important}.health-confirm-btn:active{transform:scale(.99)}';
     document.head.appendChild(s);
   }
 
-  try{window.WEB_VERSION=VER;}catch(e){}
-  const web=document.getElementById('webVersionText');if(web)web.textContent=VER;
+  function applyVersion(){
+    try{window.WEB_VERSION=VER;}catch(e){}
+    const web=document.getElementById('webVersionText');
+    if(web)web.textContent=VER;
+  }
+  const baseRenderSettingsV116=window.renderSettings;
+  if(typeof baseRenderSettingsV116==='function'){
+    window.renderSettings=function(){
+      const r=baseRenderSettingsV116.apply(this,arguments);
+      applyVersion();
+      return r;
+    };
+  }
+
+  applyVersion();
 })();
