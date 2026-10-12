@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v124；退稅改為正式欄位，現金退稅進 CASH，信用卡退稅沖減支出，並恢復首頁待退稅區塊與完成按鈕。
+// app-09 loader：載入至 v125；退稅改為正式欄位，信用卡退稅沖減支出，恢復待退稅按鈕，退稅方式僅保留現金／信用卡。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -31,7 +31,7 @@
     ['app-37.js',104],
     ['app-38.js',102],
     ['app-39.js',106],
-    ['app-40.js','124-backend60'],
+    ['app-40.js','125-backend61'],
     ['app-41.js',109],
     ['app-42.js','110-final'],
     ['app-43.js','111-quick-twd-rate'],
@@ -45,7 +45,8 @@
     ['app-51.js','121-refund-purchase-amount'],
     ['app-52.js','122-refund-structured-credit-net'],
     ['app-53.js','123-refund-legacy-migrate'],
-    ['app-54.js','124-restore-refund-pending']
+    ['app-54.js','124-restore-refund-pending'],
+    ['app-55.js','125-refund-method-cleanup']
   ];
   let index=0;
   function loadNext(){
