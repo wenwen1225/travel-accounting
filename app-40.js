@@ -1,7 +1,7 @@
-// v107：指定 Sheet 一次性救援 + v57 後端版本統一 + 雲端讀取只合併不刪本機旅行。
+// v107：指定 Sheet 一次性救援 + v58 後端版本統一 + 雲端讀取只合併不刪本機旅行。
 (()=>{
   const VER='2026.10.07-v107';
-  const EXPECTED_BACKEND='v57';
+  const EXPECTED_BACKEND='v58';
   const RECOVERY_SHEET_ID='1iOki0_URAhwnALSbbBzUymoKETxJ6kfqnmkXqYyYtJ8';
   const rawPostToCloud=window.postToCloud;
 
@@ -10,7 +10,7 @@
     const web=document.getElementById('webVersionText');if(web)web.textContent=VER;
   }
 
-  // 舊資金同步模組仍寫死 v56；只對它們的版本檢查做相容，不影響設定頁與救援顯示 v57。
+  // 舊資金同步模組仍寫死 v56；只對它們的版本檢查做相容，不影響設定頁與救援顯示 v58。
   if(typeof rawPostToCloud==='function'){
     window.postToCloud=async function(payload){
       const data=await rawPostToCloud.apply(this,arguments);
@@ -28,7 +28,7 @@
   async function recoverTargetTripIfMissing(){
     if(hasRecoveredTrip())return {ok:true,skipped:true};
     const version=await actualCloudCall({action:'getVersion'});
-    if(String(version?.scriptVersion||'')!==EXPECTED_BACKEND)throw new Error('請先部署後端 v57，再重新按一次「重新讀取雲端最新資料」。目前後端：'+String(version?.scriptVersion||'未知'));
+    if(String(version?.scriptVersion||'')!==EXPECTED_BACKEND)throw new Error('請先部署後端 v58，再重新按一次「重新讀取雲端最新資料」。目前後端：'+String(version?.scriptVersion||'未知'));
     const data=await actualCloudCall({action:'recoverTripBySpreadsheetId',spreadsheetId:RECOVERY_SHEET_ID});
     const trip=data?.trip;
     if(!data?.recovered||!trip?.id)throw new Error('指定 Google Sheet 尚未成功還原旅行資料。');
