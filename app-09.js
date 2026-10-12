@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v122；退稅改為正式欄位，現金退稅進 CASH，信用卡退稅沖減支出。
+// app-09 loader：載入至 v123；退稅改為正式欄位，現金退稅進 CASH，信用卡退稅沖減支出，並自動相容舊退稅資料。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -43,7 +43,8 @@
     ['app-49.js','119-ui-cleanup'],
     ['app-50.js','120-refund-settlement'],
     ['app-51.js','121-refund-purchase-amount'],
-    ['app-52.js','122-refund-structured-credit-net']
+    ['app-52.js','122-refund-structured-credit-net'],
+    ['app-53.js','123-refund-legacy-migrate']
   ];
   let index=0;
   function loadNext(){
