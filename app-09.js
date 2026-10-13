@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v126；保留穩定 v61 後端，新增安全換匯方向介面，不覆寫核心新增／修改／儲存流程。
+// app-09 loader：載入至 v127；保留穩定 v61 後端，安全換匯方向＋換匯刪除同步修正。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -47,7 +47,8 @@
     ['app-53.js','123-refund-legacy-migrate'],
     ['app-54.js','124-restore-refund-pending'],
     ['app-55.js','125-refund-method-cleanup'],
-    ['app-56.js','126-exchange-direction-safe']
+    ['app-56.js','126-exchange-direction-safe'],
+    ['app-57.js','127-exchange-delete-sync']
   ];
   let index=0;
   function loadNext(){
