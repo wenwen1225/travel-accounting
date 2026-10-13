@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v125；退稅改為正式欄位，信用卡退稅沖減支出，恢復待退稅按鈕，退稅方式僅保留現金／信用卡。
+// app-09 loader：載入至 v126；保留穩定 v61 後端，新增安全換匯方向介面，不覆寫核心新增／修改／儲存流程。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -46,7 +46,8 @@
     ['app-52.js','122-refund-structured-credit-net'],
     ['app-53.js','123-refund-legacy-migrate'],
     ['app-54.js','124-restore-refund-pending'],
-    ['app-55.js','125-refund-method-cleanup']
+    ['app-55.js','125-refund-method-cleanup'],
+    ['app-56.js','126-exchange-direction-safe']
   ];
   let index=0;
   function loadNext(){
