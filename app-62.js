@@ -1,6 +1,6 @@
-// v132：全部紀錄中的換匯顯示改成「來源幣別金額 → 目標幣別金額」。只改前端顯示，不碰同步與後端。
+// v133：全部紀錄中的換匯顯示＋直接刪除。沿用既有雲端刪除規則，不碰新增/修改/後端資料格式。
 (()=>{
-  const VER='2026.10.13-v132-records-exchange-pair-display';
+  const VER='2026.10.13-v133-records-exchange-delete';
   const oldRecordHtml=window.recordHtml;
   if(typeof oldRecordHtml!=='function') return;
 
@@ -49,6 +49,48 @@
     return inferLegacy(item);
   }
 
+  window.deleteExchangeFromRecords=async function(id,event){
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if(isCurrentTripArchived()) return archiveReadOnlyAlert();
+    if(!currentTrip || !id) return;
+
+    const item=(currentTrip.exchange||[]).find(x=>x.id===id);
+    if(!item) return;
+    const confirmText=typeof deleteRecordConfirmText==='function'
+      ? deleteRecordConfirmText('exchange',item)
+      : '確定要刪除這筆換匯紀錄嗎？';
+    if(!confirm(confirmText)) return;
+
+    if(getApiUrl() && currentTrip.spreadsheetId){
+      try{
+        await postToCloud({
+          action:'deleteExchange',
+          spreadsheetId:currentTrip.spreadsheetId,
+          clientTripId:currentTrip.id,
+          recordId:item.id,
+          baseFingerprint:item.cloudFingerprint || ''
+        });
+      }catch(err){
+        const message=String(err?.message || err || '');
+        if(!message.includes('找不到要刪除的換匯紀錄')){
+          alert('Google Sheets 刪除失敗，本機資料先保留：'+message);
+          return;
+        }
+      }
+    }
+
+    currentTrip.exchange=(currentTrip.exchange||[]).filter(x=>x.id!==id);
+    state.syncQueue=(state.syncQueue||[]).filter(q=>q.recordId!==id);
+    if(typeof allRecordSource!=='undefined'){
+      allRecordSource=(allRecordSource||[]).filter(x=>x.id!==id);
+    }
+    persist();
+    if(typeof applyRecordFilters==='function') applyRecordFilters();
+    if(typeof renderTripSummary==='function') renderTripSummary();
+    alert('這筆換匯紀錄已刪除，Google Sheets 也會同步移除。');
+  };
+
   window.recordHtml=function(x){
     if(x?.type!=='換匯') return oldRecordHtml.apply(this,arguments);
 
@@ -73,11 +115,11 @@
         <div class="record-amt">
           <strong>${money(p.sourceCurrency,p.sourceAmount)}</strong>
           <span>→ ${money(p.targetCurrency,p.targetAmount)}</span>
+          ${editable?`<button type="button" class="pill danger" style="margin-top:8px" onclick="deleteExchangeFromRecords('${x.id}',event)">刪除</button>`:''}
         </div>
       </div>`;
   };
 
-  // 若使用者正在「全部紀錄」頁，載入新版後立即重畫一次。
   try{
     if(document.getElementById('page-records') && !document.getElementById('page-records').classList.contains('hidden') && typeof applyRecordFilters==='function'){
       applyRecordFilters();
