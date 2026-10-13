@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v131；保留 v61 系列後端，任意幣別換匯＋v61.4 相容＋匯率公式統一。
+// app-09 loader：載入至 v132；保留 v61 系列後端，任意幣別換匯＋v61.4 相容＋匯率公式統一＋全部紀錄顯示。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -52,7 +52,8 @@
     ['app-58.js','128-multi-currency-exchange'],
     ['app-59.js','129-backend-61.4-compat'],
     ['app-60.js','130-exchange-rate-ui-cleanup'],
-    ['app-61.js','131-exchange-rate-formula']
+    ['app-61.js','131-exchange-rate-formula'],
+    ['app-62.js','132-records-exchange-pair-display']
   ];
   let index=0;
   function loadNext(){
