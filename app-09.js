@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v137；保留 v61 系列後端，任意幣別換匯＋資料異常確認＋資金帳戶分流＋每日現金流＋旅行支出分析。
+// app-09 loader：載入至 v138；保留 v61 系列後端，任意幣別換匯＋資料異常確認＋資金帳戶分流＋每日現金流＋旅行支出分析。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -56,7 +56,8 @@
     ['app-62.js','134-records-exchange-swipe-delete'],
     ['app-63.js','135-health-ack-stable'],
     ['app-64.js','136-fund-currency-daily-summary'],
-    ['app-65.js','137-trip-expense-analysis']
+    ['app-65.js','137-trip-expense-analysis'],
+    ['app-66.js','138-hide-stats-sheet-update']
   ];
   let index=0;
   function loadNext(){
