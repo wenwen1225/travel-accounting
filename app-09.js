@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v128；保留 v61 系列後端，新增任意幣別換匯介面與 v61.3 相容儲存。
+// app-09 loader：載入至 v129；保留 v61 系列後端，任意幣別換匯＋v61.4 相容修正。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -49,7 +49,8 @@
     ['app-55.js','125-refund-method-cleanup'],
     ['app-56.js','126-exchange-direction-safe'],
     ['app-57.js','127-exchange-delete-sync'],
-    ['app-58.js','128-multi-currency-exchange']
+    ['app-58.js','128-multi-currency-exchange'],
+    ['app-59.js','129-backend-61.4-compat']
   ];
   let index=0;
   function loadNext(){
