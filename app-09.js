@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v140；保留 v61 系列後端，任意幣別換匯＋資料異常確認＋資金帳戶分流＋每日現金流＋旅行支出分析＋全部紀錄快捷按鈕一致化。
+// app-09 loader：載入至 v141；保留 v61 系列後端，任意幣別換匯＋資料異常確認＋資金帳戶分流＋每日現金流＋旅行支出分析＋全部紀錄快捷按鈕一致化。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -59,7 +59,8 @@
     ['app-65.js','137-trip-expense-analysis'],
     ['app-66.js','138-hide-stats-sheet-update'],
     ['app-67.js','139-record-filter-action-layout'],
-    ['app-68.js','140-record-filter-button-style']
+    ['app-68.js','140-record-filter-button-style'],
+    ['app-69.js','141-record-filter-selected-state']
   ];
   let index=0;
   function loadNext(){
