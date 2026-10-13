@@ -1,6 +1,6 @@
-// v133：全部紀錄中的換匯顯示＋直接刪除。沿用既有雲端刪除規則，不碰新增/修改/後端資料格式。
+// v134：全部紀錄中的換匯改回既有「右滑刪除」互動。沿用 app-41 的 regular-swipe 機制與 deleteCurrentExchange，不碰後端/同步架構。
 (()=>{
-  const VER='2026.10.13-v133-records-exchange-delete';
+  const VER='2026.10.13-v134-records-exchange-swipe-delete';
   const oldRecordHtml=window.recordHtml;
   if(typeof oldRecordHtml!=='function') return;
 
@@ -22,6 +22,14 @@
       minimumFractionDigits:0,
       maximumFractionDigits:digits
     });
+  }
+
+  function escAttr(v){
+    return String(v??'')
+      .replace(/&/g,'&amp;')
+      .replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
   }
 
   function inferLegacy(item){
@@ -49,48 +57,6 @@
     return inferLegacy(item);
   }
 
-  window.deleteExchangeFromRecords=async function(id,event){
-    event?.preventDefault?.();
-    event?.stopPropagation?.();
-    if(isCurrentTripArchived()) return archiveReadOnlyAlert();
-    if(!currentTrip || !id) return;
-
-    const item=(currentTrip.exchange||[]).find(x=>x.id===id);
-    if(!item) return;
-    const confirmText=typeof deleteRecordConfirmText==='function'
-      ? deleteRecordConfirmText('exchange',item)
-      : '確定要刪除這筆換匯紀錄嗎？';
-    if(!confirm(confirmText)) return;
-
-    if(getApiUrl() && currentTrip.spreadsheetId){
-      try{
-        await postToCloud({
-          action:'deleteExchange',
-          spreadsheetId:currentTrip.spreadsheetId,
-          clientTripId:currentTrip.id,
-          recordId:item.id,
-          baseFingerprint:item.cloudFingerprint || ''
-        });
-      }catch(err){
-        const message=String(err?.message || err || '');
-        if(!message.includes('找不到要刪除的換匯紀錄')){
-          alert('Google Sheets 刪除失敗，本機資料先保留：'+message);
-          return;
-        }
-      }
-    }
-
-    currentTrip.exchange=(currentTrip.exchange||[]).filter(x=>x.id!==id);
-    state.syncQueue=(state.syncQueue||[]).filter(q=>q.recordId!==id);
-    if(typeof allRecordSource!=='undefined'){
-      allRecordSource=(allRecordSource||[]).filter(x=>x.id!==id);
-    }
-    persist();
-    if(typeof applyRecordFilters==='function') applyRecordFilters();
-    if(typeof renderTripSummary==='function') renderTripSummary();
-    alert('這筆換匯紀錄已刪除，Google Sheets 也會同步移除。');
-  };
-
   window.recordHtml=function(x){
     if(x?.type!=='換匯') return oldRecordHtml.apply(this,arguments);
 
@@ -101,8 +67,8 @@
       ? `1 ${p.sourceCurrency} = ${rate.toLocaleString('en-US',{maximumFractionDigits:6})} ${p.targetCurrency}`
       : `${p.sourceCurrency} → ${p.targetCurrency}`;
 
-    return `
-      <div class="record ${editable?'editable':''}" ${editable?`onclick="editExchange('${x.id}')"`:''}>
+    const inner=`
+      <div class="record ${editable?'editable':''}" ${editable?`onclick="editExchange('${escAttr(x.id)}')"`:''}>
         <div class="avatar person-avatar">換</div>
         <div class="record-main">
           <strong>換匯紀錄</strong>
@@ -115,9 +81,13 @@
         <div class="record-amt">
           <strong>${money(p.sourceCurrency,p.sourceAmount)}</strong>
           <span>→ ${money(p.targetCurrency,p.targetAmount)}</span>
-          ${editable?`<button type="button" class="pill danger" style="margin-top:8px" onclick="deleteExchangeFromRecords('${x.id}',event)">刪除</button>`:''}
         </div>
       </div>`;
+
+    if(!editable) return inner;
+
+    // 完全沿用 app-41 既有 swipe DOM 結構，讓 applyRecordFilters 後的 bindRegularSwipe 自動綁定。
+    return `<div class="regular-swipe-shell" data-kind="exchange" data-id="${escAttr(x.id)}"><button class="regular-swipe-delete" type="button">刪除</button><div class="regular-swipe-content">${inner}</div></div>`;
   };
 
   try{
