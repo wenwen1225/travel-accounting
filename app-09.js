@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v127；保留穩定 v61 後端，安全換匯方向＋換匯刪除同步修正。
+// app-09 loader：載入至 v128；保留 v61 系列後端，新增任意幣別換匯介面與 v61.3 相容儲存。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -48,7 +48,8 @@
     ['app-54.js','124-restore-refund-pending'],
     ['app-55.js','125-refund-method-cleanup'],
     ['app-56.js','126-exchange-direction-safe'],
-    ['app-57.js','127-exchange-delete-sync']
+    ['app-57.js','127-exchange-delete-sync'],
+    ['app-58.js','128-multi-currency-exchange']
   ];
   let index=0;
   function loadNext(){
