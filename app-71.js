@@ -139,3 +139,13 @@
   if(web) web.textContent=VER;
   setTimeout(()=>{if(currentTrip)applyPaymentVisibility();},0);
 })();
+
+// v144：載入退稅機台欄位完整同步補丁。
+(()=>{
+  if(document.getElementById('v144TaxRefundMachineSyncLoader')) return;
+  const s=document.createElement('script');
+  s.id='v144TaxRefundMachineSyncLoader';
+  s.src='app-72.js?v=144';
+  s.async=false;
+  document.body.appendChild(s);
+})();
