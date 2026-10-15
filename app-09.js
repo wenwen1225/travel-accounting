@@ -1,4 +1,4 @@
-// app-09 loader：載入至 v143；保留 v61 系列後端，任意幣別換匯＋資料異常確認＋資金帳戶分流＋每日現金流＋旅行支出分析＋全部紀錄快捷按鈕一致化＋共同資金區塊排序＋韓國專屬付款分流。
+// app-09 loader：載入至 v146；保留既有功能，並載入退稅機台同步、全部紀錄退稅篩選與安全雲端 UI。
 (()=>{
   const scripts=[
     ['app-09-base-v61.js',61],
@@ -62,7 +62,9 @@
     ['app-68.js','140-record-filter-button-style'],
     ['app-69.js','141-record-filter-selected-state'],
     ['app-70.js','142-fund-section-order'],
-    ['app-71.js','143-korea-payment-split']
+    ['app-71.js','143-korea-payment-split'],
+    ['app-72.js','145-record-filter-refund'],
+    ['app-73.js','146-safe-cloud-ui']
   ];
   let index=0;
   function loadNext(){
