@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/style.css", "destination": "/css/style.css" },
+    { "source": "/app-01.js", "destination": "/js/app-01.js" },
+    { "source": "/app-02.js", "destination": "/js/app-02.js" },
+    { "source": "/app-03.js", "destination": "/js/app-03.js" },
+    { "source": "/app-04.js", "destination": "/js/app-04.js" },
+    { "source": "/app-05.js", "destination": "/js/app-05.js" },
+    { "source": "/app-06.js", "destination": "/js/app-06.js" },
+    { "source": "/app-07.js", "destination": "/js/app-07.js" }
+  ]
+}
