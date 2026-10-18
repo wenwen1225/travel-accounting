@@ -340,12 +340,20 @@ function recordSearchText(item){
 
 function applyRecordFilters(){
   const keyword=(document.getElementById('recordSearch')?.value||'').trim().toLowerCase();
+  const recordType=document.getElementById('recordFilterType')?.value||'';
+  const refundFilter=document.getElementById('recordFilterRefund')?.value||'';
   const date=document.getElementById('recordFilterDate')?.value||'';
   const person=document.getElementById('recordFilterPerson')?.value||'';
   const pay=document.getElementById('recordFilterPay')?.value||'';
   const card=document.getElementById('recordFilterCard')?.value||'';
 
   const filtered=allRecordSource.filter(item=>{
+    if(recordType && item.type!==recordType) return false;
+    if(refundFilter){
+      const status=String(item.refundStatus||item.taxRefundStatus||'').trim();
+      if(refundFilter==='__refund_any__' && !status) return false;
+      if(refundFilter!=='__refund_any__' && status!==refundFilter) return false;
+    }
     if(keyword && !recordSearchText(item).includes(keyword)) return false;
     if(date && normalizeTripDateValue(item.date)!==date) return false;
     if(person && item.person!==person) return false;
@@ -365,7 +373,7 @@ function applyRecordFilters(){
 }
 
 function clearRecordFilters(refresh=true){
-  const ids=['recordSearch','recordFilterDate','recordFilterPerson','recordFilterPay','recordFilterCard'];
+  const ids=['recordSearch','recordFilterType','recordFilterRefund','recordFilterDate','recordFilterPerson','recordFilterPay','recordFilterCard'];
   ids.forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.value='';
