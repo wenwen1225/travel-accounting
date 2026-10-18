@@ -2,6 +2,7 @@
    Writes continue unchanged. Do not embed or transmit the GAS URL. */
 (function(){
   'use strict';
+  window.TRAVEL_PREVIEW_READ_ONLY = true;
   const oldPost = postToCloud;
   postToCloud = async function(payload){
     const action = payload && payload.action;
