@@ -2,6 +2,8 @@
 // Configure TRAVEL_GAS_URL as a Vercel server environment variable.
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  // This diagnostic endpoint must never serve a production deployment.
+  if (process.env.VERCEL_ENV !== 'preview') return res.status(403).json({success:false, code:'PREVIEW_ONLY'});
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({success:false, code:'METHOD_NOT_ALLOWED'});
