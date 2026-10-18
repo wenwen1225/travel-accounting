@@ -144,6 +144,8 @@
       lastCloudPullAt = lastSafeRead;
       if (state.lastCloudRevision) lastCloudRevision = state.lastCloudRevision;
       renderHome();
+      const oldNotice = document.getElementById('travelPreviewReadNotice');
+      if (oldNotice) oldNotice.remove();
       if (currentTrip) {
         const sameTrip = getTripById(currentTrip.id);
         if (sameTrip) { currentTrip = sameTrip; renderTripSummary(); }
@@ -153,6 +155,19 @@
       return true;
     } catch (error) {
       console.error('Safe cloud read failed:', error);
+      if (window.TRAVEL_PREVIEW_READ_ONLY) {
+        const key = 'travelPreviewReadNotice';
+        let notice = document.getElementById(key);
+        if (!notice) {
+          notice = document.createElement('div');
+          notice.id = key;
+          notice.setAttribute('role','status');
+          notice.style.cssText = 'margin:12px 20px;padding:12px;border:1px solid #d8b5a5;border-radius:12px;background:#fff4ee;color:#78412b;font-size:13px;line-height:1.6;white-space:pre-wrap;';
+          const list = document.getElementById('tripList');
+          if (list && list.parentNode) list.parentNode.insertBefore(notice, list);
+        }
+        notice.textContent = '雲端讀取尚未成功（本機資料未改動）：' + String(error?.message || error) + '\\n請截圖這段訊息。';
+      }
       if (!silent) alert('安全讀取失敗，原有紀錄未變更：\n' + (error?.message || error));
       return false;
     } finally {
