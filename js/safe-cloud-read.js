@@ -140,6 +140,7 @@
         if (before !== null) localStorage.setItem(STORE_KEY, before);
         throw saveError;
       }
+      window.TRAVEL_READ_ERROR = '';
       lastSafeRead = Date.now();
       lastCloudPullAt = lastSafeRead;
       if (state.lastCloudRevision) lastCloudRevision = state.lastCloudRevision;
@@ -154,6 +155,7 @@
       if (!silent) alert('安全讀取完成：新增 ' + result.addedTrips + ' 趟旅行、' + result.addedRecords + ' 筆紀錄；更新 ' + result.updatedRecords + ' 筆已同步紀錄。封存旅行和本機待同步資料均未覆蓋。');
       return true;
     } catch (error) {
+      window.TRAVEL_READ_ERROR = String(error?.message || error);
       console.error('Safe cloud read failed:', error);
       if (window.TRAVEL_PREVIEW_READ_ONLY) {
         const key = 'travelPreviewReadNotice';
