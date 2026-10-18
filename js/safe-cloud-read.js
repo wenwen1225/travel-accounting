@@ -23,8 +23,8 @@
         }
       }
     }
-    if (data.trips.length === 0 && Array.isArray(state.trips) && state.trips.length > 0) {
-      throw new Error('雲端回傳零趟旅行；為保護既有紀錄，未套用空資料。');
+    if (data.trips.length === 0) {
+      throw new Error('雲端回傳 0 趟旅行；這不代表同步成功。請檢查 GAS 的 getAllData 是否能列出既有旅行。原本資料未變更。');
     }
     return data.trips;
   }
