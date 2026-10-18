@@ -31,4 +31,34 @@
     }
     return data;
   };
+  // Preview diagnostic only: legacy v51 strict equality must not instruct users
+  // to downgrade a newer live GAS deployment. Confirm API reachability separately.
+  checkBackendVersion = async function(silent=true) {
+    const scriptEl=document.getElementById('scriptVersionText');
+    const statusEl=document.getElementById('versionMatchStatus');
+    const btn=document.getElementById('versionCheckBtn');
+    if(btn){btn.disabled=true;btn.textContent='檢查中…';}
+    try {
+      const data=await postToCloud({action:'getVersion'});
+      const version=String(data.scriptVersion||'未知');
+      if(scriptEl)scriptEl.textContent=version;
+      if(statusEl){
+        statusEl.textContent='GAS 已回應（'+version+'）。舊版預期 v51 僅供參考；資料相容性以雲端讀取測試為準。';
+        statusEl.className='version-check-status version-check-warn';
+      }
+      if(!silent)alert('GAS 連線檢查成功：'+version+'。請另外確認旅行清單是否成功讀取。');
+      return true;
+    }catch(error){
+      if(scriptEl)scriptEl.textContent='檢查失敗';
+      if(statusEl){
+        statusEl.textContent='GAS 版本讀取失敗：'+String(error?.message||error);
+        statusEl.className='version-check-status version-check-error';
+      }
+      if(!silent)alert('版本讀取失敗：'+String(error?.message||error));
+      return false;
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='檢查版本';}
+    }
+  };
+
 })();
