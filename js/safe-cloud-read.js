@@ -34,6 +34,8 @@
     const existing = new Map(merged.map(t => [String(t.id), t]));
     let addedTrips = 0;
     let addedRecords = 0;
+    let updatedRecords = 0;
+    const pendingIds = new Set((state.syncQueue || []).filter(q => q.recordId).map(q => String(q.recordId)));
 
     for (const remote of cloudTrips) {
       const id = String(remote.id);
@@ -59,18 +61,31 @@
       // Never overwrite existing trip metadata or any existing local record.
       for (const key of RECORD_TYPES) {
         if (!Array.isArray(local[key])) local[key] = [];
-        const ids = new Set(local[key].map(r => String(r.id)));
+        const byId = new Map(local[key].filter(r => r && r.id != null).map(r => [String(r.id), r]));
         for (const remoteRecord of (remote[key] || [])) {
           if (!remoteRecord || remoteRecord.id === undefined || remoteRecord.id === null) continue;
           const recordId = String(remoteRecord.id);
-          if (ids.has(recordId)) continue;
-          local[key].push({...remoteRecord, syncStatus:'synced', lastSyncError:''});
-          ids.add(recordId);
+          const old = byId.get(recordId);
+          if (old) {
+            // Refresh only previously synced records, never pending local edits.
+            if (old.syncStatus === 'synced' && !pendingIds.has(recordId)) {
+              const replacement = {...remoteRecord, syncStatus:'synced', lastSyncError:''};
+              if (JSON.stringify(old) !== JSON.stringify(replacement)) {
+                Object.keys(old).forEach(k => delete old[k]);
+                Object.assign(old, replacement);
+                updatedRecords++;
+              }
+            }
+            continue;
+          }
+          const newRecord = {...remoteRecord, syncStatus:'synced', lastSyncError:''};
+          local[key].push(newRecord);
+          byId.set(recordId, newRecord);
           addedRecords++;
         }
       }
     }
-    return {merged, addedTrips, addedRecords};
+    return {merged, addedTrips, addedRecords, updatedRecords};
   }
 
   async function safeReadCloud(options = {}) {
@@ -100,9 +115,12 @@
       const localTrips = Array.isArray(state.trips) ? state.trips : [];
       const result = mergeMissingOnly(localTrips, cloudTrips);
 
-      // Save a restorable snapshot BEFORE touching the live dataset.
-      const snapshotKey = BACKUP_PREFIX + new Date().toISOString().replace(/[:.]/g, '-');
-      if (before !== null) localStorage.setItem(snapshotKey, before);
+      // Preserve a pre-read snapshot only if content changed.
+      // If storage is full, abort without touching live data.
+      if (result.addedTrips || result.addedRecords || result.updatedRecords) {
+        const snapshotKey = BACKUP_PREFIX + new Date().toISOString().replace(/[:.]/g, '-');
+        if (before !== null) localStorage.setItem(snapshotKey, before);
+      }
       const priorTrips = state.trips;
       const priorRevision = state.lastCloudRevision;
       const priorSyncAt = state.lastSyncAt;
@@ -129,7 +147,7 @@
         if (sameTrip) { currentTrip = sameTrip; renderTripSummary(); }
       }
       updateHomeSyncStatus();
-      if (!silent) alert('安全讀取完成：新增 ' + result.addedTrips + ' 趟旅行、' + result.addedRecords + ' 筆紀錄。原本的旅行與記帳資料沒有被刪除或覆蓋。');
+      if (!silent) alert('安全讀取完成：新增 ' + result.addedTrips + ' 趟旅行、' + result.addedRecords + ' 筆紀錄；更新 ' + result.updatedRecords + ' 筆已同步紀錄。封存旅行和本機待同步資料均未覆蓋。');
       return true;
     } catch (error) {
       console.error('Safe cloud read failed:', error);
@@ -150,6 +168,17 @@
   };
   // Explicitly do NOT trigger any write or resend pending queue during startup.
   syncAndPullCloud = function () { return safeReadCloud({silent:true}); };
+
+  // Returning from background or reconnecting only triggers a read, never a write.
+  function refreshOnReturn() {
+    if (reading || Date.now() - lastSafeRead < 60000) return;
+    if (!getApiUrl() || state.backupRestoreLocalOnly) return;
+    safeReadCloud({silent:true});
+  }
+  window.addEventListener('online', refreshOnReturn);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshOnReturn();
+  });
 
   // A configured browser may safely add missing cloud records on startup.
   // A new browser needs one-time GAS URL setup; do not publish a private URL in source.
