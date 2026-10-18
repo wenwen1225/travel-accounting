@@ -31,6 +31,21 @@
     }
     return data;
   };
+  // Never show a green "synced" banner when the cloud index is empty or unreadable.
+  const oldHomeStatus = updateHomeSyncStatus;
+  updateHomeSyncStatus = function(){
+    oldHomeStatus();
+    if (!window.TRAVEL_READ_ERROR) return;
+    const root=document.getElementById('homeSyncStatus');
+    const label=document.getElementById('homeSyncText');
+    const subtitle=document.getElementById('homeLastSync');
+    const ico=document.getElementById('homeSyncIcon');
+    if(root)root.className='home-sync-status home-sync-pending';
+    if(label)label.textContent='雲端讀取異常';
+    if(subtitle)subtitle.textContent='本機紀錄仍保留，尚未確認雲端資料';
+    if(ico)ico.textContent='!';
+  };
+
   // Preview diagnostic only: legacy v51 strict equality must not instruct users
   // to downgrade a newer live GAS deployment. Confirm API reachability separately.
   checkBackendVersion = async function(silent=true) {
