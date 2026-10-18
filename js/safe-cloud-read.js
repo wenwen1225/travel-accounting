@@ -54,8 +54,9 @@
         addedTrips++;
         continue;
       }
-      // Never overwrite existing trip metadata (especially archived/completed trips).
-      // Never overwrite or remove an existing local record, whether synced or pending.
+      // An archived/completed local trip stays byte-for-byte unchanged.
+      if (local.archived) continue;
+      // Never overwrite existing trip metadata or any existing local record.
       for (const key of RECORD_TYPES) {
         if (!Array.isArray(local[key])) local[key] = [];
         const ids = new Set(local[key].map(r => String(r.id)));
