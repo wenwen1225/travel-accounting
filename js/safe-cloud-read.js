@@ -57,7 +57,9 @@
         continue;
       }
       // An archived/completed local trip stays byte-for-byte unchanged.
-      if (local.archived) continue;
+      const endDay = typeof local.end === 'string' ? local.end.slice(0, 10) : '';
+      const today = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Taipei'});
+      if (local.archived || (/^\d{4}-\d{2}-\d{2}$/.test(endDay) && endDay < today)) continue;
       // Never overwrite existing trip metadata or any existing local record.
       for (const key of RECORD_TYPES) {
         if (!Array.isArray(local[key])) local[key] = [];
