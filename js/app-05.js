@@ -279,10 +279,12 @@ function openRecords(){
   pendingTwdQuickIndex=0;
   setPendingTwdQuickUi(false);
   document.getElementById('recordsSubtitle').textContent = currentTrip.name + ' · 點任一紀錄可修改或刪除';
+  // Determine record type from its owning collection, not an optional legacy
+  // "type" field. This keeps older exchange entries searchable and visible.
   allRecordSource = [
-    ...(currentTrip.expenses||[]),
-    ...(currentTrip.pretrip||[]),
-    ...(currentTrip.exchange||[])
+    ...(currentTrip.expenses||[]).map(x=>({...x, type:'購買商品'})),
+    ...(currentTrip.pretrip||[]).map(x=>({...x, type:'先前費用'})),
+    ...(currentTrip.exchange||[]).map(x=>({...x, type:'換匯'}))
   ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
   setupRecordFilters();
@@ -291,6 +293,17 @@ function openRecords(){
 }
 
 function setupRecordFilters(){
+  const typeEl=document.getElementById('recordFilterType');
+  if(typeEl){
+    const counts={};
+    for(const item of allRecordSource) counts[item.type]=(counts[item.type]||0)+1;
+    const labels={'購買商品':'購買商品','先前費用':'先前費用','換匯':'換匯紀錄'};
+    [...typeEl.options].forEach(option=>{
+      if(option.value && labels[option.value]){
+        option.textContent=labels[option.value]+'（'+(counts[option.value]||0)+' 筆）';
+      }
+    });
+  }
   const people = [...new Set([
     ...(currentTrip.people||[]),
     ...allRecordSource.map(x=>x.person).filter(Boolean)
