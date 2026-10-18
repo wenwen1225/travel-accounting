@@ -93,7 +93,7 @@
   async function safeReadCloud(options = {}) {
     const silent = options.silent !== false;
     if (reading) return false;
-    if (!getApiUrl()) {
+    if (!getApiUrl() && !window.TRAVEL_PREVIEW_READ_ONLY) {
       if (!silent) alert('這個瀏覽器尚未設定 Google Apps Script 網址，請先到「設定」填入原本使用的網址。');
       return false;
     }
@@ -174,7 +174,7 @@
   // Returning from background or reconnecting only triggers a read, never a write.
   function refreshOnReturn() {
     if (reading || Date.now() - lastSafeRead < 60000) return;
-    if (!getApiUrl() || state.backupRestoreLocalOnly) return;
+    if ((!getApiUrl() && !window.TRAVEL_PREVIEW_READ_ONLY) || state.backupRestoreLocalOnly) return;
     safeReadCloud({silent:true});
   }
   window.addEventListener('online', refreshOnReturn);
@@ -185,7 +185,7 @@
   // A configured browser may safely add missing cloud records on startup.
   // A new browser needs one-time GAS URL setup; do not publish a private URL in source.
   document.addEventListener('DOMContentLoaded', () => {
-    if (getApiUrl() && !state.backupRestoreLocalOnly) {
+    if ((getApiUrl() || window.TRAVEL_PREVIEW_READ_ONLY) && !state.backupRestoreLocalOnly) {
       safeReadCloud({silent:true});
     }
   });
