@@ -454,6 +454,26 @@
 
         <div class="records-filter-grid">
           <div class="form-group">
+            <label>紀錄類型</label>
+            <select id="recordFilterType" onchange="applyRecordFilters()">
+              <option value="">全部紀錄</option>
+              <option value="購買商品">購買商品</option>
+              <option value="先前費用">先前費用</option>
+              <option value="換匯">換匯紀錄</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>退稅狀態</label>
+            <select id="recordFilterRefund" onchange="applyRecordFilters()">
+              <option value="">全部退稅狀態</option>
+              <option value="__refund_any__">有退稅資訊</option>
+              <option value="當下已退稅✅">當下已退稅✅</option>
+              <option value="找機台退稅❗️">找機台退稅❗️</option>
+              <option value="機台退稅完成✅">機台退稅完成✅</option>
+              <option value="無法退稅✖️">無法退稅✖️</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>日期</label>
             <input id="recordFilterDate" type="date" onchange="applyRecordFilters()" />
           </div>
