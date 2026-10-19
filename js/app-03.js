@@ -849,6 +849,7 @@ function recordHtml(x){
         <span>${dateWithWeekday(x.date)} · ${displayPerson}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
         ${x.place?`<div class="record-note">${x.place}</div>`:''}
         ${x.category?`<div class="record-category">${x.category}</div>`:''}
+        ${(x.refundStatus||x.taxRefundStatus)?`<div class="record-note">退稅：${x.refundStatus||x.taxRefundStatus}${(x.refundMachine||x.taxRefundMachine||x.machineName)?' · 機台：'+(x.refundMachine||x.taxRefundMachine||x.machineName):''}</div>`:''}
         <div style="margin-top:5px">${syncBadgeHtml(x)}</div>
       </div>
       <div class="record-amt">
@@ -896,6 +897,9 @@ function editExpense(id){
   document.getElementById('expensePlace').value = item.place || '';
   setExpenseCategoryValue(item.category || '');
   document.getElementById('expenseNote').value = item.note || '';
+  document.getElementById('expenseRefundStatus').value = item.refundStatus || item.taxRefundStatus || '';
+  document.getElementById('expenseRefundMachine').value = item.refundMachine || item.taxRefundMachine || item.machineName || '';
+  updateExpenseRefundMachineVisibility();
   document.getElementById('foreignLabel').innerHTML = `外幣金額 ${currentTrip.currency} <span class="danger">*</span>`;
   document.getElementById('foreignSymbol').textContent = currencySymbol(currentTrip.currency);
   attachMoneyFormat('expenseForeign'); attachMoneyFormat('expenseTwd');
@@ -1609,4 +1613,12 @@ async function refreshStatsSheetManually(){
       if(btn.textContent==='更新中…') btn.textContent='更新 Sheet 統計';
     }
   }
+}
+
+function updateExpenseRefundMachineVisibility(){
+  const status=document.getElementById('expenseRefundStatus')?.value || '';
+  const group=document.getElementById('expenseRefundMachineGroup');
+  const machine=document.getElementById('expenseRefundMachine');
+  if(!group) return;
+  group.classList.toggle('hidden', !(status.includes('機台') || (machine && machine.value.trim())));
 }
