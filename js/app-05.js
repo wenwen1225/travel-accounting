@@ -313,7 +313,26 @@ function renderPendingRefundReminder(){
   if(section) section.style.display=pending.length ? '' : 'none';
   panel.style.display=pending.length ? '' : 'none';
   count.textContent=String(pending.length);
-  list.textContent=pending.map(x=>(x.name||'未命名商品')+(recordRefundMachine(x)?'（'+recordRefundMachine(x)+'）':'')).join('、');
+  list.replaceChildren();
+  pending.forEach(item=>{
+    const line=document.createElement('div');
+    line.style.cssText='display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.5;color:#675b75;min-width:0';
+    const dot=document.createElement('span');
+    dot.textContent='•';
+    dot.style.color='#a987e8';
+    const name=document.createElement('span');
+    name.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0';
+    name.textContent=item.name||'未命名商品';
+    line.append(dot,name);
+    const machine=recordRefundMachine(item);
+    if(machine){
+      const detail=document.createElement('span');
+      detail.style.cssText='margin-left:auto;color:#9b8aa9;white-space:nowrap;font-size:11px';
+      detail.textContent=machine;
+      line.append(detail);
+    }
+    list.append(line);
+  });
 }
 function showRefundOnlyRecords(){
   const type=document.getElementById('recordFilterType');
