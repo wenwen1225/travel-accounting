@@ -224,7 +224,18 @@
     const title=document.getElementById('fundSectionHeading');if(title)title.textContent=currentTrip.currency==='KRW'?'韓國共同資金':'外幣現金';
     const chip=document.getElementById('fundCurrencyChip');if(chip)chip.textContent=currentTrip.currency;
     const c=calcFunds();
-    const total=document.getElementById('fundTotalBalance');if(total)total.textContent=fundMoney(c.total);
+    const incomplete=c.defs.some(d=>{
+      const a=c.state.accounts[d.id];
+      const hasActivity=(currentTrip.expenses||[]).some(e=>({'CASH':'現金','WOWPASS':'Wowpass','TOSS':'Toss'}[d.id]===e.pay)
+        ||(currentTrip.exchange||[]).length>0||(a?.entries||[]).length>0;
+      return hasActivity&&!initialWasSet(a);
+    });
+    const total=document.getElementById('fundTotalBalance');
+    if(total)total.textContent=incomplete&&c.total<0?'待核對（'+fundMoney(c.total)+'）':fundMoney(c.total);
+    let notice=document.getElementById('fundDataWarning');
+    if(!notice){notice=document.createElement('div');notice.id='fundDataWarning';notice.style.cssText='margin-top:12px;padding:10px 12px;border-radius:12px;background:#fff7e9;color:#855f34;font-size:12px;line-height:1.6';document.getElementById('fundMiniGrid')?.insertAdjacentElement('afterend',notice);}
+    notice.style.display=incomplete?'':'none';
+    if(incomplete)notice.textContent='部分帳戶缺少已確認的初始餘額，以下金額可能只扣除了消費，尚不能視為真實結餘。請先核對原資金紀錄，勿直接儲存覆蓋。';
     const fee=document.getElementById('fundFeeText');if(fee)fee.textContent=c.fees?`帳戶轉移手續費累計 ${fundMoney(c.fees)}`:'帳戶間轉移不計入收入／支出；手續費會列為實際支出';
     const grid=document.getElementById('fundMiniGrid');if(grid)grid.innerHTML=c.defs.map(d=>`<div class="fund-mini"><span class="fund-mini-name">${d.icon} ${d.label}</span><strong>${fundMoney(c.balances[d.id]||0)}</strong></div>`).join('');
   }
