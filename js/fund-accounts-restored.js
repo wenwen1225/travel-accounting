@@ -189,24 +189,44 @@
       .fund-mode-btn.active{box-shadow:inset 0 0 0 2px currentColor}
       .fund-subtype-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}.fund-subtype-btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800;color:var(--muted)}
       .fund-subtype-btn.active{color:var(--primary);border-color:var(--primary);background:#f7f2ff}
-      @media(max-width:560px){.fund-grid{grid-template-columns:1fr}.fund-two,.fund-three{grid-template-columns:1fr}.fund-dialog{max-height:88vh;overflow:auto}}
+      #fundAccountsSection{margin-top:16px;margin-bottom:18px}
+      #fundAccountsSection .fund-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-weight:800;letter-spacing:.01em}
+      #fundAccountsSection .fund-heading small{font-size:11px;color:#9a8eae;font-weight:600}
+      #fundAccountsSection .fund-overview{border:1px solid #e9e0fa;border-radius:22px;padding:18px 18px 15px;background:linear-gradient(150deg,#fff 0%,#fdfbff 60%,#f6f0ff 100%);box-shadow:0 7px 24px rgba(98,72,149,.055)}
+      #fundAccountsSection .fund-overview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      #fundAccountsSection .cash-wallet-label{font-size:12px;color:#877b98;font-weight:650}
+      #fundAccountsSection .fund-total{font-size:clamp(27px,5vw,35px);letter-spacing:-.04em;line-height:1.28;color:#392d53;font-variant-numeric:tabular-nums}
+      #fundAccountsSection .fund-currency-chip{background:#f1eaff;border:1px solid #e7dbff;color:#7956ba;border-radius:999px;font-size:11px;font-weight:800;padding:6px 10px;white-space:nowrap}
+      #fundAccountsSection .fund-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:15px}
+      #fundAccountsSection .fund-mini{background:#fff;border:1px solid #ece6f5;border-radius:13px;padding:11px 12px;box-shadow:0 2px 6px rgba(71,49,104,.025)}
+      #fundAccountsSection .fund-mini .fund-mini-name{font-size:11px;color:#81758d}
+      #fundAccountsSection .fund-mini strong{font-size:14px;color:#47375e;font-variant-numeric:tabular-nums}
+      #fundAccountsSection .fund-fee{margin-top:12px;line-height:1.5;color:#93899f;font-size:10px}
+      #fundAccountsSection .fund-manage-btn{width:100%;display:flex;justify-content:center;align-items:center;gap:8px;margin-top:14px;padding:11px 14px;border-radius:13px;font-size:13px;background:#aa91ee}
+      #fundAccountsSection .fund-manage-btn span{font-size:15px}
+      #fundManagerOverlay .fund-dialog{width:min(94vw,470px);max-height:88vh;overflow-y:auto;border-radius:23px;padding:20px}
+      #fundManagerOverlay .fund-account-tabs button{border-radius:13px;min-width:90px;padding:10px 8px}
+      #fundManagerOverlay .fund-entry-row{align-items:center}
+      @media(max-width:560px){#fundAccountsSection .fund-grid{grid-template-columns:repeat(3,minmax(0,1fr))}#fundAccountsSection .fund-mini{padding:9px 7px}#fundAccountsSection .fund-mini strong{font-size:12px}#fundAccountsSection .fund-overview{padding:15px}#fundManagerOverlay .fund-two{grid-template-columns:1fr 1fr}#fundManagerOverlay .fund-dialog{max-height:85vh;overflow:auto}}
+      @media(max-width:560px){.fund-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.fund-two,.fund-three{grid-template-columns:1fr}.fund-dialog{max-height:88vh;overflow:auto}}
     `;document.head.appendChild(s);
   }
   function ensureFundSection(){
     ensureFundStyles();let sec=document.getElementById('fundAccountsSection');if(sec)return sec;
     const hero=document.querySelector('#page-trip .hero');if(!hero)return null;
     sec=document.createElement('div');sec.id='fundAccountsSection';sec.className='section';
-    sec.innerHTML=`<div class="section-title">${currentTrip?.currency==='KRW'?'韓國共同資金':'外幣現金'} <small>共同支出帳戶</small></div><div class="card cash-wallet-card"><div class="cash-wallet-label">總剩餘資金</div><div id="fundTotalBalance" class="fund-total">—</div><div id="fundFeeText" class="fund-fee"></div><div id="fundMiniGrid" class="fund-grid"></div><button class="primary" style="margin-top:14px" type="button" onclick="openFundManagerV83()">管理資金 / 帳戶轉移</button></div>`;
+    sec.innerHTML=`<div class="section-title fund-heading"><span>💰 <span id="fundSectionHeading">外幣現金</span></span><small>旅程資金</small></div><div class="card cash-wallet-card fund-overview"><div class="fund-overview-top"><div><div class="cash-wallet-label">目前可用餘額</div><div id="fundTotalBalance" class="fund-total">—</div></div><span class="fund-currency-chip" id="fundCurrencyChip">—</span></div><div id="fundMiniGrid" class="fund-grid"></div><div id="fundFeeText" class="fund-fee"></div><button class="primary fund-manage-btn" type="button" onclick="openFundManagerV83()">管理資金 <span aria-hidden="true">↗</span></button></div>`;
     hero.insertAdjacentElement('afterend',sec);return sec;
   }
   function renderFundSection(){
     if(!currentTrip)return;ensureFundSection();
     const old=document.getElementById('cashWalletSection');if(old)old.style.display='none';
-    const title=document.querySelector('#fundAccountsSection .section-title');if(title)title.innerHTML=(currentTrip.currency==='KRW'?'韓國共同資金':'外幣現金')+' <small>共同支出帳戶</small>';
+    const title=document.getElementById('fundSectionHeading');if(title)title.textContent=currentTrip.currency==='KRW'?'韓國共同資金':'外幣現金';
+    const chip=document.getElementById('fundCurrencyChip');if(chip)chip.textContent=currentTrip.currency;
     const c=calcFunds();
     const total=document.getElementById('fundTotalBalance');if(total)total.textContent=fundMoney(c.total);
     const fee=document.getElementById('fundFeeText');if(fee)fee.textContent=c.fees?`帳戶轉移手續費累計 ${fundMoney(c.fees)}`:'帳戶間轉移不計入收入／支出；手續費會列為實際支出';
-    const grid=document.getElementById('fundMiniGrid');if(grid)grid.innerHTML=c.defs.map(d=>`<div class="fund-mini"><span>${d.icon} ${d.label}</span><strong>${fundMoney(c.balances[d.id]||0)}</strong></div>`).join('');
+    const grid=document.getElementById('fundMiniGrid');if(grid)grid.innerHTML=c.defs.map(d=>`<div class="fund-mini"><span class="fund-mini-name">${d.icon} ${d.label}</span><strong>${fundMoney(c.balances[d.id]||0)}</strong></div>`).join('');
   }
 
   let activeFundAccount='CASH';
