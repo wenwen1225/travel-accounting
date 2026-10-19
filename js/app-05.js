@@ -292,6 +292,23 @@ function recordRefundStatus(item){
 function recordRefundMachine(item){
   return String(item?.refundMachine || item?.taxRefundMachine || item?.refundMachineName || item?.machineName || item?.refund?.machine || item?.taxRefund?.machine || '').trim();
 }
+function showPendingRefundRecords(){
+  const type=document.getElementById('recordFilterType');
+  const status=document.getElementById('recordFilterRefund');
+  if(type) type.value='購買商品';
+  if(status) status.value='找機台退稅❗️';
+  applyRecordFilters();
+}
+function renderPendingRefundReminder(){
+  const panel=document.getElementById('pendingRefundReminder');
+  const count=document.getElementById('pendingRefundCount');
+  const list=document.getElementById('pendingRefundList');
+  if(!panel || !count || !list) return;
+  const pending=allRecordSource.filter(x=>x.type==='購買商品' && recordRefundStatus(x)==='找機台退稅❗️');
+  panel.style.display=pending.length ? '' : 'none';
+  count.textContent=String(pending.length);
+  list.textContent=pending.map(x=>[x.name||'未命名商品',x.refundMachine||x.taxRefundMachine||''].filter(Boolean).join('（')+(recordRefundMachine(x)?'）':'')).join('、');
+}
 function showRefundOnlyRecords(){
   const type=document.getElementById('recordFilterType');
   const status=document.getElementById('recordFilterRefund');
@@ -323,6 +340,7 @@ function openRecords(){
 
   setupRecordFilters();
   updateRefundRecordSummary();
+  renderPendingRefundReminder();
   applyRecordFilters();
   showPage('page-records');
 }
