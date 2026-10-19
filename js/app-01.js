@@ -643,6 +643,34 @@ function mergeCloudRecordList(tripId, localList, cloudList){
   return merged;
 }
 
+// Fund accounts can be absent or partial in getAllData. Merge per account
+// rather than replacing the whole object; never erase local entries/transfers
+// when a cloud payload omits them. This does not write to Sheets.
+function mergeFundAccountsReadOnly(localFunds,remoteFunds){
+  if(!remoteFunds||typeof remoteFunds!=='object')return localFunds;
+  if(!localFunds||typeof localFunds!=='object')return remoteFunds;
+  const localAccounts=localFunds.accounts||{};
+  const remoteAccounts=remoteFunds.accounts||{};
+  const accounts={...localAccounts};
+  for(const [id,remote] of Object.entries(remoteAccounts)){
+    if(!remote||typeof remote!=='object')continue;
+    const local=localAccounts[id]||{};
+    const localEntries=Array.isArray(local.entries)?local.entries:[];
+    const remoteEntries=Array.isArray(remote.entries)?remote.entries:[];
+    const entries=remoteEntries.length?remoteEntries:localEntries;
+    const remoteHasInitial=remote.initialSet===true||Number(remote.initial||0)!==0||!!remote.initialDate;
+    const localHasInitial=local.initialSet===true||Number(local.initial||0)!==0||!!local.initialDate;
+    accounts[id]={...local,...remote,entries,
+      ...(!remoteHasInitial&&localHasInitial?{
+        initial:local.initial,initialDate:local.initialDate,initialSet:local.initialSet
+      }:{})};
+  }
+  const remoteTransfers=Array.isArray(remoteFunds.transfers)?remoteFunds.transfers:[];
+  const localTransfers=Array.isArray(localFunds.transfers)?localFunds.transfers:[];
+  return {...localFunds,...remoteFunds,accounts,
+    transfers:remoteTransfers.length?remoteTransfers:localTransfers};
+}
+
 function mergeCloudTrip(cloudTrip){
   const local = getTripById(cloudTrip.id);
 
@@ -669,9 +697,7 @@ function mergeCloudTrip(cloudTrip){
     exchange:mergeCloudRecordList(cloudTrip.id, local.exchange, cloudTrip.exchange),
     // 資金帳戶是獨立資料。一般旅行清單同步若未回傳 fundAccounts，
     // 不可將既有本機資金帳戶覆蓋或重設。
-    fundAccounts:cloudTrip.fundAccounts && typeof cloudTrip.fundAccounts==='object'
-      && (Object.keys(cloudTrip.fundAccounts.accounts||{}).length>0 || (cloudTrip.fundAccounts.transfers||[]).length>0)
-      ? cloudTrip.fundAccounts : local.fundAccounts,
+    fundAccounts:mergeFundAccountsReadOnly(local.fundAccounts,cloudTrip.fundAccounts),
     cashWallet:cloudTrip.cashWallet && typeof cloudTrip.cashWallet==='object'
       ? cloudTrip.cashWallet : local.cashWallet,
     fundAccountRevision:cloudTrip.fundAccountRevision || local.fundAccountRevision,
@@ -838,7 +864,7 @@ async function refreshFromCloudNow(){
         (Object.keys(remoteFunds.accounts||{}).length>0 || (remoteFunds.transfers||[]).length>0);
       return {
         ...t,
-        fundAccounts:hasRemoteFunds?remoteFunds:previous.fundAccounts,
+        fundAccounts:mergeFundAccountsReadOnly(previous.fundAccounts,hasRemoteFunds?remoteFunds:null),
         cashWallet:t.cashWallet && typeof t.cashWallet==='object'?t.cashWallet:previous.cashWallet,
         fundAccountRevision:t.fundAccountRevision||previous.fundAccountRevision,
         fundAccountCloudStatus:t.fundAccountCloudStatus||previous.fundAccountCloudStatus,
