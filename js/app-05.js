@@ -378,7 +378,10 @@ function applyRecordFilters(){
   const box=document.getElementById('allRecords');
   const count=document.getElementById('recordFilterCount');
 
-  if(count) count.textContent=`${filtered.length} / ${allRecordSource.length} 筆`;
+  if(count){
+    const byType = type => allRecordSource.filter(item=>item.type===type).length;
+    count.textContent=`${filtered.length} / ${allRecordSource.length} 筆（購買商品 ${byType('購買商品')}、先前費用 ${byType('先前費用')}、換匯 ${byType('換匯')}）`;
+  }
 
   box.innerHTML = filtered.length
     ? filtered.map(recordHtml).join('')
