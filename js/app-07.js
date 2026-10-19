@@ -237,3 +237,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   };
   document.body.appendChild(s);
 })();
+
+/* iOS Safari / 中文注音輸入法：選字期間不要讓全域輸入事件打斷組字。 */
+(function protectExpenseNameIme(){
+  const field=document.getElementById('expenseName');
+  if(!field || field.dataset.imeProtected==='1') return;
+  field.dataset.imeProtected='1';
+  let composing=false;
+  field.addEventListener('compositionstart',()=>{composing=true;});
+  field.addEventListener('compositionend',()=>{composing=false;});
+  field.addEventListener('input',event=>{
+    if(composing || event.isComposing) event.stopPropagation();
+  });
+  field.addEventListener('keydown',event=>{
+    if((composing || event.isComposing || event.keyCode===229) && event.key==='Enter'){
+      event.stopPropagation();
+    }
+  });
+})();
