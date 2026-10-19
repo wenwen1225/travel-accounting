@@ -105,7 +105,7 @@ function renderHome(){
           ${t.currency} ${new Intl.NumberFormat().format(totalForeign)}
         </div>
         <div class="sub trip-home-meta">
-          <span>${recordCount} 筆紀錄（購買商品 ${expenseCount}、先前費用 ${pretripCount}、換匯 ${exchangeCount}）</span>
+          <span>${recordCount} 筆紀錄</span>
           ${pendingTwdCount ? `<span class="trip-home-pending">待補台幣 ${pendingTwdCount} 筆</span>` : ''}
           ${dayProgress ? `<span>${dayProgress}</span>` : ''}
         </div>
