@@ -39,6 +39,18 @@
     const account=document.getElementById('fundLedgerAccount')?.value||'';
     const root=document.getElementById('fundLedgerRows');if(!root)return;
     const selected=rows.filter(r=>!account||r.id===account).slice().reverse();
+    const defs=rowsFor(currentTrip).defs;
+    const missing=defs.filter(d=>{
+      const a=currentTrip.fundAccounts?.accounts?.[d.id]||{};
+      const confirmed=a.initialSet===true||Number(a.initial||0)!==0||!!a.initialDate;
+      const active=rows.some(r=>r.id===d.id&&r.kind!=='initial');
+      return active&&!confirmed;
+    });
+    const uncertain=new Set(missing.map(d=>d.id));
+    let warning=document.getElementById('fundLedgerWarning');
+    if(!warning){warning=document.createElement('div');warning.id='fundLedgerWarning';warning.style.cssText='padding:9px 11px;border-radius:10px;background:#fff7e9;color:#8b6137;font-size:12px;line-height:1.5;margin:8px 0';root.insertAdjacentElement('beforebegin',warning);}
+    warning.style.display=missing.length?'':'none';
+    if(missing.length)warning.textContent='缺少初始餘額：'+missing.map(d=>d.label).join('、')+'。以下仍可核對每筆收入／支出，但逐筆餘額暫不顯示，以免誤認為實際結餘。';
     root.innerHTML=selected.length?selected.map(r=>'<div class="fund-ledger-row"><div><div class="fund-ledger-name">'+safe(r.label)+'</div><div class="fund-ledger-meta">'+safe(r.date)+' · '+safe(r.id)+'</div></div><div class="fund-ledger-numbers"><strong class="'+(r.amount<0?'negative':'')+'">'+fmt(r.amount)+'</strong><span>餘額 '+fmt(r.balance)+'</span></div></div>').join(''):'<div class="fund-ledger-empty">目前沒有可顯示的資金流水紀錄</div>';
   }
   function ensure(){
