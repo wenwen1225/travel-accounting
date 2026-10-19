@@ -303,36 +303,115 @@ function showPendingRefundRecords(){
   if(status) status.value='找機台退稅❗️';
   applyRecordFilters();
 }
+let refundCompletionId='';
 function renderPendingRefundReminder(){
-  const panel=document.getElementById('pendingRefundReminder');
   const section=document.getElementById('pendingRefundReminderSection');
   const count=document.getElementById('pendingRefundCount');
   const list=document.getElementById('pendingRefundList');
-  if(!panel || !count || !list) return;
+  const more=document.getElementById('pendingRefundMore');
+  if(!section||!count||!list)return;
   const pending=(currentTrip?.expenses||[]).filter(x=>recordRefundStatus(x)==='找機台退稅❗️');
-  if(section) section.style.display=pending.length ? '' : 'none';
-  panel.style.display=pending.length ? '' : 'none';
+  section.style.display=pending.length?'':'none';
   count.textContent=String(pending.length);
   list.replaceChildren();
-  pending.forEach(item=>{
-    const line=document.createElement('div');
-    line.style.cssText='display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.5;color:#675b75;min-width:0';
-    const dot=document.createElement('span');
-    dot.textContent='•';
-    dot.style.color='#a987e8';
-    const name=document.createElement('span');
-    name.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0';
-    name.textContent=item.name||'未命名商品';
-    line.append(dot,name);
-    const machine=recordRefundMachine(item);
-    if(machine){
-      const detail=document.createElement('span');
-      detail.style.cssText='margin-left:auto;color:#9b8aa9;white-space:nowrap;font-size:11px';
-      detail.textContent=machine;
-      line.append(detail);
+  pending.slice(0,2).forEach((item,index)=>{
+    const card=document.createElement('div');
+    card.className='card';
+    card.style.cssText='padding:12px 14px;border-radius:14px;background:'+(index%2?'#f6f0ff':'#fff7ed')+';border:1px solid '+(index%2?'#e9defe':'#f8e8d1');
+    const title=document.createElement('div');
+    title.style.cssText='font-weight:750;font-size:13px;margin-bottom:5px';
+    title.textContent=item.name||'未命名商品';
+    const info=document.createElement('div');
+    info.style.cssText='font-size:12px;color:#786b7c;line-height:1.6';
+    info.textContent='購買金額：'+currencySymbol(currentTrip.currency)+Number(item.foreign||0).toLocaleString('en-US')+(recordRefundMachine(item)?' · '+recordRefundMachine(item):'');
+    card.append(title,info);
+    if(!isCurrentTripArchived()){
+      const button=document.createElement('button');
+      button.className='pill';
+      button.type='button';
+      button.style.cssText='margin-top:8px;background:#e7f6e9;color:#286b43';
+      button.textContent='✓ 已完成退稅';
+      button.addEventListener('click',()=>openRefundCompletion(item.id));
+      card.append(button);
     }
-    list.append(line);
+    list.append(card);
   });
+  if(more){
+    more.style.display=pending.length>2?'':'none';
+    more.textContent=pending.length>2?'另有 '+(pending.length-2)+' 筆待處理，點「查看全部」可查看':'';
+  }
+}
+function openRefundCompletion(id){
+  if(isCurrentTripArchived())return archiveReadOnlyAlert();
+  const item=(currentTrip?.expenses||[]).find(x=>String(x.id)===String(id));
+  if(!item||recordRefundStatus(item)!=='找機台退稅❗️')return;
+  refundCompletionId=String(id);
+  document.getElementById('refundCompletionSummary').textContent=(item.name||'未命名商品')+' · 原購買金額 '+currencySymbol(currentTrip.currency)+Number(item.foreign||0).toLocaleString('en-US')+(recordRefundMachine(item)?' · '+recordRefundMachine(item):'');
+  document.getElementById('refundCompletionMethod').value='現金';
+  document.getElementById('refundCompletionAmount').value='';
+  document.getElementById('refundCompletionTwd').value='';
+  const select=document.getElementById('refundCompletionCard');
+  select.replaceChildren();
+  const cards=[...new Set([item.card,...(state.cards||[])].filter(Boolean))];
+  cards.forEach(card=>{const option=document.createElement('option');option.value=card;option.textContent=card;select.append(option);});
+  updateRefundCompletionMethod();
+  document.getElementById('refundCompletionOverlay').classList.remove('hidden');
+}
+function updateRefundCompletionMethod(){
+  const credit=document.getElementById('refundCompletionMethod').value==='信用卡';
+  document.getElementById('refundCompletionCardFields').classList.toggle('hidden',!credit);
+}
+function closeRefundCompletion(){
+  document.getElementById('refundCompletionOverlay').classList.add('hidden');
+  refundCompletionId='';
+}
+async function confirmRefundCompletion(){
+  const item=(currentTrip?.expenses||[]).find(x=>String(x.id)===refundCompletionId);
+  if(!item||recordRefundStatus(item)!=='找機台退稅❗️')return;
+  const method=document.getElementById('refundCompletionMethod').value;
+  const amount=Number(rawNumber(document.getElementById('refundCompletionAmount').value));
+  if(!Number.isFinite(amount)||amount<=0){alert('請填寫大於 0 的實際退稅金額');return;}
+  const card=method==='信用卡'?document.getElementById('refundCompletionCard').value:'';
+  if(method==='信用卡'&&!card){alert('請選擇退回卡別');return;}
+  const enteredTwd=Number(rawNumber(document.getElementById('refundCompletionTwd').value));
+  const estimated=Number(item.foreign)>0&&Number(item.twd)>0?Number((amount*Number(item.twd)/Number(item.foreign)).toFixed(2)):0;
+  const twd=method==='信用卡'?(enteredTwd>0?enteredTwd:estimated):0;
+  if(!confirm('確認已完成退稅？\\n'+(item.name||'未命名商品')+'\\n退稅方式：'+method+'\\n實際退稅：'+currencySymbol(currentTrip.currency)+amount.toLocaleString('en-US')+(card?'\\n退回卡別：'+card:'')+'\\n確認後將更新紀錄。'))return;
+  const button=document.getElementById('refundCompletionSubmit');
+  button.disabled=true;
+  try{
+    const now=new Date().toISOString();
+    item.refundStatus='機台退稅完成✅';
+    item.refundMethod=method;
+    item.refundAmount=amount;
+    item.refundTwdAmount=method==='信用卡'&&twd>0?twd:'';
+    item.refundCard=card;
+    item.refundCompletedAt=now;
+    item.updatedAt=now;
+    item.syncStatus=getApiUrl()?'pending':'local';
+    const clean=String(item.note||'').replace(/(?:^|\\n)【退稅】[^\\n]*/g,'').trim();
+    item.note=[clean,'【退稅】'+method+'｜'+currentTrip.currency+' '+amount.toLocaleString('en-US')].filter(Boolean).join('\\n');
+    // 舊版資金帳戶存在時沿用原有 CASH 收入格式，並以商品 ID 防止重複。
+    if(method==='現金'&&currentTrip.fundAccounts?.accounts?.CASH){
+      const cash=currentTrip.fundAccounts.accounts.CASH;
+      if(!Array.isArray(cash.entries))cash.entries=[];
+      const marker='【退稅現金】'+item.id;
+      if(!cash.entries.some(e=>String(e.note||'').includes(marker))){
+        cash.entries.push({id:'fund_refund_'+Date.now(),date:now.slice(0,10),amount,type:'退稅收入',note:marker+'｜'+(item.name||''),createdAt:Date.now()});
+        currentTrip.fundAccountRevision=currentTrip.fundAccountRevision||{};
+        currentTrip.fundAccountRevision.CASH=Number(currentTrip.fundAccountRevision.CASH||0)+1;
+        currentTrip.fundAccountCloudStatus=currentTrip.fundAccountCloudStatus||{};
+        currentTrip.fundAccountCloudStatus.CASH=getApiUrl()?'pending':'local';
+      }
+    }
+    persist();
+    closeRefundCompletion();
+    renderTripSummary();
+    if(getApiUrl()){
+      const ok=await syncRecord('updateExpense',currentTrip,'expenses',item);
+      if(!ok)alert('退稅完成已保存在本機，但 Google Sheet 尚未同步成功，請到待同步紀錄查看。');
+    }
+  }finally{button.disabled=false;}
 }
 function showRefundOnlyRecords(){
   const type=document.getElementById('recordFilterType');
