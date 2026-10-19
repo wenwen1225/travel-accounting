@@ -292,6 +292,10 @@ function recordRefundStatus(item){
 function recordRefundMachine(item){
   return String(item?.refundMachine || item?.taxRefundMachine || item?.refundMachineName || item?.machineName || item?.refund?.machine || item?.taxRefund?.machine || '').trim();
 }
+function openPendingRefundRecords(){
+  openRecords();
+  showPendingRefundRecords();
+}
 function showPendingRefundRecords(){
   const type=document.getElementById('recordFilterType');
   const status=document.getElementById('recordFilterRefund');
@@ -301,13 +305,15 @@ function showPendingRefundRecords(){
 }
 function renderPendingRefundReminder(){
   const panel=document.getElementById('pendingRefundReminder');
+  const section=document.getElementById('pendingRefundReminderSection');
   const count=document.getElementById('pendingRefundCount');
   const list=document.getElementById('pendingRefundList');
   if(!panel || !count || !list) return;
-  const pending=allRecordSource.filter(x=>x.type==='購買商品' && recordRefundStatus(x)==='找機台退稅❗️');
+  const pending=(currentTrip?.expenses||[]).filter(x=>recordRefundStatus(x)==='找機台退稅❗️');
+  if(section) section.style.display=pending.length ? '' : 'none';
   panel.style.display=pending.length ? '' : 'none';
   count.textContent=String(pending.length);
-  list.textContent=pending.map(x=>[x.name||'未命名商品',x.refundMachine||x.taxRefundMachine||''].filter(Boolean).join('（')+(recordRefundMachine(x)?'）':'')).join('、');
+  list.textContent=pending.map(x=>(x.name||'未命名商品')+(recordRefundMachine(x)?'（'+recordRefundMachine(x)+'）':'')).join('、');
 }
 function showRefundOnlyRecords(){
   const type=document.getElementById('recordFilterType');
