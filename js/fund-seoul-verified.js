@@ -13,7 +13,7 @@
   };
   const money=n=>'₩'+Number(n).toLocaleString('en-US');
   function isTarget(){
-    const t=window.currentTrip;
+    const t=typeof currentTrip!=='undefined'?currentTrip:null;
     return !!t&&t.currency==='KRW'&&
       (String(t.spreadsheetId||'')===REFERENCE.spreadsheetId||
       String(t.name||'').replace(/\s/g,'')===REFERENCE.tripName.replace(/\s/g,''));
