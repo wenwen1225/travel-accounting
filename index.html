@@ -467,6 +467,13 @@
     </div>
 
     <div class="section">
+      <div id="pendingRefundReminder" class="card" style="margin-bottom:12px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <strong>❗️找機台退稅 <span id="pendingRefundCount">0</span> 筆待處理</strong>
+          <button class="pill" type="button" onclick="showPendingRefundRecords()">查看待退稅</button>
+        </div>
+        <div id="pendingRefundList" class="tiny" style="margin-top:9px"></div>
+      </div>
       <div id="recordsFilterCard" class="card records-filter-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px">
           <strong id="recordRefundSummary">退稅紀錄 0 筆</strong>
@@ -828,7 +835,7 @@
 <script src="app-02.js?v=60"></script>
 <script src="app-03.js?v=60"></script>
 <script src="app-04.js?v=58"></script>
-<script src="app-05.js?v=64"></script>
+<script src="app-05.js?v=65"></script>
 <script src="app-06.js?v=58"></script>
 <script src="app-07.js?v=59"></script>
   <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
