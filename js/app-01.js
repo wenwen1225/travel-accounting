@@ -670,6 +670,7 @@ function mergeCloudTrip(cloudTrip){
     // 資金帳戶是獨立資料。一般旅行清單同步若未回傳 fundAccounts，
     // 不可將既有本機資金帳戶覆蓋或重設。
     fundAccounts:cloudTrip.fundAccounts && typeof cloudTrip.fundAccounts==='object'
+      && (Object.keys(cloudTrip.fundAccounts.accounts||{}).length>0 || (cloudTrip.fundAccounts.transfers||[]).length>0)
       ? cloudTrip.fundAccounts : local.fundAccounts,
     cashWallet:cloudTrip.cashWallet && typeof cloudTrip.cashWallet==='object'
       ? cloudTrip.cashWallet : local.cashWallet,
