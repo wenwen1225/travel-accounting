@@ -811,6 +811,7 @@ function renderTripSummary(){
   const pendingTwd = expenses.filter(x => x.twd === null || x.twd === '' || Number(x.twd) === 0).length;
   document.getElementById('pendingTwdCount').textContent = pendingTwd;
   renderTodayOverview();
+  renderPendingRefundReminder();
   renderDailyCloseReminder();
   renderRecent();
 }
