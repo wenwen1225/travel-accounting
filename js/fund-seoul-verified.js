@@ -20,6 +20,32 @@
   }
   const numeric=v=>{const n=Number(String(v??0).replace(/,/g,''));return Number.isFinite(n)?n:0;};
   let cloudFunds=null, cloudTrip=null, lastRead='not-checked', requestId=0;
+  // Read the existing Sheet only. Google Visualization requires the Sheet to
+  // permit this browser to read it; on permission/CORS failure we show pending.
+  async function readSheetExchangeRows(){
+    const url='https://docs.google.com/spreadsheets/d/'+REFERENCE.spreadsheetId+
+      '/gviz/tq?gid='+REFERENCE.sheetGid+'&tqx=out:json&range=A1:H100';
+    const res=await fetch(url,{cache:'no-store',credentials:'omit'});
+    if(!res.ok)throw new Error('SHEET_READ_'+res.status);
+    const raw=await res.text();
+    const begin=raw.indexOf('{'),end=raw.lastIndexOf('}');
+    if(begin<0||end<begin)throw new Error('SHEET_FORMAT');
+    const data=JSON.parse(raw.slice(begin,end+1));
+    const rows=(data.table?.rows||[]).map(row=>(row.c||[]).map(cell=>cell?.v??cell?.f??''));
+    const found=[];
+    let inCash=false;
+    for(const row of rows){
+      const first=String(row[0]||'');
+      if(first.startsWith('現金｜')){inCash=true;continue;}
+      if(first.startsWith('WOWPASS｜')||first.startsWith('TOSS｜')){inCash=false;continue;}
+      if(!inCash||String(row[1]||'')!=='換匯')continue;
+      const id=String(row[7]||'');
+      const foreign=numeric(row[3]);
+      if(id&&foreign>0)found.push({id,foreign,date:'',pay:'現金'});
+    }
+    return found;
+  }
+
   function computeFunds(trip,funds){
     if(!trip||!funds?.accounts)return null;
     const ids=['CASH','WOWPASS','TOSS'];
@@ -62,12 +88,12 @@
       balances[t.to]+=numeric(t.amount);
       fees+=numeric(t.fee);
     }
-    // GAS getAllData can omit exchange rows even when they are present in the
-    // source 資金紀錄 sheet. In that case the calculated balance is incomplete.
-    // Never display it as a verified balance or silently add a hardcoded amount.
+    // Compare source-sheet exchange IDs, not a hardcoded amount.
+    if(!Array.isArray(trip.requiredSheetExchanges))return null;
     const cloudExchangeIds=new Set((trip.exchange||[]).map(e=>String(e.id||'')));
-    const knownExchangeIds=['x_1791883507451','x_1791883533299'];
-    if(!knownExchangeIds.every(id=>cloudExchangeIds.has(id)))return null;
+    for(const source of trip.requiredSheetExchanges){
+      if(!cloudExchangeIds.has(source.id))balances.CASH+=numeric(source.foreign);
+    }
     return {balances,fees,total:ids.reduce((n,id)=>n+balances[id],0)};
   }
   async function checkCloudFunds(){
@@ -79,8 +105,15 @@
       if(token!==requestId)return;
       const match=(result.trips||[]).find(x=>String(x.id)===String(tripId)||String(x.spreadsheetId)===REFERENCE.spreadsheetId);
       const funds=match?.fundAccounts;
-      if(match&&computeFunds(match,funds)){
-        cloudTrip=match;cloudFunds=funds;lastRead='available';
+      if(match&&funds){
+        // The Sheet is the source of truth for exchange rows omitted by GAS.
+        // Never mutate cloudTrip, fundAccounts or the spreadsheet itself.
+        const sheetExchanges=await readSheetExchangeRows();
+        if(token!==requestId)return;
+        const checkedTrip={...match,requiredSheetExchanges:sheetExchanges};
+        if(sheetExchanges.length&&computeFunds(checkedTrip,funds)){
+          cloudTrip=checkedTrip;cloudFunds=funds;lastRead='available';
+        }else{cloudTrip=null;cloudFunds=null;lastRead='missing';}
       }else{
         cloudTrip=null;cloudFunds=null;lastRead='missing';
       }
@@ -113,8 +146,8 @@
       (grid||root).insertAdjacentElement('afterend',note);
     }
     const matched=computed&&['CASH','WOWPASS','TOSS'].every(id=>computed.balances[id]===REFERENCE.balances[id])&&computed.total===REFERENCE.total;
-    const status=lastRead==='checking'?'正在讀取雲端資金資料…':computed?(matched?'已與 2026-10-19 Sheet 核對基準一致':'雲端計算結果與 2026-10-19 Sheet 基準不同，請核對是否有新交易或缺漏'):(lastRead==='unavailable'?'無法讀取雲端資料；為避免錯誤暫不顯示金額':'雲端資金資料缺少完整換匯／帳戶明細；為避免錯誤暫不顯示金額');
-    note.textContent=(computed?'✓ 金額由 GAS 雲端資料即時計算（非固定金額）。':'⚠ 資金餘額未經完整雲端資料確認。')+' '+status+'。此畫面只讀取，不會修改 Sheet。';
+    const status=lastRead==='checking'?'正在讀取雲端資金資料…':computed?(matched?'已與 2026-10-19 Sheet 核對基準一致':'雲端計算結果與 2026-10-19 Sheet 基準不同，請核對是否有新交易或缺漏'):(lastRead==='unavailable'?'無法讀取雲端資料；為避免錯誤暫不顯示金額':'尚未取得可核對的 Sheet 換匯資料或完整資金帳戶；為避免錯誤暫不顯示金額');
+    note.textContent=(computed?'✓ 金額由 GAS 帳戶資料及 Sheet 換匯紀錄計算（非固定金額）。':'⚠ 資金餘額未經完整雲端資料確認。')+' '+status+'。此畫面只讀取，不會修改 Sheet。';
     const btn=document.getElementById('saveFundBtn');
     if(btn){btn.disabled=true;btn.title='首爾資金維持唯讀保護，避免覆寫 Sheet';btn.textContent='首爾資金唯讀保護中';}
   }
