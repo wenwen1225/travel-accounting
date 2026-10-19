@@ -829,14 +829,26 @@ async function refreshFromCloudNow(){
     const data=await postToCloud({action:'getAllData'});
     const trips=Array.isArray(data.trips) ? data.trips : [];
 
-    state.trips=trips.map(t=>({
-      ...t,
-      expenses:(t.expenses||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
-      pretrip:(t.pretrip||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
-      exchange:(t.exchange||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
-      cloudStatus:'synced',
-      lastSyncError:''
-    }));
+    // 保留雲端回應未包含的既有資金帳戶，避免手動重新整理清空資金歷史。
+    const previousTrips=new Map((state.trips||[]).map(t=>[String(t.id),t]));
+    state.trips=trips.map(t=>{
+      const previous=previousTrips.get(String(t.id))||{};
+      const remoteFunds=t.fundAccounts;
+      const hasRemoteFunds=remoteFunds && typeof remoteFunds==='object' &&
+        (Object.keys(remoteFunds.accounts||{}).length>0 || (remoteFunds.transfers||[]).length>0);
+      return {
+        ...t,
+        fundAccounts:hasRemoteFunds?remoteFunds:previous.fundAccounts,
+        cashWallet:t.cashWallet && typeof t.cashWallet==='object'?t.cashWallet:previous.cashWallet,
+        fundAccountRevision:t.fundAccountRevision||previous.fundAccountRevision,
+        fundAccountCloudStatus:t.fundAccountCloudStatus||previous.fundAccountCloudStatus,
+        expenses:(t.expenses||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
+        pretrip:(t.pretrip||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
+        exchange:(t.exchange||[]).map(x=>({...x,syncStatus:'synced',lastSyncError:''})),
+        cloudStatus:'synced',
+        lastSyncError:''
+      };
+    });
 
     // 只有三位固定人員跨旅行保留；其他同行人只存在各自旅行。
     state.people=['Wen','Clark','Anna'];
