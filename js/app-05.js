@@ -1147,3 +1147,43 @@ async function handleBackupImport(event){
     if(input) input.value='';
   }
 }
+
+
+/* 換匯欄位雙向連動：匯率 = 外幣 / 台幣。只更新畫面欄位，不觸發儲存或同步。 */
+(function initExchangeAmountCalculator(){
+  const twd = document.getElementById('exchangeTwd');
+  const foreign = document.getElementById('exchangeForeign');
+  const rate = document.getElementById('exchangeRate');
+  if(!twd || !foreign || !rate) return;
+
+  const read = input => {
+    const text = String(input.value || '').replace(/,/g, '').trim();
+    if(!text) return null;
+    const value = Number(text);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  };
+  const formatAmount = number => {
+    if(!Number.isFinite(number) || number <= 0) return '';
+    return Number(number.toFixed(2)).toLocaleString('en-US', {maximumFractionDigits:2});
+  };
+  const formatRate = number => {
+    if(!Number.isFinite(number) || number <= 0) return '';
+    return String(Number(number.toFixed(6)));
+  };
+  const recalculate = source => {
+    const t = read(twd), f = read(foreign), r = read(rate);
+    if(source === 'twd'){
+      if(t !== null && r !== null) foreign.value = formatAmount(t * r);
+      else if(t !== null && f !== null) rate.value = formatRate(f / t);
+    }else if(source === 'foreign'){
+      if(f !== null && r !== null) twd.value = formatAmount(f / r);
+      else if(f !== null && t !== null) rate.value = formatRate(f / t);
+    }else if(source === 'rate'){
+      if(r !== null && t !== null) foreign.value = formatAmount(t * r);
+      else if(r !== null && f !== null) twd.value = formatAmount(f / r);
+    }
+  };
+  twd.addEventListener('input', () => recalculate('twd'));
+  foreign.addEventListener('input', () => recalculate('foreign'));
+  rate.addEventListener('input', () => recalculate('rate'));
+})();
