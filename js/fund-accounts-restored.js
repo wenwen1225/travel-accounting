@@ -313,7 +313,9 @@
   };
   window.removeFundTransferV83=function(id){const st=migrateLocalFundState();st.transfers=st.transfers.filter(t=>t.id!==id);currentTrip.fundAccounts=st;persist();renderFundManager();renderFundSection();};
   window.saveFundAccountsV83=async function(){
-    if(!currentTrip)return;const st=migrateLocalFundState();captureInitial(st.accounts[activeFundAccount]);currentTrip.fundAccounts=st;persist();renderFundSection();
+    if(!currentTrip)return;
+    if(currentTrip.archived)return typeof archiveReadOnlyAlert==='function'?archiveReadOnlyAlert():alert('封存旅程不可修改');
+    if(!confirm('將把目前畫面上的資金設定寫入 Google Sheet。請確認已核對初始餘額、現金、WOWPASS、TOSS 與帳戶轉移資料。\n\n若原本的資金紀錄尚未完整讀回，請按「取消」，避免覆蓋原資料。'))return;const st=migrateLocalFundState();captureInitial(st.accounts[activeFundAccount]);currentTrip.fundAccounts=st;persist();renderFundSection();
     const btn=document.getElementById('saveFundBtn');if(btn){btn.disabled=true;btn.textContent='儲存中…';}
     try{
       if(!getApiUrl())throw new Error('尚未設定 Google Apps Script Web App URL');
