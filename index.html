@@ -831,7 +831,7 @@
       <div class="form-group"><label>退稅方式</label>
         <select id="refundCompletionMethod" onchange="updateRefundCompletionMethod()"><option value="現金">現金</option><option value="信用卡">信用卡</option></select>
       </div>
-      <div class="form-group"><label>實際退稅金額（旅行幣別）</label><input id="refundCompletionAmount" inputmode="decimal" placeholder="請輸入實際退稅金額" /></div>
+      <div class="form-group"><label>實際退稅幣別</label><select id="refundCompletionCurrency"><option value="TWD">TWD · 新台幣</option><option value="KRW">KRW · 韓元</option><option value="JPY">JPY · 日圓</option><option value="USD">USD · 美元</option><option value="EUR">EUR · 歐元</option><option value="CNY">CNY · 人民幣</option><option value="HKD">HKD · 港幣</option></select></div><div class="form-group"><label>實際退稅金額</label><input id="refundCompletionAmount" inputmode="decimal" placeholder="請輸入實際退稅金額" /></div>
       <div id="refundCompletionCardFields" class="hidden">
         <div class="form-group"><label>退回卡別</label><select id="refundCompletionCard"></select></div>
         <div class="form-group"><label>實際退回台幣（可留空）</label><input id="refundCompletionTwd" inputmode="decimal" placeholder="留空依原交易比例估算" /></div>
@@ -856,7 +856,7 @@
 <script src="app-02.js?v=60"></script>
 <script src="app-03.js?v=61"></script>
 <script src="app-04.js?v=58"></script>
-<script src="app-05.js?v=68"></script>
+<script src="app-05.js?v=69"></script>
 <script src="app-06.js?v=58"></script>
 <script src="app-07.js?v=59"></script>
   <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
