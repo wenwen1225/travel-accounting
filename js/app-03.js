@@ -849,7 +849,7 @@ function recordHtml(x){
         <span>${dateWithWeekday(x.date)} · ${displayPerson}${x.pay?` · ${x.pay}`:''}${x.card?` · ${x.card}`:''}</span>
         ${x.place?`<div class="record-note">${x.place}</div>`:''}
         ${x.category?`<div class="record-category">${x.category}</div>`:''}
-        ${(x.refundStatus||x.taxRefundStatus)?`<div class="record-note">退稅：${x.refundStatus||x.taxRefundStatus}${(x.refundMachine||x.taxRefundMachine||x.machineName)?' · 機台：'+(x.refundMachine||x.taxRefundMachine||x.machineName):''}</div>`:''}
+        ${recordRefundStatus(x)?`<div class="record-note">退稅：${recordRefundStatus(x)}${recordRefundMachine(x)?' · 機台：'+recordRefundMachine(x):''}</div>`:''}
         <div style="margin-top:5px">${syncBadgeHtml(x)}</div>
       </div>
       <div class="record-amt">
