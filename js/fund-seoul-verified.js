@@ -18,6 +18,21 @@
       (String(t.spreadsheetId||'')===REFERENCE.spreadsheetId||
       String(t.name||'').replace(/\s/g,'')===REFERENCE.tripName.replace(/\s/g,''));
   }
+  let lastRead='not-checked';
+  async function checkCloudFunds(){
+    if(!isTarget()||typeof getApiUrl!=='function'||!getApiUrl()||typeof postToCloud!=='function')return;
+    const tripId=currentTrip.id;
+    lastRead='checking';apply();
+    try{
+      const result=await postToCloud({action:'getAllData'});
+      const match=(result.trips||[]).find(x=>String(x.id)===String(tripId)||String(x.spreadsheetId)===REFERENCE.spreadsheetId);
+      const accounts=match?.fundAccounts?.accounts||{};
+      const complete=['CASH','WOWPASS','TOSS'].every(id=>accounts[id]&&
+        (accounts[id].initialSet===true||Number(accounts[id].initial||0)!==0||!!accounts[id].initialDate));
+      lastRead=complete?'available':'missing';
+    }catch(err){lastRead='unavailable';}
+    if(isTarget()&&currentTrip.id===tripId)apply();
+  }
   function apply(){
     if(!isTarget())return;
     const root=document.getElementById('fundAccountsSection');
@@ -40,7 +55,8 @@
       note.style.cssText='margin-top:10px;padding:10px 12px;border-radius:12px;background:#f4f0ff;color:#665381;font-size:11px;line-height:1.7';
       (grid||root).insertAdjacentElement('afterend',note);
     }
-    note.innerHTML='✓ 已與 Google Sheet「資金紀錄」核對（'+REFERENCE.checked+'）<br>這是核對當時的資料快照，並非即時同步；網頁原始資金資料仍待完整讀回。<a href="https://docs.google.com/spreadsheets/d/'+REFERENCE.spreadsheetId+'/edit?gid='+REFERENCE.sheetGid+'" target="_blank" rel="noopener noreferrer" style="color:#6b46b0;text-decoration:underline">查看原始 Sheet</a>';
+    const cloudLabel=lastRead==='checking'?'正在檢查雲端資金資料…':lastRead==='available'?'雲端有資金帳戶結構，仍需核對每筆金額':lastRead==='missing'?'雲端旅行清單未提供完整資金帳戶':lastRead==='unavailable'?'目前無法讀取雲端資金資料':'尚未檢查雲端資金帳戶';
+    note.innerHTML='✓ 已與 Google Sheet「資金紀錄」核對（'+REFERENCE.checked+'）<br>這是核對當時的資料快照，並非即時同步；'+cloudLabel+'。<a href="https://docs.google.com/spreadsheets/d/'+REFERENCE.spreadsheetId+'/edit?gid='+REFERENCE.sheetGid+'" target="_blank" rel="noopener noreferrer" style="color:#6b46b0;text-decoration:underline">查看原始 Sheet</a>';
     const btn=document.getElementById('saveFundBtn');
     if(btn){btn.disabled=true;btn.title='此旅程原始資金帳戶尚未完整還原，暫停寫入以保護 Google Sheet';btn.textContent='原始資金待還原，暫停覆寫';}
   }
@@ -48,9 +64,10 @@
   const base=window.renderTripSummary;
   window.renderTripSummary=function(){const result=typeof base==='function'?base.apply(this,arguments):undefined;apply();return result;};
   const baseOpen=window.openTrip;
-  window.openTrip=function(){const result=typeof baseOpen==='function'?baseOpen.apply(this,arguments):undefined;apply();return result;};
+  window.openTrip=function(){const result=typeof baseOpen==='function'?baseOpen.apply(this,arguments):undefined;apply();if(isTarget())checkCloudFunds();return result;};
   window.isSeoulFundSnapshotProtected=isTarget;
   window.renderVerifiedSeoulFundSnapshot=apply;
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);
-  else apply();
+  window.checkSeoulFundCloudReadOnly=checkCloudFunds;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{apply();if(isTarget())checkCloudFunds();});
+  else {apply();if(isTarget())checkCloudFunds();}
 })();
