@@ -141,6 +141,8 @@ async function saveExpense(){
     twd:twdRaw === '' ? null : Number(twdRaw),
     place:document.getElementById('expensePlace').value.trim(),
     category:getExpenseCategoryValue(),
+    refundStatus:document.getElementById('expenseRefundStatus')?.value || '',
+    refundMachine:document.getElementById('expenseRefundMachine')?.value.trim() || '',
     note:document.getElementById('expenseNote').value.trim()
   };
   if(!item.updatedAt) item.updatedAt=new Date().toISOString();
@@ -185,6 +187,9 @@ async function saveExpense(){
       document.getElementById('expensePlace').value = '';
       setExpenseCategoryValue('');
       document.getElementById('expenseNote').value = '';
+      document.getElementById('expenseRefundStatus').value = '';
+      document.getElementById('expenseRefundMachine').value = '';
+      updateExpenseRefundMachineVisibility();
       document.getElementById('expenseQty').value = 1;
     }
   }
