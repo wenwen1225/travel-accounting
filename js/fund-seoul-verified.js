@@ -127,17 +127,20 @@
     // Only cloud-returned data drives displayed balances. Never use reference
     // figures as a replacement for missing cloud data.
     const computed=lastRead==='available'?computeFunds(cloudTrip,cloudFunds):null;
+    // Preserve the last independently verified Sheet snapshot as an immediate,
+    // explicitly dated fallback. Never claim this is live cloud data.
+    const display=computed||{balances:REFERENCE.balances,total:REFERENCE.total,fees:REFERENCE.fees};
     const total=document.getElementById('fundTotalBalance');
     const grid=document.getElementById('fundMiniGrid');
     const old=document.getElementById('fundDataWarning');
     if(old)old.style.display='none';
-    if(total)total.textContent=computed?money(computed.total):'待雲端核對';
+    if(total)total.textContent=money(display.total);
     if(grid){
       const labels=[['CASH','💵 現金'],['WOWPASS','💳 WOWPASS'],['TOSS','💙 TOSS']];
-      grid.innerHTML=labels.map(([id,label])=>'<div class="fund-mini"><span class="fund-mini-name">'+label+'</span><strong>'+(computed?money(computed.balances[id]):'待雲端核對')+'</strong></div>').join('');
+      grid.innerHTML=labels.map(([id,label])=>'<div class="fund-mini"><span class="fund-mini-name">'+label+'</span><strong>'+money(display.balances[id])+'</strong></div>').join('');
     }
     const fee=document.getElementById('fundFeeText');
-    if(fee)fee.textContent=computed?'帳戶轉移手續費累計 '+money(computed.fees):'等待完整雲端資金明細';
+    if(fee)fee.textContent='帳戶轉移手續費累計 '+money(display.fees);
     let note=document.getElementById('fundSeoulVerifiedNote');
     if(!note){
       note=document.createElement('div');
@@ -146,8 +149,12 @@
       (grid||root).insertAdjacentElement('afterend',note);
     }
     const matched=computed&&['CASH','WOWPASS','TOSS'].every(id=>computed.balances[id]===REFERENCE.balances[id])&&computed.total===REFERENCE.total;
-    const status=lastRead==='checking'?'正在讀取雲端資金資料…':computed?(matched?'已與 2026-10-19 Sheet 核對基準一致':'雲端計算結果與 2026-10-19 Sheet 基準不同，請核對是否有新交易或缺漏'):(lastRead==='unavailable'?'無法讀取雲端資料；為避免錯誤暫不顯示金額':'尚未取得可核對的 Sheet 換匯資料或完整資金帳戶；為避免錯誤暫不顯示金額');
-    note.textContent=(computed?'✓ 金額由 GAS 帳戶資料及 Sheet 換匯紀錄計算（非固定金額）。':'⚠ 資金餘額未經完整雲端資料確認。')+' '+status+'。此畫面只讀取，不會修改 Sheet。';
+    const status=computed
+      ? (matched?'已與 2026-10-19 Sheet 基準一致':'雲端計算金額與歷史 Sheet 核對基準不同，請檢查交易')
+      : (lastRead==='checking'?'背景核對中；目前顯示 2026-10-19 已核對的歷史金額':
+         lastRead==='unavailable'?'背景核對未成功；目前顯示 2026-10-19 已核對的歷史金額':
+         '雲端資料尚不完整；目前顯示 2026-10-19 已核對的歷史金額');
+    note.textContent=(computed?'✓ 由雲端帳戶與 Sheet 換匯紀錄計算。':'ⓘ 此為歷史 Sheet 核對快照，並非即時餘額。')+' '+status+'。僅讀取，不會修改 Sheet。';
     const btn=document.getElementById('saveFundBtn');
     if(btn){btn.disabled=true;btn.title='首爾資金維持唯讀保護，避免覆寫 Sheet';btn.textContent='首爾資金唯讀保護中';}
   }
