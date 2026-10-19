@@ -380,7 +380,7 @@ async function confirmRefundCompletion(){
   const enteredTwd=Number(rawNumber(document.getElementById('refundCompletionTwd').value));
   const estimated=Number(item.foreign)>0&&Number(item.twd)>0?Number((amount*Number(item.twd)/Number(item.foreign)).toFixed(2)):0;
   const twd=method==='信用卡'?(enteredTwd>0?enteredTwd:estimated):0;
-  if(!confirm('確認已完成退稅？\\n'+(item.name||'未命名商品')+'\\n退稅方式：'+method+'\\n實際退稅：'+currencySymbol(currentTrip.currency)+amount.toLocaleString('en-US')+(card?'\\n退回卡別：'+card:'')+'\\n確認後將更新紀錄。'))return;
+  if(!confirm('確認已完成退稅？\n'+(item.name||'未命名商品')+'\n退稅方式：'+method+'\n實際退稅：'+currencySymbol(currentTrip.currency)+amount.toLocaleString('en-US')+(card?'\n退回卡別：'+card:'')+'\n確認後將更新紀錄。'))return;
   const button=document.getElementById('refundCompletionSubmit');
   button.disabled=true;
   try{
@@ -393,8 +393,8 @@ async function confirmRefundCompletion(){
     item.refundCompletedAt=now;
     item.updatedAt=now;
     item.syncStatus=getApiUrl()?'pending':'local';
-    const clean=String(item.note||'').replace(/(?:^|\\n)【退稅】[^\\n]*/g,'').trim();
-    item.note=[clean,'【退稅】'+method+'｜'+currentTrip.currency+' '+amount.toLocaleString('en-US')].filter(Boolean).join('\\n');
+    const clean=String(item.note||'').replace(/(?:^|\n)【退稅】[^\n]*/g,'').trim();
+    item.note=[clean,'【退稅】'+method+'｜'+currentTrip.currency+' '+amount.toLocaleString('en-US')].filter(Boolean).join('\n');
     // 舊版資金帳戶存在時沿用原有 CASH 收入格式，並以商品 ID 防止重複。
     if(method==='現金'&&currentTrip.fundAccounts?.accounts?.CASH){
       const cash=currentTrip.fundAccounts.accounts.CASH;
