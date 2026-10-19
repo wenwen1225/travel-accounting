@@ -667,6 +667,14 @@ function mergeCloudTrip(cloudTrip){
     expenses:mergeCloudRecordList(cloudTrip.id, local.expenses, cloudTrip.expenses),
     pretrip:mergeCloudRecordList(cloudTrip.id, local.pretrip, cloudTrip.pretrip),
     exchange:mergeCloudRecordList(cloudTrip.id, local.exchange, cloudTrip.exchange),
+    // 資金帳戶是獨立資料。一般旅行清單同步若未回傳 fundAccounts，
+    // 不可將既有本機資金帳戶覆蓋或重設。
+    fundAccounts:cloudTrip.fundAccounts && typeof cloudTrip.fundAccounts==='object'
+      ? cloudTrip.fundAccounts : local.fundAccounts,
+    cashWallet:cloudTrip.cashWallet && typeof cloudTrip.cashWallet==='object'
+      ? cloudTrip.cashWallet : local.cashWallet,
+    fundAccountRevision:cloudTrip.fundAccountRevision || local.fundAccountRevision,
+    fundAccountCloudStatus:cloudTrip.fundAccountCloudStatus || local.fundAccountCloudStatus,
     cloudStatus:createPending ? (local.cloudStatus || 'pending') : 'synced',
     lastSyncError:createPending ? (local.lastSyncError || '') : ''
   };
