@@ -278,6 +278,35 @@ function backToTrip(){
 
 let allRecordSource = [];
 
+/* 兼容既有退稅欄位與狀態文字，僅供全部紀錄顯示及篩選使用。 */
+function recordRefundStatus(item){
+  const raw=item?.refundStatus ?? item?.taxRefundStatus ?? item?.refund?.status ?? item?.taxRefund?.status ?? '';
+  const value=String(raw).trim();
+  if(!value) return '';
+  if(value.includes('機台退稅完成')) return '機台退稅完成✅';
+  if(value.includes('找機台退稅')) return '找機台退稅❗️';
+  if(value.includes('當下已退稅')) return '當下已退稅✅';
+  if(value.includes('無法退稅')) return '無法退稅✖️';
+  return value;
+}
+function recordRefundMachine(item){
+  return String(item?.refundMachine || item?.taxRefundMachine || item?.refundMachineName || item?.machineName || item?.refund?.machine || item?.taxRefund?.machine || '').trim();
+}
+function showRefundOnlyRecords(){
+  const type=document.getElementById('recordFilterType');
+  const status=document.getElementById('recordFilterRefund');
+  if(type) type.value='';
+  if(status) status.value='__refund_any__';
+  applyRecordFilters();
+}
+function updateRefundRecordSummary(){
+  const target=document.getElementById('recordRefundSummary');
+  if(!target) return;
+  const count=allRecordSource.filter(x=>recordRefundStatus(x)).length;
+  target.textContent='退稅紀錄 '+count+' 筆';
+}
+
+
 function openRecords(){
   pendingTwdQuickMode=false;
   pendingTwdQuickItems=[];
@@ -293,6 +322,7 @@ function openRecords(){
   ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
   setupRecordFilters();
+  updateRefundRecordSummary();
   applyRecordFilters();
   showPage('page-records');
 }
@@ -346,6 +376,8 @@ function recordSearchText(item){
     item.category,
     item.website,
     item.note,
+    recordRefundStatus(item),
+    recordRefundMachine(item),
     item.person,
     item.pay,
     item.card,
@@ -368,7 +400,7 @@ function applyRecordFilters(){
   const filtered=allRecordSource.filter(item=>{
     if(recordType && item.type!==recordType) return false;
     if(refundFilter){
-      const status=String(item.refundStatus||item.taxRefundStatus||'').trim();
+      const status=recordRefundStatus(item);
       if(refundFilter==='__refund_any__' && !status) return false;
       if(refundFilter!=='__refund_any__' && status!==refundFilter) return false;
     }
