@@ -324,6 +324,10 @@
   window.removeFundTransferV83=function(id){const st=migrateLocalFundState();st.transfers=st.transfers.filter(t=>t.id!==id);currentTrip.fundAccounts=st;persist();renderFundManager();renderFundSection();};
   window.saveFundAccountsV83=async function(){
     if(!currentTrip)return;
+    if(typeof window.isSeoulFundSnapshotProtected==='function'&&window.isSeoulFundSnapshotProtected()){
+      alert('這趟首爾旅行的資金已與 Google Sheet 核對，但網頁尚未完整讀回原始帳戶明細。為避免覆蓋現有 Sheet 紀錄，暫時禁止資金帳戶寫入。');
+      return;
+    }
     if(currentTrip.archived)return typeof archiveReadOnlyAlert==='function'?archiveReadOnlyAlert():alert('封存旅程不可修改');
     if(!confirm('將把目前畫面上的資金設定寫入 Google Sheet。請確認已核對初始餘額、現金、WOWPASS、TOSS 與帳戶轉移資料。\n\n若原本的資金紀錄尚未完整讀回，請按「取消」，避免覆蓋原資料。'))return;const st=migrateLocalFundState();captureInitial(st.accounts[activeFundAccount]);currentTrip.fundAccounts=st;persist();renderFundSection();
     const btn=document.getElementById('saveFundBtn');if(btn){btn.disabled=true;btn.textContent='儲存中…';}
