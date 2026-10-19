@@ -226,7 +226,7 @@
     const c=calcFunds();
     const incomplete=c.defs.some(d=>{
       const a=c.state.accounts[d.id];
-      const hasActivity=(currentTrip.expenses||[]).some(e=>({'CASH':'現金','WOWPASS':'Wowpass','TOSS':'Toss'}[d.id]===e.pay)
+      const hasActivity=(currentTrip.expenses||[]).some(e=>({'CASH':'現金','WOWPASS':'Wowpass','TOSS':'Toss'}[d.id]===e.pay))
         ||(currentTrip.exchange||[]).length>0||(a?.entries||[]).length>0;
       return hasActivity&&!initialWasSet(a);
     });
