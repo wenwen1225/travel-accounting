@@ -154,6 +154,10 @@ async function saveExpense(){
     if(idx === -1){ showSaveModal(false); return; }
     const previous = currentTrip.expenses[idx];
     item.cloudFingerprint = previous?.cloudFingerprint || '';
+    // 修改商品時保留已完成退稅的正式欄位，不讓表單覆蓋掉。
+    for(const field of ['refundMethod','refundAmount','refundTwdAmount','refundCard','refundCompletedAt']){
+      if(previous && previous[field]!==undefined) item[field]=previous[field];
+    }
     item.updatedAt = new Date().toISOString();
     currentTrip.expenses[idx] = item;
     try{
