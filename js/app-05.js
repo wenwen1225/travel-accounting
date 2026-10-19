@@ -155,7 +155,7 @@ async function saveExpense(){
     const previous = currentTrip.expenses[idx];
     item.cloudFingerprint = previous?.cloudFingerprint || '';
     // 修改商品時保留已完成退稅的正式欄位，不讓表單覆蓋掉。
-    for(const field of ['refundMethod','refundAmount','refundTwdAmount','refundCard','refundCompletedAt']){
+    for(const field of ['refundMethod','refundAmount','refundCurrency','refundTwdAmount','refundCard','refundCompletedAt']){
       if(previous && previous[field]!==undefined) item[field]=previous[field];
     }
     item.updatedAt = new Date().toISOString();
@@ -352,6 +352,8 @@ function openRefundCompletion(id){
   refundCompletionId=String(id);
   document.getElementById('refundCompletionSummary').textContent=(item.name||'未命名商品')+' · 原購買金額 '+currencySymbol(currentTrip.currency)+Number(item.foreign||0).toLocaleString('en-US')+(recordRefundMachine(item)?' · '+recordRefundMachine(item):'');
   document.getElementById('refundCompletionMethod').value='現金';
+  const refundCurrency=document.getElementById('refundCompletionCurrency');
+  refundCurrency.value=[...refundCurrency.options].some(o=>o.value===currentTrip.currency)?currentTrip.currency:'TWD';
   document.getElementById('refundCompletionAmount').value='';
   document.getElementById('refundCompletionTwd').value='';
   const select=document.getElementById('refundCompletionCard');
@@ -373,14 +375,17 @@ async function confirmRefundCompletion(){
   const item=(currentTrip?.expenses||[]).find(x=>String(x.id)===refundCompletionId);
   if(!item||recordRefundStatus(item)!=='找機台退稅❗️')return;
   const method=document.getElementById('refundCompletionMethod').value;
+  const refundCurrency=document.getElementById('refundCompletionCurrency').value;
   const amount=Number(rawNumber(document.getElementById('refundCompletionAmount').value));
   if(!Number.isFinite(amount)||amount<=0){alert('請填寫大於 0 的實際退稅金額');return;}
   const card=method==='信用卡'?document.getElementById('refundCompletionCard').value:'';
   if(method==='信用卡'&&!card){alert('請選擇退回卡別');return;}
   const enteredTwd=Number(rawNumber(document.getElementById('refundCompletionTwd').value));
-  const estimated=Number(item.foreign)>0&&Number(item.twd)>0?Number((amount*Number(item.twd)/Number(item.foreign)).toFixed(2)):0;
+  const estimated=refundCurrency===currentTrip.currency&&Number(item.foreign)>0&&Number(item.twd)>0?Number((amount*Number(item.twd)/Number(item.foreign)).toFixed(2)):0;
   const twd=method==='信用卡'?(enteredTwd>0?enteredTwd:estimated):0;
-  if(!confirm('確認已完成退稅？\n'+(item.name||'未命名商品')+'\n退稅方式：'+method+'\n實際退稅：'+currencySymbol(currentTrip.currency)+amount.toLocaleString('en-US')+(card?'\n退回卡別：'+card:'')+'\n確認後將更新紀錄。'))return;
+  if(method==='現金'&&refundCurrency!==currentTrip.currency){alert('現金帳戶目前以旅行幣別記帳。請選擇 '+currentTrip.currency+'，避免不同幣別直接加總。');return;}
+  if(method==='信用卡'&&refundCurrency!=='TWD'&&refundCurrency!==currentTrip.currency&&!(enteredTwd>0)){alert('退稅幣別不同於旅行幣別，請填寫實際退回台幣，避免錯誤換算。');return;}
+  if(!confirm('確認已完成退稅？\n'+(item.name||'未命名商品')+'\n退稅方式：'+method+'\n實際退稅：'+refundCurrency+' '+amount.toLocaleString('en-US')+(card?'\n退回卡別：'+card:'')+'\n確認後將更新紀錄。'))return;
   const button=document.getElementById('refundCompletionSubmit');
   button.disabled=true;
   try{
@@ -388,13 +393,14 @@ async function confirmRefundCompletion(){
     item.refundStatus='機台退稅完成✅';
     item.refundMethod=method;
     item.refundAmount=amount;
+    item.refundCurrency=refundCurrency;
     item.refundTwdAmount=method==='信用卡'&&twd>0?twd:'';
     item.refundCard=card;
     item.refundCompletedAt=now;
     item.updatedAt=now;
     item.syncStatus=getApiUrl()?'pending':'local';
     const clean=String(item.note||'').replace(/(?:^|\n)【退稅】[^\n]*/g,'').trim();
-    item.note=[clean,'【退稅】'+method+'｜'+currentTrip.currency+' '+amount.toLocaleString('en-US')].filter(Boolean).join('\n');
+    item.note=[clean,'【退稅】'+method+'｜'+refundCurrency+' '+amount.toLocaleString('en-US')].filter(Boolean).join('\n');
     // 舊版資金帳戶存在時沿用原有 CASH 收入格式，並以商品 ID 防止重複。
     if(method==='現金'&&currentTrip.fundAccounts?.accounts?.CASH){
       const cash=currentTrip.fundAccounts.accounts.CASH;
