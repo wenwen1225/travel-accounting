@@ -80,7 +80,10 @@ function renderHome(){
     const status = t.archived
       ? {label:'已封存',className:'trip-status-archived'}
       : getTripStatus(t.start,t.end);
-    const recordCount=(t.expenses||[]).length + (t.pretrip||[]).length + (t.exchange||[]).length;
+    const expenseCount=(t.expenses||[]).length;
+    const pretripCount=(t.pretrip||[]).length;
+    const exchangeCount=(t.exchange||[]).length;
+    const recordCount=expenseCount+pretripCount+exchangeCount;
     const pendingTwdCount=(t.expenses||[]).filter(x=>
       x.twd === null || x.twd === '' || Number(x.twd) === 0
     ).length;
@@ -102,7 +105,7 @@ function renderHome(){
           ${t.currency} ${new Intl.NumberFormat().format(totalForeign)}
         </div>
         <div class="sub trip-home-meta">
-          <span>${recordCount} 筆紀錄</span>
+          <span>${recordCount} 筆紀錄（購買商品 ${expenseCount}、先前費用 ${pretripCount}、換匯 ${exchangeCount}）</span>
           ${pendingTwdCount ? `<span class="trip-home-pending">待補台幣 ${pendingTwdCount} 筆</span>` : ''}
           ${dayProgress ? `<span>${dayProgress}</span>` : ''}
         </div>
