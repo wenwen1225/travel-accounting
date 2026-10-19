@@ -1016,6 +1016,9 @@ function resetExpenseForm(){
   document.getElementById('expensePlace').value = '';
   setExpenseCategoryValue('');
   document.getElementById('expenseNote').value = '';
+  document.getElementById('expenseRefundStatus').value = '';
+  document.getElementById('expenseRefundMachine').value = '';
+  updateExpenseRefundMachineVisibility();
 
   if(currentTrip && currentTrip.people && currentTrip.people.length){
     selectedPerson = currentTrip.people[0];
