@@ -62,6 +62,12 @@
       balances[t.to]+=numeric(t.amount);
       fees+=numeric(t.fee);
     }
+    // GAS getAllData can omit exchange rows even when they are present in the
+    // source 資金紀錄 sheet. In that case the calculated balance is incomplete.
+    // Never display it as a verified balance or silently add a hardcoded amount.
+    const cloudExchangeIds=new Set((trip.exchange||[]).map(e=>String(e.id||'')));
+    const knownExchangeIds=['x_1791883507451','x_1791883533299'];
+    if(!knownExchangeIds.every(id=>cloudExchangeIds.has(id)))return null;
     return {balances,fees,total:ids.reduce((n,id)=>n+balances[id],0)};
   }
   async function checkCloudFunds(){
@@ -107,7 +113,7 @@
       (grid||root).insertAdjacentElement('afterend',note);
     }
     const matched=computed&&['CASH','WOWPASS','TOSS'].every(id=>computed.balances[id]===REFERENCE.balances[id])&&computed.total===REFERENCE.total;
-    const status=lastRead==='checking'?'正在讀取雲端資金資料…':computed?(matched?'已與 2026-10-19 Sheet 核對基準一致':'雲端計算結果與 2026-10-19 Sheet 基準不同，請核對是否有新交易或缺漏'):(lastRead==='unavailable'?'無法讀取雲端資料；為避免錯誤暫不顯示金額':'雲端尚未回傳完整資金帳戶；為避免錯誤暫不顯示金額');
+    const status=lastRead==='checking'?'正在讀取雲端資金資料…':computed?(matched?'已與 2026-10-19 Sheet 核對基準一致':'雲端計算結果與 2026-10-19 Sheet 基準不同，請核對是否有新交易或缺漏'):(lastRead==='unavailable'?'無法讀取雲端資料；為避免錯誤暫不顯示金額':'雲端資金資料缺少完整換匯／帳戶明細；為避免錯誤暫不顯示金額');
     note.textContent=(computed?'✓ 金額由 GAS 雲端資料即時計算（非固定金額）。':'⚠ 資金餘額未經完整雲端資料確認。')+' '+status+'。此畫面只讀取，不會修改 Sheet。';
     const btn=document.getElementById('saveFundBtn');
     if(btn){btn.disabled=true;btn.title='首爾資金維持唯讀保護，避免覆寫 Sheet';btn.textContent='首爾資金唯讀保護中';}
