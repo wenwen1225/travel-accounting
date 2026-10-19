@@ -126,13 +126,12 @@
     </div>
 
     <div id="pendingRefundReminderSection" class="section" style="display:none">
-      <div id="pendingRefundReminder" class="card" style="padding:12px 14px;border:1px solid #e9ddff;background:#fcfaff;border-radius:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div style="font-size:13px;font-weight:700;color:#6e4ca6">❗️待找機台退稅 <span id="pendingRefundCount">0</span> 筆</div>
-          <button class="pill" type="button" onclick="openPendingRefundRecords()" style="white-space:nowrap;font-size:12px">查看紀錄 ›</button>
-        </div>
-        <div id="pendingRefundList" style="margin-top:7px;display:grid;gap:5px"></div>
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>❗️找機台退稅 <span id="pendingRefundCount">0</span> 筆待處理</span>
+        <button class="pill" type="button" onclick="openPendingRefundRecords()">查看全部</button>
       </div>
+      <div id="pendingRefundList" style="display:grid;gap:8px"></div>
+      <div id="pendingRefundMore" class="tiny" style="margin-top:7px;display:none"></div>
     </div>
 
     <div class="hero">
@@ -825,6 +824,25 @@
     </div>
   </div>
 
+  <div id="refundCompletionOverlay" class="save-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="refundCompletionTitle">
+    <div class="save-dialog" style="text-align:left;max-width:430px">
+      <h2 id="refundCompletionTitle" style="text-align:center">完成退稅</h2>
+      <p id="refundCompletionSummary" style="font-size:13px;line-height:1.7"></p>
+      <div class="form-group"><label>退稅方式</label>
+        <select id="refundCompletionMethod" onchange="updateRefundCompletionMethod()"><option value="現金">現金</option><option value="信用卡">信用卡</option></select>
+      </div>
+      <div class="form-group"><label>實際退稅金額（旅行幣別）</label><input id="refundCompletionAmount" inputmode="decimal" placeholder="請輸入實際退稅金額" /></div>
+      <div id="refundCompletionCardFields" class="hidden">
+        <div class="form-group"><label>退回卡別</label><select id="refundCompletionCard"></select></div>
+        <div class="form-group"><label>實際退回台幣（可留空）</label><input id="refundCompletionTwd" inputmode="decimal" placeholder="留空依原交易比例估算" /></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="secondary" type="button" onclick="closeRefundCompletion()" style="flex:1">取消</button>
+        <button id="refundCompletionSubmit" class="primary" type="button" onclick="confirmRefundCompletion()" style="flex:1.4">確認完成退稅</button>
+      </div>
+    </div>
+  </div>
+
   <div id="saveOverlay" class="save-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
     <div class="save-dialog">
       <div id="saveSymbol" class="save-symbol">✓</div>
@@ -838,7 +856,7 @@
 <script src="app-02.js?v=60"></script>
 <script src="app-03.js?v=61"></script>
 <script src="app-04.js?v=58"></script>
-<script src="app-05.js?v=67"></script>
+<script src="app-05.js?v=68"></script>
 <script src="app-06.js?v=58"></script>
 <script src="app-07.js?v=59"></script>
   <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" aria-label="回到最上方" onclick="scrollToTop()">↑</button>
