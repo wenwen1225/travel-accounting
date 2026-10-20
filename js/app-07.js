@@ -238,12 +238,16 @@ syncPendingRecords=async function(options={}){
       const remote=(t[q.recordType]||[]).find(r=>String(r.id)===String(q.recordId));
       const keys=['name','date','pay','person'];
       const comparable=keys.filter(k=>record[k]!=null&&remote[k]!=null&&String(record[k]).trim()!==''&&String(remote[k]).trim()!=='');
-      if(comparable.length<2||comparable.some(k=>String(record[k])!==String(remote[k])))continue;
+      if(comparable.length<2||comparable.some(k=>String(record[k])!==String(remote[k]))){cloudConflicts++;continue;}
       record.syncStatus='synced';record.lastSyncError='';
       state.syncQueue=state.syncQueue.filter(x=>x.queueId!==q.queueId);
       changed=true;
     }
     if(changed)persist();
+    if(cloudConflicts){
+      if(!options.silent)alert('有 '+cloudConflicts+' 筆紀錄 ID 已存在雲端，但內容尚未確認一致。為避免覆寫或重複，已暫停整批上傳，請先人工核對。');
+      return false;
+    }
   }catch(err){
     if(!options.silent)alert('為避免重複記帳，雲端核對失敗時暫停批次同步：'+String(err?.message||err));
     return false;
