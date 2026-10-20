@@ -27,14 +27,15 @@
     if(str(local.id)!==str(cloud.id))return false;
     // Verify every populated identity/amount field that the cloud response supplies.
     const identity=['date','name','pay','person','card','place'];
+    let checked=0;
     for(const key of identity){
-      if(str(local[key])&&str(cloud[key])&&str(local[key])!==str(cloud[key]))return false;
+      if(str(local[key])&&str(cloud[key])){checked++;if(str(local[key])!==str(cloud[key]))return false;}
     }
     for(const key of ['foreign','twd','quantity']){
       const a=numeric(local[key]),b=numeric(cloud[key]);
-      if(a!==null&&b!==null&&Math.abs(a-b)>0.00001)return false;
+      if(a!==null&&b!==null){checked++;if(Math.abs(a-b)>0.00001)return false;}
     }
-    return true;
+    return checked>=2;
   }
   async function reconcile(manual=false){
     if(running)return;
