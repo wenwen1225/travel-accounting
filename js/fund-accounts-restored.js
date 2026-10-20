@@ -313,16 +313,12 @@
   window.removeFundTransferV83=function(id){const st=migrateLocalFundState();st.transfers=st.transfers.filter(t=>t.id!==id);currentTrip.fundAccounts=st;persist();renderFundManager();renderFundSection();};
   window.saveFundAccountsV83=async function(){
     if(!currentTrip)return;
-    if(String(currentTrip.currency||'')!=='KRW'){
-      alert('非韓元旅行已恢復「現金／電子支付」帳戶檢視與本機明細，但目前 GAS 資金寫入格式尚未確認支援電子支付。為避免覆蓋 Google Sheet「資金紀錄」，暫不允許寫入；請先完成後端相容性檢查。');
-      return;
-    }
     if(typeof window.isSeoulFundSnapshotProtected==='function'&&window.isSeoulFundSnapshotProtected()){
       alert('這趟首爾旅行的資金已與 Google Sheet 核對，但網頁尚未完整讀回原始帳戶明細。為避免覆蓋現有 Sheet 紀錄，暫時禁止資金帳戶寫入。');
       return;
     }
     if(currentTrip.archived)return typeof archiveReadOnlyAlert==='function'?archiveReadOnlyAlert():alert('封存旅程不可修改');
-    if(!confirm('將把目前畫面上的資金設定寫入 Google Sheet。請確認已核對初始餘額、現金、WOWPASS、TOSS 與帳戶轉移資料。\n\n若原本的資金紀錄尚未完整讀回，請按「取消」，避免覆蓋原資料。'))return;const st=migrateLocalFundState();captureInitial(st.accounts[activeFundAccount]);currentTrip.fundAccounts=st;persist();renderFundSection();
+    if(!confirm('將把目前畫面上的資金設定寫入 Google Sheet。請確認已核對初始餘額、各帳戶明細與帳戶轉移資料（非韓元：現金／電子支付；韓元：現金／WOWPASS／TOSS）。\n\n此操作會重建試算表的資金紀錄。如果原本的資金明細尚未完整讀回，請按「取消」，避免覆蓋原資料。'))return;const st=migrateLocalFundState();captureInitial(st.accounts[activeFundAccount]);currentTrip.fundAccounts=st;persist();renderFundSection();
     const btn=document.getElementById('saveFundBtn');if(btn){btn.disabled=true;btn.textContent='儲存中…';}
     try{
       if(!getApiUrl())throw new Error('尚未設定 Google Apps Script Web App URL');
