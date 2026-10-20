@@ -43,7 +43,7 @@
       info.textContent=count+' 筆待同步';
       sub.textContent=count+' 筆待同步';
     }else{
-      info.textContent='0 筆待同步｜100% 已同步';
+      info.textContent=(typeof cloudHasNewData!=='undefined'&&cloudHasNewData)?'0 筆待上傳｜雲端有新資料待更新':'0 筆待同步｜100% 已同步';
     }
   }
   function install(){
