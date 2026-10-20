@@ -61,7 +61,7 @@ let lastCloudRevision = String(state.lastCloudRevision || '');
 let cloudHasNewData = false;
 
 function isCloudWriteAction(action){
-  return !['getVersion','getAllData','getCloudRevision'].includes(action || '');
+  return !['getVersion','getAllData','getCloudRevision','getFundBalances'].includes(action || '');
 }
 
 function beginCloudActivity(isWrite=false){
