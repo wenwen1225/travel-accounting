@@ -42,7 +42,7 @@
     if(data){
       if(total)total.textContent=money(data.total);
       if(grid){
-        const defs=String(t.currency)==='KRW'?[['CASH','💵 現金'],['WOWPASS','💳 WOWPASS'],['TOSS','💙 TOSS']]:[['CASH','💵 現金']];
+        const defs=String(t.currency)==='KRW'?[['CASH','💵 現金'],['WOWPASS','💳 WOWPASS'],['TOSS','💙 TOSS']]:[['CASH','💵 現金'],...(Object.prototype.hasOwnProperty.call(data.balances,'E_PAYMENT')?[['E_PAYMENT','💳 電子支付']]:[])];
         grid.innerHTML=defs.map(([key,label])=>'<div class="fund-mini"><span class="fund-mini-name">'+label+'</span><strong>'+money(data.balances[key]||0)+'</strong></div>').join('');
       }
       if(warning)warning.style.display='none';
