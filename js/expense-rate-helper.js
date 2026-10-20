@@ -24,20 +24,21 @@
     if(!rate||!foreign||!twd)return;
     const a=number(foreign.value),b=number(twd.value);
     if(a>0&&b>0&&document.activeElement!==rate){
-      const inferred=a/b;
+      const inferred=$('expenseRateHelperOperator')?.value==='multiply'?b/a:a/b;
       if(Number.isFinite(inferred)&&inferred>0)rate.value=Number(inferred.toFixed(6));
     }
   }
   function applyRate(){
     const rate=number($('expenseRateHelperInput')?.value);
+    const multiply=$('expenseRateHelperOperator')?.value==='multiply';
     if(!(rate>0))return;
     const foreign=$('expenseForeign'),twd=$('expenseTwd');
     if(!foreign||!twd)return;
     if(lastEdited==='twd'&&number(twd.value)>0){
-      foreign.value=String(Number((number(twd.value)*rate).toFixed(2)));
+      foreign.value=String(Number((multiply?number(twd.value)/rate:number(twd.value)*rate).toFixed(2)));
       foreign.dispatchEvent(new Event('input',{bubbles:true}));
     }else if(number(foreign.value)>0){
-      twd.value=String(Math.round(number(foreign.value)/rate));
+      twd.value=String(Math.round(multiply?number(foreign.value)*rate:number(foreign.value)/rate));
       twd.dispatchEvent(new Event('input',{bubbles:true}));
     }
   }
@@ -46,11 +47,16 @@
     const wrap=document.createElement('div');
     wrap.id='expenseRateHelper';wrap.className='form-group';
     wrap.style.cssText='display:none;padding:12px;margin:5px 0 12px;background:#f7f2ff;border:1px solid #e9dff8;border-radius:13px';
-    wrap.innerHTML='<label for="expenseRateHelperInput">匯率換算（外幣 ÷ 台幣，例如 1 TWD = 5 JPY）</label><div class="row" style="align-items:center;gap:8px"><input id="expenseRateHelperInput" type="number" min="0" step="any" inputmode="decimal" placeholder="輸入匯率" style="min-width:0;flex:1"/><button id="expenseRateHelperApply" type="button" class="secondary" style="flex:0 0 auto;padding:10px 12px">換算</button></div><div class="tiny" style="margin-top:6px">可先輸入外幣或台幣，再輸入匯率換算另一欄；儲存的仍是原本兩個金額。</div>';
+    wrap.innerHTML='<label for="expenseRateHelperInput">匯率換算</label><div class="row" style="align-items:center;gap:8px"><select id="expenseRateHelperOperator" aria-label="換算方式" style="flex:0 0 98px;min-width:0"><option value="divide">÷ 除法</option><option value="multiply">× 乘法</option></select><input id="expenseRateHelperInput" type="number" min="0" step="any" inputmode="decimal" placeholder="輸入匯率" style="min-width:0;flex:1"/><button id="expenseRateHelperApply" type="button" class="secondary" style="flex:0 0 auto;padding:10px 12px">換算</button></div><div class="tiny" id="expenseRateHelperHint" style="margin-top:6px">外幣 ÷ 匯率 = 台幣；先輸入外幣或台幣，再按「換算」即可。</div>';
+
     const anchor=$('expenseForeign').closest('.row');
     if(!anchor)return;
     anchor.insertAdjacentElement('afterend',wrap);
     $('expenseRateHelperApply').addEventListener('click',applyRate);
+    $('expenseRateHelperOperator').addEventListener('change',()=>{
+      $('expenseRateHelperHint').textContent=$('expenseRateHelperOperator').value==='multiply'?'外幣 × 匯率 = 台幣；從台幣反算外幣時會自動使用除法。':'外幣 ÷ 匯率 = 台幣；從台幣反算外幣時會自動使用乘法。';
+      sync();
+    });
     $('expenseRateHelperInput').addEventListener('change',applyRate);
     $('expenseForeign').addEventListener('input',()=>{lastEdited='foreign';});
     $('expenseTwd').addEventListener('input',()=>{lastEdited='twd';});
