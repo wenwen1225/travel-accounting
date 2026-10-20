@@ -19,7 +19,37 @@
       const copy=box.querySelector('.home-sync-copy');
       if(copy)copy.appendChild(info);else box.appendChild(info);
     }
-    if(!hasApi){info.textContent='';return;}
+    // Render each queued operation separately; never mutate the queue.
+    let rows=el('homeSyncQueueRows');
+    if(!rows){
+      rows=document.createElement('div');
+      rows.id='homeSyncQueueRows';
+      rows.style.cssText='display:grid;gap:5px;margin-top:8px;text-align:left;';
+      info.insertAdjacentElement('afterend',rows);
+    }
+    rows.replaceChildren();
+    const kind={expenses:'消費紀錄',pretrip:'先前費用',exchange:'換匯紀錄',fundAccounts:'資金帳戶'};
+    const action={createTrip:'建立旅行',saveExpense:'新增消費',updateExpense:'修改消費',deleteExpense:'刪除消費'};
+    const currentIds=new Set(queue.map(q=>q.queueId));
+    const doneIds=batch?Array.from(batch.ids).filter(id=>!currentIds.has(id)):[];
+    const items=[
+      ...doneIds.map(id=>({id,done:true})),
+      ...queue.map(q=>({id:q.queueId,q}))
+    ];
+    items.slice(0,15).forEach((entry,i)=>{
+      const line=document.createElement('div');
+      line.style.cssText='padding:6px 8px;border-radius:7px;background:rgba(125,105,175,.08);font-size:12px;line-height:1.45;';
+      const q=entry.q;
+      const name=entry.done?'已完成的同步紀錄':(action[q.action]||kind[q.recordType]||q.action||'待同步紀錄');
+      const stateText=entry.done?'✓ 已同步':q.lastError?'⚠ 同步失敗':busy&&i===doneIds.length?'↻ 正在處理':'○ 待同步';
+      line.textContent=(i+1)+'. '+name+' — '+stateText;
+      if(q&&q.lastError){line.title=String(q.lastError);line.textContent+='（可至設定查看原因）';}
+      rows.appendChild(line);
+    });
+    if(items.length>15){
+      const more=document.createElement('div');more.textContent='另有 '+(items.length-15)+' 筆，請至同步設定查看';rows.appendChild(more);
+    }
+    if(!hasApi){info.textContent='';rows.replaceChildren();return;}
     if(offline){
       info.textContent=count?count+' 筆尚未同步（離線保存在本機）':'目前離線';
       return;
@@ -34,7 +64,7 @@
       info.textContent='同步進度 '+pct+'%'+(count>remaining?'｜含 '+(count-remaining)+' 筆新待同步':'');
       return;
     }
-    batch=null;
+    if(!busy)batch=null;
     if(direct){
       info.textContent=count+' 筆待同步｜正在上傳資料';
       return;
