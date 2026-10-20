@@ -30,7 +30,7 @@
      }
      if(values.includes(existing))select.value=existing;
      else if(!values.includes(select.value)){
-       const today=new Date().toLocaleDateString('en-CA');
+       const now=new Date();const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
        select.value=values.includes(today)?today:values[0];
        input.value=select.value;
      }
