@@ -31,6 +31,7 @@
     const box=$('homeSyncStatus'),label=$('homeSyncText'),sub=$('homeLastSync');
     if(!box||!label||!sub)return;
     const items=pendingItems(),queue=Array.isArray(state.syncQueue)?state.syncQueue:[];
+    const queuedItems=items.filter(x=>x.queued),unverifiedItems=items.filter(x=>!x.queued);
     const busy=typeof queueSyncRunning!=='undefined'&&queueSyncRunning;
     const direct=typeof cloudWriteCount!=='undefined'&&cloudWriteCount>0;
     const offline=typeof navigator!=='undefined'&&navigator.onLine===false;
@@ -58,7 +59,7 @@
     for(const [i,item] of display.slice(0,20).entries()){
       const row=document.createElement('div');
       row.style.cssText='padding:8px 10px;border-radius:9px;background:rgba(125,105,175,.08);font-size:12px;line-height:1.5;overflow-wrap:anywhere;';
-      const status=item.done?'✓ 已同步':item.error&&item.error!=='雲端同步中'?'⚠ 同步失敗':offline?'○ 離線待同步':item.working||direct?'↻ 等待雲端確認':'○ 待同步';
+      const status=item.done?'✓ 已同步':!item.queued?'? 待核對雲端':item.error&&item.error!=='雲端同步中'?'⚠ 同步失敗':offline?'○ 離線待同步':direct?'↻ 正在同步':'○ 可重試同步';
       const head=document.createElement('div');
       head.textContent=(i+1)+'. '+item.name+' — '+status;
       row.appendChild(head);
@@ -76,14 +77,14 @@
     if(!hasApi){info.textContent=items.length+' 筆本機資料尚未連接 Google Sheets';}
     else if(busy){info.textContent='同步進度 '+done+' / '+batch.start+' 筆（'+pct+'%）｜'+items.length+' 筆尚待確認';}
     else if(offline){info.textContent=items.length+' 筆尚未同步（離線保存在本機）';}
-    else if(items.length){info.textContent=items.length+' 筆待同步或待雲端確認'+(direct?'｜正在上傳':'');}
+    else if(items.length){info.textContent=queuedItems.length+' 筆可重新同步｜'+unverifiedItems.length+' 筆需核對雲端'+(direct?'｜正在上傳':'');}
     else if(typeof cloudHasNewData!=='undefined'&&cloudHasNewData){info.textContent='0 筆待上傳｜雲端有新資料待更新';}
     else{info.textContent='0 筆待同步｜100% 已同步';}
     if(items.length){
-      sub.textContent=items.length+' 筆待同步或待確認';
+      sub.textContent=queuedItems.length+' 筆待同步｜'+unverifiedItems.length+' 筆待核對';
       if(!busy&&!direct){
         box.className='home-sync-status home-sync-pending';
-        if(label.textContent.includes('已全部同步'))label.textContent='有資料待同步或待確認';
+        if(label.textContent.includes('已全部同步')||label.textContent.includes('同步中'))label.textContent='有資料待同步或核對';
       }
     }
   }
