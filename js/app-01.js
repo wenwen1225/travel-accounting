@@ -1,6 +1,6 @@
 const STORE_KEY = 'travelLedgerV1';
-const WEB_APP_VERSION = '2026.10.03-v58';
-const EXPECTED_SCRIPT_VERSION = 'v51';
+const WEB_APP_VERSION = '2026.10.20-v63.7.2';
+const EXPECTED_SCRIPT_VERSION = 'v63.6';
 
 let state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   people:['Wen','Clark','Anna'],
