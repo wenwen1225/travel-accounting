@@ -19,6 +19,8 @@
     if(String(trip?.currency||'')==='KRW'){
       defs.push({id:'WOWPASS',label:'WOWPASS',pay:'Wowpass',icon:'💳'});
       defs.push({id:'TOSS',label:'TOSS',pay:'Toss',icon:'💙'});
+    }else{
+      defs.push({id:'E_PAYMENT',label:'電子支付',pay:'電子支付',icon:'💳'});
     }
     return defs;
   };
@@ -115,7 +117,7 @@
       const a=fundNum(e.foreign);balances.CASH=(balances.CASH||0)+a;
       if(a>0)income.CASH=(income.CASH||0)+a;else spend.CASH=(spend.CASH||0)+Math.abs(a);
     });
-    const payToId={'現金':'CASH','Wowpass':'WOWPASS','Toss':'TOSS'};
+    const payToId={'現金':'CASH','Wowpass':'WOWPASS','Toss':'TOSS','電子支付':'E_PAYMENT','當地支付':'E_PAYMENT'};
     (currentTrip.expenses||[]).forEach(e=>{
       const id=payToId[e.pay];if(!id||balances[id]===undefined)return;
       const a=fundNum(e.foreign);balances[id]-=a;spend[id]+=Math.max(0,a);
@@ -324,6 +326,10 @@
   window.removeFundTransferV83=function(id){const st=migrateLocalFundState();st.transfers=st.transfers.filter(t=>t.id!==id);currentTrip.fundAccounts=st;persist();renderFundManager();renderFundSection();};
   window.saveFundAccountsV83=async function(){
     if(!currentTrip)return;
+    if(String(currentTrip.currency||'')!=='KRW'){
+      alert('非韓元旅行已恢復「現金／電子支付」帳戶檢視與本機明細，但目前 GAS 資金寫入格式尚未確認支援電子支付。為避免覆蓋 Google Sheet「資金紀錄」，暫不允許寫入；請先完成後端相容性檢查。');
+      return;
+    }
     if(typeof window.isSeoulFundSnapshotProtected==='function'&&window.isSeoulFundSnapshotProtected()){
       alert('這趟首爾旅行的資金已與 Google Sheet 核對，但網頁尚未完整讀回原始帳戶明細。為避免覆蓋現有 Sheet 紀錄，暫時禁止資金帳戶寫入。');
       return;
