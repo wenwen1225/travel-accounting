@@ -195,7 +195,12 @@ syncPendingRecords=async function(options={}){
   if(queueSyncRunning || directRecordSyncRunning) return false;
   const q=(state.syncQueue||[])[0];
   if(!q){
-    if(!silent) alert('目前沒有待同步資料。');
+    if(!silent){
+      const unresolved=(state.trips||[]).reduce((sum,trip)=>sum+['expenses','pretrip','exchange'].reduce((n,type)=>n+(trip[type]||[]).filter(item=>['pending','conflict'].includes(item.syncStatus)).length,0),0);
+      alert(unresolved
+        ? '目前沒有可直接重送的佇列資料，但有 '+unresolved+' 筆本機紀錄尚待核對雲端。\\n為避免重複寫入 Google Sheets，系統不會自動重送。請先核對試算表中的紀錄。'
+        : '目前沒有待同步資料。');
+    }
     return true;
   }
   if(!silent) return retrySingleSync(q.queueId);
