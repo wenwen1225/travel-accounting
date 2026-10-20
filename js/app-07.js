@@ -189,23 +189,70 @@ showCloudResultModal=function(_success,message){
   showQuickSaveToast(text);
 };
 
-// 「同步待處理」仍一次只處理一筆。
+// Restore one-click sequential batch sync using the original safe queue processor.
+// Do not automatically replay historic pending writes on app launch.
+const originalBatchSyncPendingRecords=syncPendingRecords;
 syncPendingRecords=async function(options={}){
-  const silent=!!options.silent;
-  if(queueSyncRunning || directRecordSyncRunning) return false;
-  const q=(state.syncQueue||[])[0];
-  if(!q){
-    if(!silent){
+  if(queueSyncRunning||directRecordSyncRunning){
+    if(!options.silent)alert('仍有資料正在同步，請稍後再試。');
+    return false;
+  }
+  if(!getApiUrl()){
+    if(!options.silent)alert('請先設定 Google Apps Script Web App URL。');
+    return false;
+  }
+  if(!(state.syncQueue||[]).length){
+    if(!options.silent){
       const unresolved=(state.trips||[]).reduce((sum,trip)=>sum+['expenses','pretrip','exchange'].reduce((n,type)=>n+(trip[type]||[]).filter(item=>['pending','conflict'].includes(item.syncStatus)).length,0),0);
-      alert(unresolved
-        ? '目前沒有可直接重送的佇列資料，但有 '+unresolved+' 筆本機紀錄尚待核對雲端。\\n為避免重複寫入 Google Sheets，系統不會自動重送。請先核對試算表中的紀錄。'
-        : '目前沒有待同步資料。');
+      alert(unresolved?'目前沒有可重送的佇列，但有 '+unresolved+' 筆需先核對雲端。請使用首頁「核對雲端紀錄」，避免重複寫入。':'目前沒有待同步資料。');
     }
     return true;
   }
-  if(!silent) return retrySingleSync(q.queueId);
-  scheduleSameRecordRetry(q.queueId,50);
-  return false;
+  // Read cloud first: if record IDs are already present, never replay them.
+  try{
+    const cloud=await postToCloud({action:'getAllData'});
+    if(!Array.isArray(cloud.trips))throw new Error('雲端資料格式不完整');
+    const byTrip=new Map(cloud.trips.map(t=>[String(t.id),t]));
+    let changed=false;
+    for(const q of [...state.syncQueue]){
+      if(q.action==='createTrip'){
+        const t=byTrip.get(String(q.tripId));
+        if(t?.spreadsheetId){
+          const local=getTripById(q.tripId);
+          if(local){local.spreadsheetId=t.spreadsheetId;local.spreadsheetUrl=t.spreadsheetUrl||local.spreadsheetUrl;local.cloudStatus='synced';}
+          state.syncQueue=state.syncQueue.filter(x=>x.queueId!==q.queueId);
+          changed=true;
+        }
+        continue;
+      }
+      // Deletions and edits must never be discarded based only on a matching ID.
+      if(!/^add/.test(String(q.action||'')))continue;
+      const t=byTrip.get(String(q.tripId));
+      const found=(t?.[q.recordType]||[]).some(r=>String(r.id)===String(q.recordId));
+      if(!found)continue;
+      const local=getTripById(q.tripId);
+      const record=(local?.[q.recordType]||[]).find(r=>String(r.id)===String(q.recordId));
+      if(!record)continue;
+      // For additions only, use cloud reconciliation's field comparison by keeping
+      // ambiguous items out of the replay batch, never silently marking them synced.
+      const remote=(t[q.recordType]||[]).find(r=>String(r.id)===String(q.recordId));
+      const keys=['name','date','pay','person'];
+      const comparable=keys.filter(k=>record[k]!=null&&remote[k]!=null&&String(record[k]).trim()!==''&&String(remote[k]).trim()!=='');
+      if(comparable.length<2||comparable.some(k=>String(record[k])!==String(remote[k])))continue;
+      record.syncStatus='synced';record.lastSyncError='';
+      state.syncQueue=state.syncQueue.filter(x=>x.queueId!==q.queueId);
+      changed=true;
+    }
+    if(changed)persist();
+  }catch(err){
+    if(!options.silent)alert('為避免重複記帳，雲端核對失敗時暫停批次同步：'+String(err?.message||err));
+    return false;
+  }
+  if(!(state.syncQueue||[]).length){
+    if(!options.silent)alert('待同步紀錄已在雲端找到，無須重複上傳。');
+    return true;
+  }
+  return originalBatchSyncPendingRecords(options);
 };
 
 function scrollToTop(){
