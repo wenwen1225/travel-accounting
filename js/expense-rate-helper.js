@@ -6,15 +6,15 @@
   const number=value=>{const n=Number(String(value||'').replace(/,/g,''));return Number.isFinite(n)?n:0;};
   const eligible=new Set(['交通卡','現金','Wowpass','Toss','電子支付']);
   let lastEdited='foreign';
-  function selectedPay(){
+  function payChoice(){
     const active=$('paySeg')?.querySelector('button.active,[aria-pressed="true"]');
     if(active)return active.dataset.pay||'';
-    return typeof selectedPayMethod!=='undefined'?String(selectedPayMethod):'';
+    return typeof selectedPay!=='undefined'?String(selectedPay):'';
   }
   function sync(){
     const box=$('expenseRateHelper');
     if(!box)return;
-    const pay=selectedPay();
+    const pay=payChoice();
     const visible=eligible.has(pay)&&$('expenseForm')&&!$('expenseForm').classList.contains('hidden');
     box.style.display=visible?'':'none';
     if(!visible)return;
