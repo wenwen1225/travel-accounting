@@ -30,23 +30,10 @@
     const d=new Date(+m[1],+m[2]-1,+m[3],12,0,0);
     return `${m[1]}/${m[2]}/${m[3]}（${['日','一','二','三','四','五','六'][d.getDay()]}）`;
   };
-  function fundDateOptions(selected=''){
-    if(!currentTrip)return [];
-    const parse=s=>{const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],+m[2]-1,+m[3],12,0,0):null;};
-    const start=parse(currentTrip.start)||new Date();
-    const end=parse(currentTrip.end)||start;
-    const from=new Date(start);from.setDate(from.getDate()-30);
-    const to=new Date(end);to.setDate(to.getDate()+7);
-    const set=new Set([fundToday(),selected].filter(Boolean));
-    for(let d=new Date(from);d<=to;d.setDate(d.getDate()+1)){
-      set.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-    }
-    return [...set].sort();
-  }
   function fillFundDateSelect(el,selected){
     if(!el)return;
     const wanted=selected||fundToday();
-    el.innerHTML=fundDateOptions(wanted).map(v=>`<option value="${v}">${fundDateLabel(v)}</option>`).join('');
+    if(el.tagName==='INPUT'&&el.type==='date'){el.value=wanted;return;}
     el.value=wanted;
   }
   function bindMoney(el){
@@ -271,10 +258,10 @@
   function ensureFundOverlay(){
     ensureFundStyles();if(document.getElementById('fundManagerOverlay'))return;
     const o=document.createElement('div');o.id='fundManagerOverlay';o.className='save-overlay hidden';o.innerHTML=`<div class="save-dialog fund-dialog"><div class="save-symbol">💰</div><h2>共同資金帳戶</h2><div id="fundManagerSub" class="sub"></div><div id="fundAccountTabs" class="fund-account-tabs"></div>
-      <div class="fund-two"><div class="form-group"><label>初始餘額</label><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundInitialInput" type="text" inputmode="decimal" placeholder="例如：100,000"></div></div><div class="form-group"><label>初始日期</label><select id="fundInitialDate" class="fund-date"></select></div></div>
+      <div class="fund-two"><div class="form-group"><label>初始餘額</label><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundInitialInput" type="text" inputmode="decimal" placeholder="例如：100,000"></div></div><div class="form-group"><label>初始日期</label><input id="fundInitialDate" type="date" class="fund-date" /></div></div>
       <div class="form-group"><label>新增收入 / 支出 / 調整</label><input id="fundEntryType" type="hidden" value="儲值"><div class="fund-mode-row"><button id="fundMode_income" type="button" class="fund-mode-btn income" onclick="setFundEntryModeV90('income')">收入</button><button id="fundMode_expense" type="button" class="fund-mode-btn expense" onclick="setFundEntryModeV90('expense')">支出</button><button id="fundMode_adjust" type="button" class="fund-mode-btn adjust" onclick="setFundEntryModeV90('adjust')">調整</button></div><div id="fundSubtypeRow" class="fund-subtype-row"></div><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundEntryAmount" type="text" inputmode="decimal" placeholder="0"></div></div>
-      <div class="fund-two"><div class="form-group"><label>日期</label><select id="fundEntryDate" class="fund-date"></select></div><div class="form-group"><label>備註</label><input id="fundEntryNote" placeholder="例如：信用卡儲值"></div></div><button class="secondary" type="button" onclick="addFundEntryV83()">＋ 加入這筆收支</button><div id="fundEntryList" class="fund-entry-list"></div>
-      <div id="fundTransferBox" class="fund-transfer-box"><strong>帳戶間轉移</strong><div class="tiny" style="margin:5px 0 10px">本金只是移動，不算收入／支出；手續費會算來源帳戶的實際支出。</div><div class="fund-two"><div class="form-group"><label>從</label><select id="fundTransferFrom"></select></div><div class="form-group"><label>轉到</label><select id="fundTransferTo"></select></div></div><div class="fund-two"><div class="form-group"><label>轉入金額</label><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundTransferAmount" type="text" inputmode="decimal" placeholder="例如：4,000"></div></div><div class="form-group"><label>手續費</label><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundTransferFee" type="text" inputmode="decimal" placeholder="例如：500"></div></div></div><div class="fund-two"><div class="form-group"><label>日期</label><select id="fundTransferDate" class="fund-date"></select></div><div class="form-group"><label>備註</label><input id="fundTransferNote" placeholder="選填"></div></div><button class="secondary" type="button" onclick="addFundTransferV83()">＋ 加入轉移</button><div id="fundTransferList" class="fund-entry-list"></div></div>
+      <div class="fund-two"><div class="form-group"><label>日期</label><input id="fundEntryDate" type="date" class="fund-date" /></div><div class="form-group"><label>備註</label><input id="fundEntryNote" placeholder="例如：信用卡儲值"></div></div><button class="secondary" type="button" onclick="addFundEntryV83()">＋ 加入這筆收支</button><div id="fundEntryList" class="fund-entry-list"></div>
+      <div id="fundTransferBox" class="fund-transfer-box"><strong>帳戶間轉移</strong><div class="tiny" style="margin:5px 0 10px">本金只是移動，不算收入／支出；手續費會算來源帳戶的實際支出。</div><div class="fund-two"><div class="form-group"><label>從</label><select id="fundTransferFrom"></select></div><div class="form-group"><label>轉到</label><select id="fundTransferTo"></select></div></div><div class="fund-two"><div class="form-group"><label>轉入金額</label><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundTransferAmount" type="text" inputmode="decimal" placeholder="例如：4,000"></div></div><div class="form-group"><label>手續費</label><div class="money-wrap"><span class="money-prefix fund-currency-symbol">₩</span><input id="fundTransferFee" type="text" inputmode="decimal" placeholder="例如：500"></div></div></div><div class="fund-two"><div class="form-group"><label>日期</label><input id="fundTransferDate" type="date" class="fund-date" /></div><div class="form-group"><label>備註</label><input id="fundTransferNote" placeholder="選填"></div></div><button class="secondary" type="button" onclick="addFundTransferV83()">＋ 加入轉移</button><div id="fundTransferList" class="fund-entry-list"></div></div>
       <button id="saveFundBtn" class="primary" style="margin-top:15px" type="button" onclick="saveFundAccountsV83()">儲存資金設定</button><button class="secondary" style="margin-top:9px" type="button" onclick="closeFundManagerV83()">取消</button></div>`;
     document.body.appendChild(o);
     ['fundInitialInput','fundEntryAmount','fundTransferAmount','fundTransferFee'].forEach(id=>bindMoney(document.getElementById(id)));
