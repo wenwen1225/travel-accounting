@@ -2091,3 +2091,34 @@
   background:#a68aec;
   transition:width .2s ease;
 }
+
+
+/* Responsive wide-screen improvements — 2026-10-23.
+   Keep the existing narrow-screen trip entry and cloud controls intact. */
+@media (min-width: 760px) {
+  body { padding: 20px 20px 36px; }
+  .app {
+    width: 100%;
+    max-width: 1080px;
+    margin-inline: auto;
+    min-height: calc(100dvh - 56px);
+    border-radius: 28px;
+  }
+  .top { padding-inline: 30px; }
+  .section { padding-inline: 30px; }
+  .hero { margin-inline: 30px; }
+  .bottom-nav {
+    width: min(calc(100% - 40px), 1080px);
+    bottom: 0;
+    border-radius: 18px 18px 0 0;
+  }
+  .form-card { max-width: 780px; margin-inline: auto; }
+  .page, .section, .card, .row { min-width: 0; }
+}
+@media (min-width: 760px) and (max-width: 1000px) {
+  .app { max-width: 100%; }
+}
+@media (max-width: 759px) {
+  .app, .page { min-width: 0; }
+  .row > *, .form-group { min-width: 0; }
+}
