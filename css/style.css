@@ -2175,3 +2175,154 @@
 @media (min-width: 760px) and (max-width: 899px) {
   #page-trip > .section > .grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
+
+/* Desktop visual redesign v2 — 2026-10-23.
+   A dedicated lavender workspace, with phone styles untouched. */
+@media (min-width:1100px) {
+  body {
+    padding:0 25px 40px 225px;
+    background:radial-gradient(circle at 88% 2%,#e8ddfb 0,transparent 37%),
+               linear-gradient(125deg,#f7f4fc 0%,#f0eaf9 100%);
+  }
+  .app {
+    max-width:1230px;
+    width:100%;
+    margin:28px auto 0;
+    min-height:calc(100dvh - 55px);
+    border:1px solid #e9e1f4;
+    border-radius:26px;
+    box-shadow:0 18px 60px rgba(93,73,138,.09);
+    background:linear-gradient(180deg,#fff 0,#fdfbff 320px,#faf7fe 100%);
+    padding-bottom:60px;
+    overflow:hidden;
+  }
+  .page > .top {padding:29px 36px 18px;border-bottom:1px solid #ede7f5;}
+  .title-wrap h1 {font-size:29px;letter-spacing:-.7px;color:#463668;}
+  .title-wrap p {font-size:13px;}
+  .section {padding:20px 36px 6px;}
+  .section-title {font-size:17px;margin-bottom:15px;color:#4d3b70;}
+  .hero {
+    border-radius:22px;
+    background:linear-gradient(125deg,#8d73db,#b89beb);
+    box-shadow:0 13px 35px rgba(126,96,208,.17);
+    padding:27px;
+  }
+  .hero h2 {font-size:35px;letter-spacing:-.7px;}
+  .card,.trip-card,.form-card {
+    border:1px solid #eae3f4;
+    border-radius:19px;
+    box-shadow:0 5px 22px rgba(89,67,135,.055);
+  }
+  .form-card {margin:18px auto;padding:29px 32px;max-width:860px;}
+  .form-group input,.form-group select,.form-group textarea {
+    border-color:#e4dbf0;
+    background:#fff;
+    min-height:46px;
+  }
+  input:focus-visible,select:focus-visible,textarea:focus-visible {
+    border-color:#a38ae8;
+    box-shadow:0 0 0 3px rgba(167,139,250,.16);
+  }
+  #page-home > .top {padding-bottom:17px;}
+  #tripList {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:17px;
+    align-items:stretch;
+  }
+  #tripList > * {min-width:0;}
+  #tripList .trip-card {height:100%;margin-bottom:0;padding:22px;}
+  #tripList .trip-card h3 {font-size:19px;}
+  #tripList .trip-card .amount {font-size:25px;}
+  #page-trip.active {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:0 22px;
+    padding-inline:36px;
+  }
+  #page-trip > .top {margin-inline:-36px;padding-inline:36px;}
+  #page-trip > .hero {margin:19px 0 12px;min-height:245px;padding:27px;}
+  #page-trip > .section:has(#todayQuickOverview) {padding:17px 0 8px;}
+  #page-trip .today-overview-card {padding:24px;box-shadow:0 5px 24px rgba(89,67,135,.055);}
+  #page-trip > .section:has(> .grid) {padding-top:24px;padding-bottom:14px;}
+  #page-trip > .section > .grid {grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+  #page-trip .action-card {
+    border:1px solid #eee7f6;
+    background:linear-gradient(180deg,#fff,#fefcff);
+    padding:22px 20px;
+    min-height:139px;
+    transition:border-color .15s,box-shadow .15s,transform .15s;
+  }
+  #page-trip .action-card:hover {
+    border-color:#c6b6ec;
+    box-shadow:0 10px 26px rgba(120,92,176,.10);
+    transform:translateY(-2px);
+  }
+  #page-trip .action-icon {font-size:27px;margin-bottom:13px;}
+  #page-trip .action-card strong {font-size:16px;}
+  #page-trip .action-card span {font-size:12px;line-height:1.55;}
+  #page-trip > .section:has(#recentRecords),
+  #page-trip > .section:has(#dailyCloseCard) {padding-top:18px;padding-bottom:8px;}
+  #page-records.active,#page-stats.active {padding-bottom:40px;}
+  #page-stats .stats-mini-grid {gap:15px;}
+  #statsChartView:not(.hidden),#statsDetailView:not(.hidden) {gap:17px;}
+  #statsChartView > .card,#statsDetailView > .card {padding:22px;}
+  .bottom-nav:not(.hidden) {
+    position:fixed;
+    top:0;
+    bottom:0;
+    left:0;
+    right:auto;
+    transform:none;
+    width:200px;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:9px;
+    padding:111px 13px 24px;
+    border:0;
+    border-right:1px solid #e7e0f0;
+    border-radius:0;
+    background:#ffffffed;
+    box-shadow:4px 0 28px rgba(75,55,118,.035);
+    backdrop-filter:blur(18px);
+  }
+  .bottom-nav:not(.hidden):before {
+    content:"WEN'S TRAVEL";
+    position:absolute;
+    top:37px;
+    left:23px;
+    letter-spacing:1.7px;
+    font-size:12px;
+    font-weight:900;
+    color:#9479ca;
+  }
+  .bottom-nav .nav-btn {
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:15px;
+    border-radius:13px;
+    padding:14px 13px;
+    min-height:53px;
+    font-size:14px;
+    text-align:left;
+    color:#877c9d;
+  }
+  .bottom-nav .nav-btn span {font-size:20px;margin:0;display:inline-block;width:24px;}
+  .bottom-nav .nav-btn.active {background:#f0eafe;color:#795cc4;}
+  .bottom-nav .nav-btn:hover {background:#f8f5ff;}
+  .pill {transition:background .15s,transform .15s;}
+  .pill:hover {background:#ece3ff;}
+  .fab {box-shadow:0 10px 26px #8668ba30;}
+  #page-home #tripList + .fab {margin-top:16px;}
+  #scrollTopBtn {right:34px;bottom:34px;}
+}
+@media (min-width:760px) and (max-width:1099px) {
+  .app {background:linear-gradient(180deg,#fff,#faf7fe);border:1px solid #eae3f4;}
+  .section-title {font-size:16px;}
+  .card,.form-card,.trip-card {border-radius:19px;}
+  #tripList {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  #tripList > * {min-width:0;}
+  #tripList .trip-card {margin-bottom:0;}
+}
