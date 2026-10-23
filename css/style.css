@@ -2122,3 +2122,56 @@
   .app, .page { min-width: 0; }
   .row > *, .form-group { min-width: 0; }
 }
+
+/* Desktop trip dashboard — 2026-10-23.
+   Page structure stays intact; phone/tablet below 900px is unchanged. */
+@media (min-width: 900px) {
+  #page-trip.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: start;
+    align-items: stretch;
+    column-gap: 18px;
+    padding: 0 28px 40px;
+  }
+  #page-trip > * { min-width:0; }
+  #page-trip > .top,
+  #page-trip > #archiveNotice,
+  #page-trip > #pendingRefundReminderSection,
+  #page-trip > .section:not(:has(#todayQuickOverview)) {
+    grid-column: 1 / -1;
+  }
+  #page-trip > .hero {
+    grid-column: 1;
+    margin: 12px 0;
+    height: calc(100% - 24px);
+    min-height: 218px;
+  }
+  #page-trip > .section:has(#todayQuickOverview) {
+    grid-column: 2;
+    margin: 0;
+    padding: 10px 0;
+    min-width:0;
+  }
+  #page-trip > .section:has(#todayQuickOverview) .today-overview-card { height:calc(100% - 27px); }
+  #page-trip > .section:has(> .grid) { padding:14px 0 8px; }
+  #page-trip > .section > .grid {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+  #page-trip .action-card { min-width:0;height:100%; }
+  #page-trip > .section:has(#recentRecords),
+  #page-trip > .section:has(#dailyCloseCard) { padding:14px 0; }
+  #page-trip > .top { padding-left:0;padding-right:0; }
+  #page-stats.active { max-width:100%; }
+  #statsChartView:not(.hidden), #statsDetailView:not(.hidden) {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+    align-items:start;
+  }
+  #statsChartView > *, #statsDetailView > * { min-width:0;margin-top:0; }
+}
+@media (min-width: 760px) and (max-width: 899px) {
+  #page-trip > .section > .grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
