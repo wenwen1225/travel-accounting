@@ -2326,3 +2326,20 @@
   #tripList > * {min-width:0;}
   #tripList .trip-card {margin-bottom:0;}
 }
+
+/* Visual QA: ensure desktop quick actions form a regular three-column grid.
+   Preserve disabled/archive dimming to accurately indicate unavailable actions. */
+@media (min-width:900px) {
+  #page-trip .grid > .stats-action-card,
+  #page-trip .grid > .settlement-action-card,
+  #page-trip .grid > .health-action-card {
+    grid-column:auto;
+  }
+  #page-trip .grid > .action-card {
+    align-self:stretch;
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  #page-trip .grid > .action-card:disabled,
+  #page-trip .grid > .action-card.archive-disabled {opacity:.45;}
+}
