@@ -2343,3 +2343,147 @@
   #page-trip .grid > .action-card:disabled,
   #page-trip .grid > .action-card.archive-disabled {opacity:.45;}
 }
+
+/* B edition — true desktop trip dashboard, 2026-10-25.
+   Grid placement is explicit because the fund section is injected after the hero.
+   No changes to monetary calculations, storage, navigation or mobile views. */
+@media (min-width:1100px) {
+  body {padding-left:216px;padding-right:20px;}
+  body > .app {max-width:1440px;margin:18px auto 0;}
+  #page-trip.active {
+    display:grid;
+    grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
+    grid-template-rows:auto auto auto auto auto auto auto auto auto;
+    column-gap:22px;
+    row-gap:0;
+    padding:0 30px 38px;
+    align-content:start;
+    align-items:stretch;
+  }
+  #page-trip > * {min-width:0;}
+  #page-trip > .top {
+    grid-column:1 / -1;
+    grid-row:1;
+    margin:0 -30px;
+    padding:26px 30px 20px;
+  }
+  #page-trip > #archiveNotice {grid-column:1 / -1;grid-row:2;}
+  #page-trip > #pendingRefundReminderSection {grid-column:1 / -1;grid-row:3;}
+  #page-trip > .hero {
+    grid-row:4;
+    grid-column:1;
+    width:auto;
+    height:auto;
+    margin:18px 0 0;
+    min-height:266px;
+    padding:26px 30px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  #page-trip > .section:has(#todayQuickOverview) {
+    grid-row:4;
+    grid-column:2;
+    padding:18px 0 0;
+    margin:0;
+    display:flex;
+    flex-direction:column;
+  }
+  #page-trip > .section:has(#todayQuickOverview) > .section-title {min-height:24px;margin-bottom:12px;}
+  #page-trip #todayQuickOverview {
+    flex:1;
+    height:auto!important;
+    min-height:220px;
+    padding:20px 24px;
+  }
+  #page-trip > #fundAccountsSection {
+    grid-row:5;
+    grid-column:1 / -1;
+    display:block;
+    padding:24px 0 0;
+    margin:0;
+  }
+  #fundAccountsSection .fund-heading {
+    margin:0 0 13px;
+    font-size:17px;
+  }
+  #fundAccountsSection .fund-overview {
+    display:grid;
+    grid-template-columns: minmax(230px,.8fr) minmax(0,1.5fr);
+    gap:12px 26px;
+    padding:24px 26px!important;
+    border-radius:20px!important;
+    background:#fff!important;
+    box-shadow:0 8px 28px rgba(89,67,135,.06)!important;
+    align-items:center;
+  }
+  #fundAccountsSection .fund-overview-top {
+    grid-column:1;
+    grid-row:1;
+    align-self:center;
+  }
+  #fundAccountsSection .fund-total {
+    font-size:clamp(29px,2.7vw,40px);
+    font-weight:900;
+  }
+  #fundAccountsSection #fundMiniGrid {
+    grid-column:2;
+    grid-row:1;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    margin:0;
+    gap:10px;
+  }
+  #fundAccountsSection .fund-mini {padding:15px 12px!important;min-width:0;}
+  #fundAccountsSection .fund-mini strong {font-size:16px!important;overflow-wrap:anywhere;}
+  #fundAccountsSection #fundFeeText {
+    grid-column:1 / -1;
+    grid-row:2;
+    margin:0;
+    font-size:11px;
+  }
+  #fundAccountsSection .fund-overview > .fund-manage-btn {
+    grid-column:1;
+    grid-row:3;
+    width:100%;
+    margin:0!important;
+    min-height:43px;
+  }
+  #fundAccountsSection #fundLedgerOpenBtn {
+    grid-column:2;
+    grid-row:3;
+    width:100%;
+    min-height:43px;
+    margin:0!important;
+    border:1px solid #e4d9f5;
+    background:#faf7ff;
+  }
+  #fundAccountsSection .fund-overview > :not(.fund-overview-top):not(#fundMiniGrid):not(#fundFeeText):not(.fund-manage-btn):not(#fundLedgerOpenBtn) {
+    grid-column:1 / -1;
+  }
+  #page-trip > .section:has(> .grid) {
+    grid-row:6;
+    grid-column:1 / -1;
+    padding:27px 0 6px;
+  }
+  #page-trip > .section:has(> .grid) > .grid {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:13px;
+  }
+  #page-trip .grid > .action-card {
+    grid-column:auto;
+    min-height:128px;
+    border-radius:17px;
+    padding:19px 18px;
+  }
+  #page-trip .grid > .action-card .action-icon {font-size:23px;margin-bottom:10px;}
+  #page-trip .grid > .action-card strong {font-size:15px;}
+  #page-trip > #dailyCloseReminder {grid-column:1 / -1;grid-row:7;}
+  #page-trip > .section:has(#recentRecords) {grid-column:1 / -1;grid-row:8;padding:25px 0 4px;}
+  #page-trip > .trip-delete-section {grid-column:1 / -1;grid-row:9;padding:24px 0 0;}
+}
+@media (min-width:1100px) and (max-width:1280px) {
+  #page-trip > .section:has(> .grid) > .grid {grid-template-columns:repeat(3,minmax(0,1fr));}
+  #fundAccountsSection .fund-overview {grid-template-columns:minmax(200px,.7fr) minmax(0,1.5fr);}
+}
