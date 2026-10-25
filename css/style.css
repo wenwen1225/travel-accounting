@@ -2730,3 +2730,32 @@
     color:#9479ca;
   }
 }
+
+/* Wen's Space: use the sidebar on desktop, retain the trip-home shortcut on mobile. */
+#wensSpaceSidebarLink {display:none;}
+@media (min-width:900px) {
+  #page-home > div:has(> #wensSpaceHomeLink) {display:none!important;}
+  #bottomNav #wensSpaceSidebarLink {
+    display:flex;
+    flex:0 0 auto;
+    align-items:center;
+    justify-content:center;
+    margin-top:auto;
+    width:100%;
+    min-height:45px;
+    padding:10px 8px;
+    color:#7052a0;
+    text-decoration:none;
+    font-size:12px;
+    line-height:1.45;
+    font-weight:800;
+    border:1px solid #e3d9f3;
+    background:#f4effc;
+    border-radius:13px;
+    transition:background .15s;
+  }
+  #bottomNav #wensSpaceSidebarLink:hover {background:#eae0fa;}
+}
+@media (max-width:899px) {
+  #bottomNav #wensSpaceSidebarLink {display:none!important;}
+}
