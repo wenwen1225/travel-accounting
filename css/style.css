@@ -2594,3 +2594,97 @@
   #page-home.active {padding-bottom:105px;}
   #page-home #tripList {grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));}
 }
+
+/* Desktop navigation stability — 2026-10-25.
+   The sidebar stays anchored to the viewport while scrolling or resizing.
+   Narrow mobile viewports keep the existing bottom navigation. */
+@media (min-width:900px) {
+  body {
+    padding-left:216px;
+    padding-right:20px;
+  }
+  body > .app {
+    overflow:visible;
+    min-width:0;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  #bottomNav.bottom-nav:not(.hidden) {
+    position:fixed;
+    top:0;
+    bottom:0;
+    left:0;
+    right:auto;
+    transform:none;
+    width:200px;
+    min-width:200px;
+    max-width:200px;
+    height:100vh;
+    height:100dvh;
+    padding:110px 13px 24px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:stretch;
+    gap:9px;
+    border:0;
+    border-right:1px solid #e7e0f0;
+    border-radius:0;
+    background:#fff;
+    box-shadow:4px 0 28px rgba(75,55,118,.06);
+    z-index:1000;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  #bottomNav.bottom-nav:not(.hidden)::before {
+    content:"WEN'S TRAVEL";
+    position:absolute;
+    top:37px;
+    left:23px;
+    letter-spacing:1.7px;
+    font-size:12px;
+    font-weight:900;
+    color:#9479ca;
+  }
+  #bottomNav .nav-btn {
+    width:100%;
+    display:flex;
+    gap:15px;
+    align-items:center;
+    min-height:53px;
+    padding:14px 13px;
+    text-align:left;
+    font-size:14px;
+    border-radius:13px;
+  }
+  #bottomNav .nav-btn span {
+    display:inline-block;
+    width:24px;
+    margin:0;
+    font-size:20px;
+  }
+  #bottomNav .nav-btn.active {background:#f0eafe;color:#795cc4;}
+}
+@media (min-width:900px) and (max-width:1099px) {
+  body {padding-top:18px;padding-bottom:32px;}
+  body > .app {width:100%;max-width:100%;border-radius:24px;}
+}
+@media (max-width:899px) {
+  #bottomNav.bottom-nav:not(.hidden) {
+    top:auto;
+    left:50%;
+    right:auto;
+    bottom:0;
+    transform:translateX(-50%);
+    width:min(520px,100%);
+    max-width:none;
+    height:auto;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    border-radius:15px 15px 0 0;
+    border:0;
+    border-top:1px solid var(--line);
+    z-index:1000;
+  }
+}
